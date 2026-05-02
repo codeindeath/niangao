@@ -16,7 +16,7 @@ func init() {
 func TestCORSMiddleware(t *testing.T) {
 	r := gin.New()
 	r.Use(CORS())
-	r.GET("/test", func(c *gin.Context) {
+	r.Any("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
 

@@ -3,6 +3,7 @@ package model
 import (
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func TestIsValidDomain(t *testing.T) {
@@ -145,10 +146,11 @@ func TestInterpretationLength(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.valid && len(tt.interpretation) > 500 {
-				t.Errorf("interpretation length %d exceeds 500", len(tt.interpretation))
+			charLen := utf8.RuneCountInString(tt.interpretation)
+			if tt.valid && charLen > 500 {
+				t.Errorf("interpretation char length %d exceeds 500", charLen)
 			}
-			if !tt.valid && len(tt.interpretation) <= 500 {
+			if !tt.valid && charLen <= 500 {
 				t.Error("interpretation should be flagged as too long")
 			}
 		})
