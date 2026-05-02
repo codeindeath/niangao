@@ -138,3 +138,58 @@ CREATE TABLE messages (
 );
 
 CREATE INDEX idx_msg_conv ON messages(conversation_id, created_at);
+
+-- ============================================
+-- 用户统计触发器
+-- ============================================
+CREATE OR REPLACE FUNCTION update_experience_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE users SET experience_count = experience_count + 1 WHERE id = NEW.author_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE users SET experience_count = experience_count - 1 WHERE id = OLD.author_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER on_experience_change
+  AFTER INSERT OR DELETE ON experiences
+  FOR EACH ROW EXECUTE FUNCTION update_experience_count();
+
+CREATE OR REPLACE FUNCTION update_user_bookmark_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE users SET bookmark_count = bookmark_count + 1 WHERE id = NEW.user_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE users SET bookmark_count = bookmark_count - 1 WHERE id = OLD.user_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER on_user_bookmark_change
+  AFTER INSERT OR DELETE ON bookmarks
+  FOR EACH ROW EXECUTE FUNCTION update_user_bookmark_count();
+
+CREATE OR REPLACE FUNCTION update_practiced_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF NEW.practiced = TRUE AND OLD.practiced = FALSE THEN
+      UPDATE users SET practiced_count = practiced_count + 1 WHERE id = NEW.user_id;
+    ELSIF NEW.practiced = FALSE AND OLD.practiced = TRUE THEN
+      UPDATE users SET practiced_count = practiced_count - 1 WHERE id = NEW.user_id;
+    END IF;
+  ELSIF TG_OP = 'INSERT' AND NEW.practiced = TRUE THEN
+    UPDATE users SET practiced_count = practiced_count + 1 WHERE id = NEW.user_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER on_practiced_change
+  AFTER INSERT OR UPDATE OF practiced ON bookmarks
+  FOR EACH ROW EXECUTE FUNCTION update_practiced_count();

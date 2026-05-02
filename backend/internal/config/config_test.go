@@ -23,13 +23,15 @@ func TestLoadDefaults(t *testing.T) {
 func TestLoadFromEnv(t *testing.T) {
 	os.Setenv("PORT", "3000")
 	os.Setenv("DATABASE_URL", "postgresql://test:test@localhost:5432/testdb")
-	os.Setenv("SUPABASE_JWT_SECRET", "test-jwt-secret")
-	os.Setenv("SUPABASE_URL", "https://test.supabase.co")
+	os.Setenv("JWT_SECRET", "test-jwt-secret")
+	os.Setenv("WECHAT_APP_ID", "wx_test_app_id")
+	os.Setenv("WECHAT_APP_SECRET", "test_app_secret")
 	defer func() {
 		os.Unsetenv("PORT")
 		os.Unsetenv("DATABASE_URL")
-		os.Unsetenv("SUPABASE_JWT_SECRET")
-		os.Unsetenv("SUPABASE_URL")
+		os.Unsetenv("JWT_SECRET")
+		os.Unsetenv("WECHAT_APP_ID")
+		os.Unsetenv("WECHAT_APP_SECRET")
 	}()
 
 	cfg := Load()
@@ -40,11 +42,14 @@ func TestLoadFromEnv(t *testing.T) {
 	if cfg.DatabaseURL != "postgresql://test:test@localhost:5432/testdb" {
 		t.Errorf("database URL not loaded from env")
 	}
-	if cfg.SupabaseJWTSecret != "test-jwt-secret" {
-		t.Errorf("JWT secret not loaded from env")
+	if cfg.JWTSecret != "test-jwt-secret" {
+		t.Errorf("JWT secret not loaded from env, got %q", cfg.JWTSecret)
 	}
-	if cfg.SupabaseURL != "https://test.supabase.co" {
-		t.Errorf("Supabase URL not loaded from env")
+	if cfg.WechatAppID != "wx_test_app_id" {
+		t.Errorf("WeChat AppID not loaded from env, got %q", cfg.WechatAppID)
+	}
+	if cfg.WechatAppSecret != "test_app_secret" {
+		t.Errorf("WeChat AppSecret not loaded from env, got %q", cfg.WechatAppSecret)
 	}
 }
 

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年糕 App - 微信登录流程</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f3ef; display: flex; justify-content: center; padding: 40px; }
+.diagram { background: #fff; border-radius: 24px; padding: 48px 40px; max-width: 900px; box-shadow: 0 2px 20px rgba(0,0,0,.06); }
+h1 { font-size: 22px; color: #4a7c59; margin-bottom: 8px; }
+.sub { font-size: 13px; color: #999; margin-bottom: 36px; }
+.flow { display: flex; flex-direction: column; gap: 0; }
+.step { display: flex; align-items: flex-start; gap: 16px; position: relative; padding-bottom: 28px; }
+.step::before { content: ''; position: absolute; left: 19px; top: 44px; bottom: 0; width: 2px; background: #e8e4df; }
+.step:last-child::before { display: none; }
+.step:last-child { padding-bottom: 0; }
+.num { width: 40px; height: 40px; border-radius: 50%; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1; }
+.num.green { background: #4a7c59; color: #fff; }
+.num.blue { background: #07c160; color: #fff; }
+.num.gray { background: #e8e4df; color: #888; }
+.info { flex: 1; padding-top: 6px; }
+.info h3 { font-size: 16px; color: #1a1a1a; margin-bottom: 4px; }
+.info p { font-size: 13px; color: #888; line-height: 1.6; }
+.split { display: flex; gap: 24px; margin: 20px 0; }
+.col { flex: 1; border: 1px solid #eee; border-radius: 14px; padding: 20px; }
+.col h4 { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.col-client h4 { color: #4a7c59; }
+.col-server h4 { color: #e8a850; }
+.col-item { font-size: 12px; color: #666; padding: 4px 0; padding-left: 16px; position: relative; }
+.col-item::before { content: '•'; position: absolute; left: 2px; color: #ccc; }
+</style>
+</head>
+<body>
+<div class="diagram">
+  <h1>年糕 App · 微信 OAuth 登录流程</h1>
+  <p class="sub">基于微信开放平台移动应用 SDK 的认证流程</p>
+
+  <div class="flow">
+    <div class="step">
+      <div class="num green">1</div>
+      <div class="info">
+        <h3>用户点击"微信一键登录"</h3>
+        <p>App 调用微信 SDK 的 SendAuthReq，请求用户授权</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num blue">2</div>
+      <div class="info">
+        <h3>微信 App 展示授权页</h3>
+        <p>用户在微信内确认授权，微信 SDK 回调返回 authorization code</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num green">3</div>
+      <div class="info">
+        <h3>App 将 code 发送到后端</h3>
+        <p>POST /api/v1/auth/wechat/login { code }</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="split">
+    <div class="col col-client">
+      <h4>📱 移动端</h4>
+      <div class="col-item">保存 JWT Token 到本地存储</div>
+      <div class="col-item">保存用户信息（昵称、头像）</div>
+      <div class="col-item">后续请求自动附带 Authorization 头</div>
+      <div class="col-item">Token 过期 → 重新走登录流程</div>
+    </div>
+    <div class="col col-server">
+      <h4>🖥 后端服务</h4>
+      <div class="col-item">调用微信 API 以 code 换 openid</div>
+      <div class="col-item">查找或创建用户记录（users 表）</div>
+      <div class="col-item">签发 JWT Token（7 天有效）</div>
+      <div class="col-item">生成 Refresh Token</div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="step">
+      <div class="num gray">4</div>
+      <div class="info">
+        <h3>登录成功，进入 App 主界面</h3>
+        <p>用户信息存入 AsyncStorage，所有 API 请求携带 Bearer Token</p>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

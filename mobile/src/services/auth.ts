@@ -13,8 +13,8 @@ export async function loginWithWechat(): Promise<{ success: boolean; user?: any;
   try {
     // 1. 向微信请求授权，拿到 code
     const authResp = await WeChat.sendAuthRequest('snsapi_userinfo', 'niangao_login');
-    if (!authResp.errCode) {
-      // 用户取消
+    if (authResp.errCode !== 0) {
+      // 用户取消或授权失败
       return { success: false, error: '用户取消登录' };
     }
 

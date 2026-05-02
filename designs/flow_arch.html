@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年糕 App - 系统架构图</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f3ef; display: flex; justify-content: center; padding: 40px; }
+.diagram { background: #fff; border-radius: 24px; padding: 48px 40px; max-width: 900px; box-shadow: 0 2px 20px rgba(0,0,0,.06); width: 100%; }
+h1 { font-size: 22px; color: #4a7c59; margin-bottom: 8px; }
+.sub { font-size: 13px; color: #999; margin-bottom: 32px; }
+.layers { display: flex; flex-direction: column; gap: 12px; }
+.layer { border-radius: 14px; padding: 20px 24px; }
+.layer-client { background: #eaf2e8; border: 1px solid #c8dcc8; }
+.layer-server { background: #fff8f0; border: 1px solid #f0dcc0; }
+.layer-data { background: #f0f4ff; border: 1px solid #d0d8f0; }
+.layer-ai { background: #fdf0f5; border: 1px solid #f0c8d8; }
+.layer h3 { font-size: 15px; margin-bottom: 10px; }
+.layer-client h3 { color: #4a7c59; }
+.layer-server h3 { color: #e8a850; }
+.layer-data h3 { color: #3b82f6; }
+.layer-ai h3 { color: #e85d8a; }
+.layer-items { display: flex; gap: 10px; flex-wrap: wrap; }
+.tag { font-size: 11px; padding: 4px 12px; border-radius: 6px; font-weight: 600; }
+.tag-client { background: #fff; color: #4a7c59; border: 1px solid #a8c8a8; }
+.tag-server { background: #fff; color: #c08040; border: 1px solid #e0c090; }
+.tag-data { background: #fff; color: #3b82f6; border: 1px solid #a0b8f0; }
+.tag-ai { background: #fff; color: #e85d8a; border: 1px solid #f0b0c8; }
+.arrow-down { text-align: center; font-size: 18px; color: #ccc; margin: 0; padding: 0; line-height: 1; }
+.note { background: #fffbe6; border: 1px solid #f0e68c; border-radius: 10px; padding: 14px 18px; margin-top: 24px; font-size: 13px; color: #8a7d30; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="diagram">
+  <h1>年糕 App · 系统架构图</h1>
+  <p class="sub">四层架构：客户端 → 服务端 → 数据层 → AI 层</p>
+
+  <div class="layers">
+    <div class="layer layer-client">
+      <h3>📱 客户端层 · React Native (iOS)</h3>
+      <div class="layer-items">
+        <span class="tag tag-client">React Native 0.73</span>
+        <span class="tag tag-client">微信 SDK (react-native-wechat-lib)</span>
+        <span class="tag tag-client">AsyncStorage Token 持久化</span>
+        <span class="tag tag-client">5 个 Tab 导航</span>
+        <span class="tag tag-client">SSE 流式消息接收</span>
+      </div>
+    </div>
+
+    <div class="arrow-down">▼</div>
+
+    <div class="layer layer-server">
+      <h3>🖥 服务端层 · Go + Python</h3>
+      <div class="layer-items">
+        <span class="tag tag-server">Go Gin 框架 (端口 8080)</span>
+        <span class="tag tag-server">JWT 认证中间件</span>
+        <span class="tag tag-server">经验 CRUD API</span>
+        <span class="tag tag-server">微信 OAuth 登录</span>
+        <span class="tag tag-server">Nginx 反向代理</span>
+        <span class="tag tag-server">Python FastAPI (端口 8000)</span>
+        <span class="tag tag-server">AI 对话服务</span>
+        <span class="tag tag-server">向量 Embedding 检索</span>
+      </div>
+    </div>
+
+    <div class="arrow-down">▼</div>
+
+    <div class="layer layer-data">
+      <h3>🗄 数据层 · 火山引擎云服务</h3>
+      <div class="layer-items">
+        <span class="tag tag-data">RDS PostgreSQL 15</span>
+        <span class="tag tag-data">7 张业务表 + 触发器</span>
+        <span class="tag tag-data">pgvector 向量索引</span>
+        <span class="tag tag-data">Redis 缓存 Session</span>
+        <span class="tag tag-data">国内节点低延迟</span>
+      </div>
+    </div>
+
+    <div class="arrow-down">▼</div>
+
+    <div class="layer layer-ai">
+      <h3>🤖 AI 服务层 · 第三方 API</h3>
+      <div class="layer-items">
+        <span class="tag tag-ai">DeepSeek API (对话生成)</span>
+        <span class="tag tag-ai">text-embedding-3-small (向量化)</span>
+        <span class="tag tag-ai">微信开放平台 (OAuth 认证)</span>
+        <span class="tag tag-ai">人本主义 Prompt 模板</span>
+        <span class="tag tag-ai">RAG 经验检索增强</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    💡 全部基础设施部署在<strong>火山引擎</strong>（中国节点），无境外依赖。个人开发者即可完成全部运维，月成本约 ¥200-300。
+  </div>
+</div>
+</body>
+</html>

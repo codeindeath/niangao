@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "SWT.com.swt.niangaogao",
+        "paths": ["/app/*"]
+      }
+    ]
+  }
+}

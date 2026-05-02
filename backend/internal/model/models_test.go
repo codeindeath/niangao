@@ -104,16 +104,17 @@ func TestCreateExperienceRequestValidation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req := CreateExperienceRequest{
-				Content: tt.content,
-				Domain:  tt.domain,
-			}
+	t.Run(tt.name, func(t *testing.T) {
+		req := CreateExperienceRequest{
+			Content: tt.content,
+			Domain:  tt.domain,
+		}
 
-			// Verify content length
-			if tt.valid {
-				if len(req.Content) > 100 {
-					t.Errorf("content length %d exceeds 100", len(req.Content))
+		// Verify content length (characters, not bytes)
+		charLen := utf8.RuneCountInString(req.Content)
+		if tt.valid {
+			if charLen > 100 {
+				t.Errorf("content char length %d exceeds 100", charLen)
 				}
 				if !IsValidDomain(req.Domain) {
 					t.Errorf("domain %s should be valid", req.Domain)

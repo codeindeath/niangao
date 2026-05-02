@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年糕 App - 用户交互流程</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f5f3ef; display: flex; justify-content: center; padding: 40px;
+}
+.diagram { 
+  background: #fff; border-radius: 24px; padding: 48px 40px;
+  max-width: 900px; box-shadow: 0 2px 20px rgba(0,0,0,.06);
+}
+h1 { font-size: 22px; color: #4a7c59; margin-bottom: 8px; }
+.sub { font-size: 13px; color: #999; margin-bottom: 36px; }
+.flow { display: flex; flex-direction: column; gap: 0; }
+.step { 
+  display: flex; align-items: flex-start; gap: 16px; 
+  position: relative; padding-bottom: 28px;
+}
+.step::before {
+  content: ''; position: absolute; left: 19px; top: 44px; bottom: 0;
+  width: 2px; background: #e8e4df;
+}
+.step:last-child::before { display: none; }
+.step:last-child { padding-bottom: 0; }
+.num {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #4a7c59; color: #fff; font-size: 16px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; z-index: 1;
+}
+.info { flex: 1; padding-top: 6px; }
+.info h3 { font-size: 16px; color: #1a1a1a; margin-bottom: 4px; }
+.info p { font-size: 13px; color: #888; line-height: 1.6; }
+.branch { 
+  display: flex; gap: 12px; margin-top: 8px;
+}
+.branch-item {
+  background: #faf8f5; border: 1px solid #eee; border-radius: 10px;
+  padding: 10px 14px; font-size: 12px; color: #666;
+  display: flex; align-items: center; gap: 6px;
+}
+.branch-dot { width: 8px; height: 8px; border-radius: 50%; }
+.branch-dot.green { background: #4a7c59; }
+.branch-dot.orange { background: #e8a850; }
+</style>
+</head>
+<body>
+<div class="diagram">
+  <h1>年糕 App · 用户交互流程</h1>
+  <p class="sub">从启动到核心功能使用的完整路径</p>
+  
+  <div class="flow">
+    <div class="step">
+      <div class="num">1</div>
+      <div class="info">
+        <h3>启动 App</h3>
+        <p>检查本地 Token，判断登录状态</p>
+        <div class="branch">
+          <div class="branch-item"><div class="branch-dot green"></div> 已登录 → 进入首页</div>
+          <div class="branch-item"><div class="branch-dot orange"></div> 未登录 → 显示登录页</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">2</div>
+      <div class="info">
+        <h3>微信一键登录</h3>
+        <p>用户点击"微信一键登录" → 调起微信 App 授权 → 获取 code → 后端换取 openid → 签发 JWT → 进入首页</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">3</div>
+      <div class="info">
+        <h3>首页信息流</h3>
+        <p>浏览经验卡片流（下拉刷新 + 无限滚动），每张卡片展示：作者头像昵称、领域标签、100 字经验内容、点赞/收藏按钮</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">4</div>
+      <div class="info">
+        <h3>发布经验</h3>
+        <p>点击底部中央 ⊕ 按钮 → 输入 100 字经验内容 → 选择领域分类 → 发布 → AI 自动生成 500 字解读</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">5</div>
+      <div class="info">
+        <h3>AI 对话辅导</h3>
+        <p>进入「对话」Tab → 向 AI 辅导员发送消息 → AI 检索用户的经验库（已创建+已收藏）→ 基于人本主义方法生成个性化回复</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">6</div>
+      <div class="info">
+        <h3>个人主页</h3>
+        <p>查看个人信息、已发布经验列表、已收藏经验列表、已实践标记</p>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
