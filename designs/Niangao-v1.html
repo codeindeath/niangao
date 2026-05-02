@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年糕 App — 设计原型</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #faf8f5;
+  --surface: #ffffff;
+  --surface-warm: #fef9f0;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b6b6b;
+  --text-tertiary: #9a9a9a;
+  --accent: #4a7c59;
+  --accent-light: #e8f0e6;
+  --accent-soft: #f0f7ef;
+  --border: #e8e4df;
+  --border-light: #f0ece7;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --chat-bg: #fbf9f6;
+  --chat-self: #4a7c59;
+  --chat-ai: #f0ece7;
+  --like: #e85d5d;
+  --save: #e8a850;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #e8e4df;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* Phone Frame */
+.phone {
+  width: 390px;
+  height: 844px;
+  background: var(--bg);
+  border-radius: 40px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 2px #1a1a1a;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Status Bar */
+.status-bar {
+  padding: 14px 28px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg);
+}
+.status-bar .time { font-weight: 700; }
+.status-icons { display: flex; gap: 6px; align-items: center; }
+.status-icons svg { width: 16px; height: 16px; }
+
+/* Screen Container */
+.screen {
+  flex: 1;
+  overflow-y: auto;
+  display: none;
+  padding-bottom: 90px;
+}
+.screen.active { display: block; }
+.screen::-webkit-scrollbar { display: none; }
+
+/* Bottom Navigation */
+.bottom-nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 84px;
+  background: rgba(250,248,245,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 0.5px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  padding-top: 10px;
+  padding-bottom: 12px;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 4px 12px;
+  border-radius: 10px;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.nav-item svg { width: 24px; height: 24px; }
+.nav-item span { font-size: 10px; font-weight: 500; color: var(--text-tertiary); }
+.nav-item.active span { color: var(--accent); font-weight: 600; }
+.nav-item.active svg { color: var(--accent); }
+
+/* Screen Header */
+.screen-header {
+  padding: 12px 20px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.screen-header h1 {
+  font-family: 'DM Serif Display', 'Noto Sans SC', serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+.screen-header h1 .dot {
+  color: var(--accent);
+}
+.header-actions { display: flex; gap: 14px; }
+.header-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.header-actions button:hover { background: var(--accent-light); }
+.header-actions svg { width: 22px; height: 22px; color: var(--text-secondary); }
+
+/* Section Title */
+.section-title {
+  padding: 20px 20px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.section-title-sub {
+  padding: 16px 20px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+/* Experience Card */
+.exp-card {
+  margin: 0 16px 10px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  border: 0.5px solid var(--border-light);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.exp-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.exp-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.exp-card .card-domain {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+}
+.exp-card .card-time {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.exp-card .card-content {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.exp-card .card-actions {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--border-light);
+}
+.card-action {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 4px 0;
+  font-family: inherit;
+}
+.card-action svg { width: 16px; height: 16px; }
+.card-action.liked svg { color: var(--like); fill: var(--like); }
+.card-action.liked { color: var(--like); }
+.card-action.saved svg { color: var(--save); fill: var(--save); }
+.card-action.saved { color: var(--save); }
+
+/* Author Row */
+.author-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.author-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.author-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* --- Detail Screen --- */
+.detail-back {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+.detail-back svg { width: 20px; height: 20px; }
+.detail-hero {
+  padding: 4px 20px 0;
+}
+.detail-hero .card-domain { display: inline-block; margin-bottom: 14px; }
+.detail-hero h2 {
+  font-size: 22px;
+  line-height: 1.45;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+.detail-interpretation {
+  margin: 16px 20px;
+  background: var(--surface-warm);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  border: 0.5px solid var(--border-light);
+}
+.detail-interpretation h3 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+.detail-interpretation p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.detail-actions-bar {
+  display: flex;
+  gap: 12px;
+  padding: 20px;
+}
+.btn-primary {
+  flex: 1;
+  padding: 14px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.btn-primary:hover { opacity: 0.9; transform: scale(0.98); }
+.btn-secondary {
+  padding: 14px 22px;
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* --- Create Screen --- */
+.create-container { padding: 0 20px; }
+.create-field {
+  margin-bottom: 20px;
+}
+.create-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.create-field .char-count {
+  float: right;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+.create-field textarea {
+  width: 100%;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  font-size: 15px;
+  line-height: 1.6;
+  font-family: inherit;
+  resize: none;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+  outline: none;
+}
+.create-field textarea:focus { border-color: var(--accent); }
+.create-field textarea::placeholder { color: var(--text-tertiary); }
+.create-field-sm textarea { min-height: 60px; font-size: 16px; font-weight: 500; }
+.create-field-lg textarea { min-height: 140px; }
+.ai-suggest-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 14px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.ai-suggest-btn svg { width: 14px; height: 14px; }
+
+/* --- AI Chat Screen --- */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px;
+}
+.chat-status {
+  text-align: center;
+  padding: 16px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.5px;
+}
+.chat-msg {
+  max-width: 80%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  position: relative;
+}
+.chat-msg.ai {
+  align-self: flex-start;
+  background: var(--chat-ai);
+  color: var(--text-primary);
+  border-bottom-left-radius: 6px;
+}
+.chat-msg.self {
+  align-self: flex-end;
+  background: var(--chat-self);
+  color: white;
+  border-bottom-right-radius: 6px;
+}
+.chat-msg .exp-ref {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: rgba(0,0,0,0.06);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+.chat-msg.self .exp-ref { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.9); }
+.chat-input-bar {
+  position: absolute;
+  bottom: 90px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 8px 12px;
+  box-shadow: var(--shadow-md);
+  border: 0.5px solid var(--border);
+}
+.chat-input-bar textarea {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 6px 4px;
+  max-height: 80px;
+  background: transparent;
+  color: var(--text-primary);
+}
+.chat-input-bar textarea::placeholder { color: var(--text-tertiary); }
+.chat-send-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.chat-send-btn svg { width: 18px; height: 18px; color: white; }
+
+/* --- Profile Screen --- */
+.profile-header {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.profile-info h2 { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+.profile-info p { font-size: 13px; color: var(--text-tertiary); margin-top: 2px; }
+.profile-stats {
+  display: flex;
+  gap: 24px;
+  padding: 0 20px 20px;
+}
+.stat-item { text-align: center; }
+.stat-item .num { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+.stat-item .label { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 0.5px solid var(--border-light);
+  font-size: 15px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.menu-item .menu-icon { margin-right: 12px; }
+.menu-item .menu-arrow { color: var(--text-tertiary); }
+.menu-item-group { margin-top: 12px; }
+
+/* Common */
+.tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* Screen Switcher (dev only — hidden) */
+.screen-switcher {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 6px;
+  z-index: 1000;
+}
+.screen-switcher button {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  background: white;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.screen-switcher button:hover { background: #f0f0f0; }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <span class="status-icons">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C17.93 4.07 6.07 4.07 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-6-6l2 2c2.76-2.76 7.24-2.76 10 0l2-2C13.14 6.49 6.86 6.49 3 11z"/></svg>
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="1" y="6" width="20" height="12" rx="2"/><rect x="3" y="8" width="16" height="8" rx="1"/></svg>
+    </span>
+  </div>
+
+  <!-- ========== SCREEN 1: HOME / FEED ========== -->
+  <div class="screen active" id="screen-home">
+    <div class="screen-header">
+      <h1>年糕<span class="dot">·</span></h1>
+      <div class="header-actions">
+        <button onclick="switchScreen('search')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="section-title-sub">为你推荐</div>
+
+    <div class="exp-card" onclick="switchScreen('detail')">
+      <div class="author-row">
+        <div class="author-avatar">M</div>
+        <span class="author-name">孟岩</span>
+      </div>
+      <span class="card-domain" style="display:inline-block;margin-bottom:8px;">职场成长</span>
+      <div class="card-content">接到任务先确认 deadline 和交付标准，而不是直接开始做。</div>
+      <div class="card-actions">
+        <button class="card-action liked">♥ 2.3k</button>
+        <button class="card-action saved">★ 收藏</button>
+        <button class="card-action">↗ 分享</button>
+      </div>
+    </div>
+
+    <div class="exp-card">
+      <div class="author-row">
+        <div class="author-avatar">L</div>
+        <span class="author-name">李翔</span>
+      </div>
+      <span class="card-domain" style="display:inline-block;margin-bottom:8px;">人际关系</span>
+      <div class="card-content">别人抱怨时先问一句「你是需要一个建议，还是只需要我听」，这避免了很多无效沟通。</div>
+      <div class="card-actions">
+        <button class="card-action">♥ 1.8k</button>
+        <button class="card-action saved">★ 收藏</button>
+        <button class="card-action">↗ 分享</button>
+      </div>
+    </div>
+
+    <div class="exp-card">
+      <div class="author-row">
+        <div class="author-avatar">W</div>
+        <span class="author-name">王建硕</span>
+      </div>
+      <span class="card-domain" style="display:inline-block;margin-bottom:8px;">认知升级</span>
+      <div class="card-content">做决策时，想象你是在给朋友提建议，这能帮你摆脱自我中心的偏见。</div>
+      <div class="card-actions">
+        <button class="card-action liked">♥ 4.1k</button>
+        <button class="card-action">★ 收藏</button>
+        <button class="card-action">↗ 分享</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 2: EXPERIENCE DETAIL ========== -->
+  <div class="screen" id="screen-detail">
+    <button class="detail-back" onclick="switchScreen('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      返回
+    </button>
+    <div class="detail-hero">
+      <div class="author-row">
+        <div class="author-avatar">M</div>
+        <span class="author-name">孟岩</span>
+      </div>
+      <span class="card-domain tag">职场成长</span>
+      <h2>接到任务先确认 deadline 和交付标准，而不是直接开始做。</h2>
+    </div>
+    <div class="detail-interpretation">
+      <h3>经验解读</h3>
+      <p><strong>背景：</strong>在互联网公司，需求变更频繁。很多新人接到任务就冲进去写方案，但没对齐老板真正的期望。</p>
+      <p style="margin-top:12px;"><strong>如何执行：</strong></p>
+      <p>1. 接到任务时问三个问题：什么时候要？做到什么程度算完成？有没有参考案例？</p>
+      <p>2. 用自己的话复述一遍任务，确认理解一致。</p>
+      <p>3. 如果 deadline 明显不合理，当场沟通调整。</p>
+    </div>
+    <div class="detail-actions-bar">
+      <button class="btn-primary" onclick="switchScreen('chat')">和年糕聊聊这条经验</button>
+      <button class="btn-secondary">★</button>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 3: CREATE EXPERIENCE ========== -->
+  <div class="screen" id="screen-create">
+    <div class="screen-header">
+      <h1 style="font-size:20px;font-family:'Noto Sans SC',sans-serif;font-weight:600;">创建经验</h1>
+      <button class="btn-primary" style="flex:none;padding:10px 20px;font-size:13px;" onclick="switchScreen('home')">发布</button>
+    </div>
+    <div class="create-container">
+      <div class="create-field create-field-sm">
+        <label>经验内容 <span class="char-count">0/100</span></label>
+        <textarea placeholder="一句话说清楚你要传达的经验…"></textarea>
+      </div>
+      <div class="create-field">
+        <label>领域</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span class="tag" style="background:var(--accent);color:white;">职场成长</span>
+          <span class="tag" style="background:var(--accent-light);color:var(--accent);">人际关系</span>
+          <span class="tag" style="background:var(--accent-light);color:var(--accent);">认知升级</span>
+          <span class="tag" style="background:var(--accent-light);color:var(--accent);">生活智慧</span>
+          <span class="tag" style="background:var(--accent-light);color:var(--accent);">情感</span>
+        </div>
+      </div>
+      <div class="create-field create-field-lg">
+        <label>经验解读（可选） <span class="char-count">0/500</span></label>
+        <textarea placeholder="描述这条经验的背景、如何执行、适用场景…"></textarea>
+        <button class="ai-suggest-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          AI 辅助生成解读
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 4: AI CHAT ========== -->
+  <div class="screen" id="screen-chat">
+    <div class="screen-header">
+      <button class="detail-back" onclick="switchScreen('detail')" style="padding:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h1 style="font-size:18px;font-family:'Noto Sans SC',sans-serif;font-weight:600;">年糕对话</h1>
+      <div style="width:24px;"></div>
+    </div>
+
+    <div class="chat-container">
+      <div class="chat-status">基于你的经验库 · 人本主义对话</div>
+
+      <div class="chat-msg ai">
+        我注意到你收藏了「接到任务先确认 deadline」这条经验。最近有遇到什么让你不确定该怎么推进的工作吗？
+      </div>
+
+      <div class="chat-msg self">
+        有的，老板让我出一个新功能的方案，但他说得特别模糊，我不知道他要什么程度的东西。
+      </div>
+
+      <div class="chat-msg ai">
+        这种模糊感确实让人焦虑。你试试回想那条经验里的方法——你觉得现在可以问老板哪三个问题，来把事情变清楚？
+        <span class="exp-ref">📌 引用你的经验：接到任务先确认 deadline 和交付标准</span>
+      </div>
+
+      <div class="chat-msg self">
+        嗯…我可以问他：什么时候要？是PPT还是文档？需要包含竞品分析吗？
+      </div>
+
+      <div class="chat-msg ai">
+        这三个问题问得很到位。尤其是第三个——「包含竞品分析吗」，这直接决定了方案的工作量。你打算什么时候去问他？
+      </div>
+    </div>
+
+    <div class="chat-input-bar">
+      <textarea rows="1" placeholder="说说你的想法…"></textarea>
+      <button class="chat-send-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 5: PROFILE ========== -->
+  <div class="screen" id="screen-profile">
+    <div class="screen-header">
+      <h1 style="font-size:20px;font-family:'Noto Sans SC',sans-serif;font-weight:600;">我的</h1>
+      <div class="header-actions">
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+      </div>
+    </div>
+    <div class="profile-header">
+      <div class="profile-avatar">你</div>
+      <div class="profile-info">
+        <h2>探索者</h2>
+        <p>@explorer_nian · 加入 3 个月</p>
+      </div>
+    </div>
+    <div class="profile-stats">
+      <div class="stat-item"><div class="num">12</div><div class="label">经验</div></div>
+      <div class="stat-item"><div class="num">47</div><div class="label">收藏</div></div>
+      <div class="stat-item"><div class="num">3</div><div class="label">已实践</div></div>
+    </div>
+    <div class="menu-item-group">
+      <div class="menu-item">📋 我的经验库 <span class="menu-arrow">›</span></div>
+      <div class="menu-item">⭐ 我的收藏 <span class="menu-arrow">›</span></div>
+      <div class="menu-item">💬 对话历史 <span class="menu-arrow">›</span></div>
+    </div>
+    <div class="menu-item-group">
+      <div class="menu-item">⚙️ 设置 <span class="menu-arrow">›</span></div>
+      <div class="menu-item">❓ 帮助与反馈 <span class="menu-arrow">›</span></div>
+    </div>
+  </div>
+
+  <!-- ========== SEARCH (placeholder inline) ========== -->
+  <div class="screen" id="screen-search">
+    <div class="screen-header">
+      <button class="detail-back" onclick="switchScreen('home')" style="padding:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <input type="text" placeholder="搜索经验、领域、作者…" style="flex:1;border:none;outline:none;font-size:15px;font-family:inherit;background:transparent;padding:8px;color:var(--text-primary);">
+    </div>
+    <div style="padding:20px;color:var(--text-tertiary);font-size:14px;text-align:center;">搜索功能 — 开发中</div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <button class="nav-item active" id="nav-home" onclick="switchScreen('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>首页</span>
+    </button>
+    <button class="nav-item" id="nav-create" onclick="switchScreen('create')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>创建</span>
+    </button>
+    <button class="nav-item" id="nav-chat" onclick="switchScreen('chat')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>对话</span>
+    </button>
+    <button class="nav-item" id="nav-profile" onclick="switchScreen('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>我的</span>
+    </button>
+  </div>
+</div>
+
+<script>
+function switchScreen(screenName) {
+  // Hide all screens
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  // Show target screen
+  const target = document.getElementById('screen-' + screenName);
+  if (target) target.classList.add('active');
+
+  // Update bottom nav
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navMap = { home: 'nav-home', create: 'nav-create', chat: 'nav-chat', profile: 'nav-profile' };
+  const navId = navMap[screenName];
+  if (navId) document.getElementById(navId).classList.add('active');
+
+  // Scroll to top
+  const phone = document.getElementById('phone');
+  const activeScreen = phone.querySelector('.screen.active');
+  if (activeScreen) activeScreen.scrollTop = 0;
+}
+</script>
+
+</body>
+</html>

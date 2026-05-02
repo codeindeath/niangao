@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年糕 App — 设计原型 v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #faf8f5;
+  --surface: #ffffff;
+  --surface-warm: #fef9f0;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6e6e6e;
+  --text-tertiary: #9a9a9a;
+  --accent: #4a7c59;
+  --accent-light: #eaf2e8;
+  --accent-soft: #f2f8f0;
+  --border: #e8e4df;
+  --border-light: #f0ece7;
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.04);
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --chat-self: #4a7c59;
+  --chat-ai: #f0ece7;
+  --like: #e85d5d;
+  --save: #e8a850;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #e0dcd5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.phone {
+  width: 390px;
+  height: 844px;
+  background: var(--bg);
+  border-radius: 40px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 0 0 2px #1a1a1a;
+  display: flex;
+  flex-direction: column;
+}
+
+.status-bar {
+  padding: 14px 28px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg);
+  z-index: 5;
+}
+.status-bar .time { font-weight: 700; }
+.status-icons { display: flex; gap: 6px; align-items: center; }
+.status-icons svg { width: 16px; height: 16px; }
+
+.screen {
+  flex: 1;
+  overflow-y: auto;
+  display: none;
+  padding-bottom: 90px;
+}
+.screen.active { display: block; }
+.screen::-webkit-scrollbar { display: none; }
+
+/* ========================================
+   BOTTOM NAV
+   ======================================== */
+.bottom-nav {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 80px;
+  background: rgba(250,248,245,0.93);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 0.5px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 8px 6px;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer; border: none; background: none;
+  padding: 6px 10px; border-radius: 10px;
+  transition: all 0.2s; font-family: inherit;
+}
+.nav-item svg { width: 22px; height: 22px; }
+.nav-item span { font-size: 10px; font-weight: 500; color: var(--text-tertiary); }
+.nav-item.active span { color: var(--accent); font-weight: 600; }
+.nav-item.active svg { color: var(--accent); }
+
+.nav-item-create {
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none;
+  background: var(--accent);
+  width: 48px; height: 48px; border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(74,124,89,0.35);
+  transition: all 0.2s; margin-bottom: 4px;
+}
+.nav-item-create:active { transform: scale(0.95); }
+.nav-item-create svg { width: 24px; height: 24px; color: white; }
+
+/* ========================================
+   FEED — 有温度的卡片
+   ======================================== */
+.feed-top {
+  padding: 14px 18px 4px;
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.feed-top h2 {
+  font-size: 13px; font-weight: 600; color: var(--text-tertiary);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.feed-top .feed-sub {
+  font-size: 11px; color: var(--text-tertiary);
+}
+
+.feed-list { padding: 0 14px; }
+
+.exp-card {
+  margin-bottom: 10px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-card);
+  border: 0.5px solid var(--border-light);
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.exp-card:active { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+/* Author row — presence, not noise */
+.card-author {
+  display: flex; align-items: center; gap: 7px; margin-bottom: 8px;
+}
+.author-avatar {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent-light);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--accent);
+  flex-shrink: 0;
+}
+.author-name { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.card-domain-tag {
+  margin-left: auto;
+  font-size: 10px; font-weight: 600; color: var(--accent);
+  background: var(--accent-light); padding: 2px 8px; border-radius: 8px;
+}
+
+/* Content — the star */
+.card-content {
+  font-size: 15px; line-height: 1.55; color: var(--text-primary);
+  font-weight: 600; margin-bottom: 10px; letter-spacing: -0.1px;
+}
+
+/* Actions */
+.card-actions {
+  display: flex; gap: 16px; align-items: center;
+  padding-top: 8px; border-top: 0.5px solid var(--border-light);
+}
+.card-act {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 11px; color: var(--text-tertiary);
+  border: none; background: none; padding: 0; cursor: pointer;
+  font-family: inherit;
+}
+.card-act svg { width: 14px; height: 14px; }
+.card-act.liked { color: var(--like); }
+.card-act.saved { color: var(--save); }
+
+/* ========================================
+   DETAIL
+   ======================================== */
+.detail-back {
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 4px;
+  cursor: pointer; color: var(--text-secondary);
+  font-size: 14px; font-weight: 500;
+  border: none; background: none; font-family: inherit;
+}
+.detail-back svg { width: 18px; height: 18px; }
+.detail-body { padding: 0 18px; }
+.detail-author {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+}
+.detail-author .author-avatar { width: 32px; height: 32px; font-size: 14px; }
+.detail-author .author-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.detail-domain { display: inline-block; margin-bottom: 10px; }
+.detail-body h2 {
+  font-size: 21px; line-height: 1.45; font-weight: 700;
+  color: var(--text-primary); margin-bottom: 16px;
+}
+.detail-interpretation {
+  margin: 10px 18px;
+  background: var(--surface-warm);
+  border-radius: var(--radius-lg); padding: 18px;
+  border: 0.5px solid var(--border-light);
+}
+.detail-interpretation h3 {
+  font-size: 11px; font-weight: 700; color: var(--text-tertiary);
+  text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;
+}
+.detail-interpretation p {
+  font-size: 14px; line-height: 1.7; color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.detail-interpretation p:last-child { margin-bottom: 0; }
+.detail-actions-bar {
+  display: flex; gap: 10px; padding: 16px 18px;
+}
+.btn-primary {
+  flex: 1; padding: 13px;
+  background: var(--accent); color: white;
+  border: none; border-radius: var(--radius-md);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  font-family: inherit;
+}
+.btn-icon {
+  width: 46px; height: 46px;
+  background: var(--surface); color: var(--text-primary);
+  border: 0.5px solid var(--border); border-radius: var(--radius-md);
+  font-size: 18px; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ========================================
+   CREATE
+   ======================================== */
+.create-header {
+  padding: 12px 18px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.create-header h1 { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.btn-publish {
+  padding: 8px 20px; background: var(--accent); color: white;
+  border: none; border-radius: 20px;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.create-container { padding: 0 18px; }
+.create-field { margin-bottom: 16px; }
+.create-field label {
+  display: block; font-size: 11px; font-weight: 700;
+  color: var(--text-tertiary); text-transform: uppercase;
+  letter-spacing: 1.5px; margin-bottom: 6px;
+}
+.create-field .char-count { float: right; font-weight: 400; }
+.create-field textarea {
+  width: 100%; border: 0.5px solid var(--border);
+  border-radius: var(--radius-md); padding: 12px 14px;
+  font-size: 15px; line-height: 1.6; font-family: inherit;
+  resize: none; background: var(--surface);
+  color: var(--text-primary); outline: none;
+}
+.create-field textarea:focus { border-color: var(--accent); }
+.create-field textarea::placeholder { color: var(--text-tertiary); }
+.create-field-sm textarea { min-height: 56px; font-size: 16px; font-weight: 600; }
+.create-field-lg textarea { min-height: 130px; }
+.domain-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.domain-tag {
+  padding: 5px 12px; border-radius: 16px;
+  font-size: 12px; font-weight: 600; border: none; cursor: pointer;
+  font-family: inherit; background: var(--accent-light); color: var(--accent);
+}
+.domain-tag.active { background: var(--accent); color: white; }
+.ai-suggest-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 8px; padding: 7px 12px;
+  background: var(--accent-soft); color: var(--accent);
+  border: none; border-radius: 16px;
+  font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+
+/* ========================================
+   CHAT
+   ======================================== */
+.chat-header {
+  padding: 14px 18px 6px; text-align: center;
+}
+.chat-header h1 { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+.chat-header p { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+.chat-messages {
+  padding: 8px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.chat-msg {
+  max-width: 82%; padding: 12px 15px; border-radius: 18px;
+  font-size: 14px; line-height: 1.6;
+}
+.chat-msg.ai {
+  align-self: flex-start; background: var(--chat-ai);
+  color: var(--text-primary); border-bottom-left-radius: 6px;
+}
+.chat-msg.self {
+  align-self: flex-end; background: var(--chat-self);
+  color: white; border-bottom-right-radius: 6px;
+}
+.chat-msg .exp-ref {
+  display: block; margin-top: 8px; padding: 6px 10px;
+  background: rgba(0,0,0,0.05); border-radius: 8px;
+  font-size: 11px; color: var(--text-secondary);
+}
+.chat-msg.self .exp-ref {
+  background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.9);
+}
+.chat-input-bar {
+  position: absolute; bottom: 88px; left: 14px; right: 14px;
+  display: flex; gap: 8px; align-items: flex-end;
+  background: var(--surface); border-radius: 22px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  border: 0.5px solid var(--border);
+}
+.chat-input-bar textarea {
+  flex: 1; border: none; outline: none; resize: none;
+  font-family: inherit; font-size: 14px; line-height: 1.5;
+  padding: 5px 4px; max-height: 80px;
+  background: transparent; color: var(--text-primary);
+}
+.chat-input-bar textarea::placeholder { color: var(--text-tertiary); }
+.chat-send-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--accent); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.chat-send-btn svg { width: 16px; height: 16px; color: white; }
+
+/* ========================================
+   PROFILE
+   ======================================== */
+.profile-header {
+  padding: 18px 20px;
+  display: flex; align-items: center; gap: 14px;
+}
+.profile-avatar {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: var(--accent-light);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; color: var(--accent);
+}
+.profile-info h2 { font-size: 17px; font-weight: 600; color: var(--text-primary); }
+.profile-info p { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+.profile-stats { display: flex; gap: 28px; padding: 0 20px 18px; }
+.stat-item { text-align: center; }
+.stat-item .num { font-size: 19px; font-weight: 700; color: var(--text-primary); }
+.stat-item .label { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+.menu-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 15px 20px; border-bottom: 0.5px solid var(--border-light);
+  font-size: 14px; color: var(--text-primary); cursor: pointer;
+}
+.menu-item .menu-arrow { color: var(--text-tertiary); font-size: 16px; }
+.menu-item-group { margin-top: 8px; }
+
+/* Search */
+.search-top {
+  padding: 8px 18px;
+  display: flex; align-items: center; gap: 10px;
+}
+.search-top input {
+  flex: 1; border: none; outline: none; font-size: 15px;
+  font-family: inherit; background: transparent; padding: 8px 0;
+  color: var(--text-primary);
+}
+
+.tag { display: inline-block; }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <span class="status-icons">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C17.93 4.07 6.07 4.07 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-6-6l2 2c2.76-2.76 7.24-2.76 10 0l2-2C13.14 6.49 6.86 6.49 3 11z"/></svg>
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="1" y="6" width="20" height="12" rx="2"/><rect x="3" y="8" width="16" height="8" rx="1"/></svg>
+    </span>
+  </div>
+
+  <!-- ========== HOME ========== -->
+  <div class="screen active" id="screen-home">
+    <div class="feed-top">
+      <h2>为你推荐</h2>
+      <span class="feed-sub">基于你的兴趣</span>
+    </div>
+
+    <div class="feed-list">
+      <div class="exp-card" onclick="switchScreen('detail')">
+        <div class="card-author">
+          <div class="author-avatar">孟</div>
+          <span class="author-name">孟岩</span>
+          <span class="card-domain-tag">职场成长</span>
+        </div>
+        <div class="card-content">接到任务先确认 deadline 和交付标准，而不是直接开始做。</div>
+        <div class="card-actions">
+          <button class="card-act liked">♥ 2.3k</button>
+          <button class="card-act saved">★ 1.2k</button>
+        </div>
+      </div>
+
+      <div class="exp-card">
+        <div class="card-author">
+          <div class="author-avatar">李</div>
+          <span class="author-name">李翔</span>
+          <span class="card-domain-tag">人际关系</span>
+        </div>
+        <div class="card-content">别人抱怨时先问「要建议还是只听」，这避免 90% 的无效沟通。</div>
+        <div class="card-actions">
+          <button class="card-act">♥ 1.8k</button>
+          <button class="card-act saved">★ 867</button>
+        </div>
+      </div>
+
+      <div class="exp-card">
+        <div class="card-author">
+          <div class="author-avatar">王</div>
+          <span class="author-name">王建硕</span>
+          <span class="card-domain-tag">认知升级</span>
+        </div>
+        <div class="card-content">做决策时想象你在给朋友提建议，能摆脱自我中心的偏见。</div>
+        <div class="card-actions">
+          <button class="card-act liked">♥ 4.1k</button>
+          <button class="card-act">★ 2.3k</button>
+        </div>
+      </div>
+
+      <div class="exp-card">
+        <div class="card-author">
+          <div class="author-avatar">张</div>
+          <span class="author-name">张一鸣</span>
+          <span class="card-domain-tag">生活智慧</span>
+        </div>
+        <div class="card-content">每周留 2 小时做「本周复盘」，持续 3 个月后你会感谢自己。</div>
+        <div class="card-actions">
+          <button class="card-act">♥ 3.2k</button>
+          <button class="card-act">★ 1.5k</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== DETAIL ========== -->
+  <div class="screen" id="screen-detail">
+    <button class="detail-back" onclick="switchScreen('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      返回
+    </button>
+    <div class="detail-body">
+      <div class="detail-author">
+        <div class="author-avatar">孟</div>
+        <span class="author-name">孟岩</span>
+      </div>
+      <span class="card-domain-tag detail-domain">职场成长</span>
+      <h2>接到任务先确认 deadline 和交付标准，而不是直接开始做。</h2>
+    </div>
+    <div class="detail-interpretation">
+      <h3>经验解读</h3>
+      <p><strong>背景：</strong>在互联网公司，需求变更频繁。很多新人接到任务就冲进去写方案，但没对齐老板真正的期望。这条经验来自一个 P8 产品经理的复盘。</p>
+      <p style="margin-top:10px;"><strong>如何执行：</strong></p>
+      <p>1. 问三个问题：什么时候要？做到什么程度算完成？有没有参考？</p>
+      <p>2. 用自己的话复述一遍任务，确认理解一致。</p>
+      <p>3. 如果 deadline 明显不合理，当场沟通而不是默默扛。</p>
+    </div>
+    <div class="detail-actions-bar">
+      <button class="btn-icon">★</button>
+      <button class="btn-icon">↗</button>
+      <button class="btn-primary">♥ 觉得有用</button>
+    </div>
+  </div>
+
+  <!-- ========== CREATE ========== -->
+  <div class="screen" id="screen-create">
+    <div class="create-header">
+      <button class="detail-back" onclick="switchScreen('home')" style="padding:0;">取消</button>
+      <h1>创建经验</h1>
+      <button class="btn-publish" onclick="switchScreen('home')">发布</button>
+    </div>
+    <div class="create-container">
+      <div class="create-field create-field-sm">
+        <label>经验内容 <span class="char-count">0/100</span></label>
+        <textarea placeholder="一句话说清楚要传达的经验…"></textarea>
+      </div>
+      <div class="create-field">
+        <label>领域</label>
+        <div class="domain-tags">
+          <button class="domain-tag active">职场成长</button>
+          <button class="domain-tag">人际关系</button>
+          <button class="domain-tag">认知升级</button>
+          <button class="domain-tag">生活智慧</button>
+          <button class="domain-tag">情感</button>
+        </div>
+      </div>
+      <div class="create-field create-field-lg">
+        <label>经验解读（可选） <span class="char-count">0/500</span></label>
+        <textarea placeholder="描述背景、如何执行、适用场景…"></textarea>
+        <button class="ai-suggest-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          AI 辅助生成
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== CHAT ========== -->
+  <div class="screen" id="screen-chat">
+    <div class="chat-header">
+      <h1>年糕对话</h1>
+      <p>结合你的经验库 · 人本主义风格</p>
+    </div>
+
+    <div class="chat-messages">
+      <div class="chat-msg self" style="border-bottom-right-radius:18px;">
+        最近和领导相处很累，他总是临时丢任务给我，我已经连续加班两周了。
+      </div>
+      <div class="chat-msg ai">
+        连续两周加班确实很消耗。你感觉最让你累的，是工作量本身，还是那种「随时可能被丢任务」的不确定感？
+      </div>
+      <div class="chat-msg self">
+        后者更多。我不知道什么时候又会来一个紧急需求，完全没有掌控感。
+      </div>
+      <div class="chat-msg ai">
+        我理解这种失控的感觉。我注意到你之前记录过一条经验——
+        <span class="exp-ref">📌 你的经验：「接到任务先确认 deadline 和交付标准，而不是直接开始做」</span>
+        你觉得这条经验在这个场景里能用上吗？比如，下次领导临时派任务，试着先问他 deadline，看能不能把「随时」变成「有时」？
+      </div>
+      <div class="chat-msg self">
+        嗯…确实可以试试。至少让自己知道哪些真的紧急，哪些可以排到后面。
+      </div>
+      <div class="chat-msg ai">
+        对，你已经在找解决方法了。要不要我们一起把你手头的事情理一下，排个优先级？这样至少你心里有张地图，不再是被动地接球。
+      </div>
+    </div>
+
+    <div class="chat-input-bar">
+      <textarea rows="1" placeholder="说说你的想法…"></textarea>
+      <button class="chat-send-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========== PROFILE ========== -->
+  <div class="screen" id="screen-profile">
+    <div class="profile-header">
+      <div class="profile-avatar">你</div>
+      <div class="profile-info">
+        <h2>探索者</h2>
+        <p>@explorer_nian · 已积累 12 条经验</p>
+      </div>
+    </div>
+    <div class="profile-stats">
+      <div class="stat-item"><div class="num">12</div><div class="label">经验</div></div>
+      <div class="stat-item"><div class="num">47</div><div class="label">收藏</div></div>
+      <div class="stat-item"><div class="num">3</div><div class="label">已实践</div></div>
+    </div>
+    <div class="menu-item-group">
+      <div class="menu-item">📋 我的经验库 <span class="menu-arrow">›</span></div>
+      <div class="menu-item">⭐ 我的收藏 <span class="menu-arrow">›</span></div>
+      <div class="menu-item">💬 对话历史 <span class="menu-arrow">›</span></div>
+    </div>
+    <div class="menu-item-group">
+      <div class="menu-item">⚙️ 设置 <span class="menu-arrow">›</span></div>
+      <div class="menu-item">❓ 帮助与反馈 <span class="menu-arrow">›</span></div>
+    </div>
+  </div>
+
+  <!-- ========== SEARCH ========== -->
+  <div class="screen" id="screen-search">
+    <div class="search-top">
+      <button class="detail-back" onclick="switchScreen('home')" style="padding:0;">取消</button>
+      <input type="text" placeholder="搜索经验、领域…">
+    </div>
+    <div style="padding:40px;color:var(--text-tertiary);font-size:14px;text-align:center;">输入关键词搜索经验</div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <button class="nav-item active" id="nav-home" onclick="switchScreen('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>首页</span>
+    </button>
+    <button class="nav-item" id="nav-chat-bottom" onclick="switchScreen('chat')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>对话</span>
+    </button>
+    <button class="nav-item-create" id="nav-create" onclick="switchScreen('create')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>
+    </button>
+    <button class="nav-item" id="nav-search" onclick="switchScreen('search')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>搜索</span>
+    </button>
+    <button class="nav-item" id="nav-profile" onclick="switchScreen('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>我的</span>
+    </button>
+  </div>
+</div>
+
+<script>
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const t = document.getElementById('screen-' + name);
+  if (t) t.classList.add('active');
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navMap = { home: 'nav-home', chat: 'nav-chat-bottom', search: 'nav-search', profile: 'nav-profile' };
+  const navId = navMap[name];
+  if (navId) { const el = document.getElementById(navId); if (el) el.classList.add('active'); }
+
+  const phone = document.getElementById('phone');
+  const active = phone.querySelector('.screen.active');
+  if (active) active.scrollTop = 0;
+}
+</script>
+</body>
+</html>

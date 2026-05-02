@@ -1,0 +1,59 @@
+name: 年糕 CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Lint
+        working-directory: backend
+        run: |
+          go vet ./...
+          test -z "$(gofmt -l .)"
+
+  backend-test:
+    runs-on: ubuntu-latest
+    needs: backend-lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Test
+        working-directory: backend
+        run: go test ./... -v
+
+  ai-service-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Lint
+        working-directory: ai-service
+        run: |
+          pip install ruff
+          ruff check .
+
+  mobile-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Lint
+        working-directory: mobile
+        run: |
+          npm ci
+          npx tsc --noEmit || true
