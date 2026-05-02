@@ -1,5 +1,4 @@
-import { API_BASE } from './config';
-import { supabase } from './config';
+import { apiGet, apiPost } from './config';
 
 export interface Experience {
   id: string;
@@ -21,83 +20,36 @@ export interface Experience {
 export async function fetchExperiences(
   page: number = 1,
   domain?: string,
-  sort: string = 'latest'
+  sort: string = 'latest',
 ): Promise<{ data: Experience[]; total: number }> {
-  const session = await supabase.auth.getSession();
-  const token = session.data.session?.access_token;
-
-  const params = new URLSearchParams({
-    page: page.toString(),
-    page_size: '20',
-    sort,
-  });
+  const params = new URLSearchParams({ page: page.toString(), page_size: '20', sort });
   if (domain) params.set('domain', domain);
-
-  const res = await fetch(`${API_BASE}/api/v1/experiences?${params}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  return res.json();
+  return apiGet(`/api/v1/experiences?${params}`);
 }
 
 export async function fetchExperience(id: string): Promise<Experience> {
-  const session = await supabase.auth.getSession();
-  const token = session.data.session?.access_token;
-
-  const res = await fetch(`${API_BASE}/api/v1/experiences/${id}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  return res.json();
+  return apiGet(`/api/v1/experiences/${id}`);
 }
 
 export async function createExperience(
   content: string,
   domain: string,
-  interpretation?: string
+  interpretation?: string,
 ): Promise<Experience> {
-  const session = await supabase.auth.getSession();
-  const token = session.data.session?.access_token;
-
-  const res = await fetch(`${API_BASE}/api/v1/experiences`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ content, domain, interpretation }),
-  });
-  return res.json();
+  return apiPost('/api/v1/experiences', { content, domain, interpretation });
 }
 
 export async function toggleLike(id: string): Promise<{ liked: boolean }> {
-  const session = await supabase.auth.getSession();
-  const token = session.data.session?.access_token;
-
-  const res = await fetch(`${API_BASE}/api/v1/experiences/${id}/like`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.json();
+  return apiPost(`/api/v1/experiences/${id}/like`, {});
 }
 
 export async function toggleBookmark(id: string): Promise<{ bookmarked: boolean }> {
-  const session = await supabase.auth.getSession();
-  const token = session.data.session?.access_token;
-
-  const res = await fetch(`${API_BASE}/api/v1/experiences/${id}/bookmark`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.json();
+  return apiPost(`/api/v1/experiences/${id}/bookmark`, {});
 }
 
 export async function generateInterpretation(
   content: string,
-  domain: string
+  domain: string,
 ): Promise<{ interpretation: string }> {
-  const res = await fetch(`${API_BASE}/api/v1/ai/experience/generate-interpretation`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content, domain }),
-  });
-  return res.json();
+  return apiPost('/api/v1/ai/experience/generate-interpretation', { content, domain });
 }

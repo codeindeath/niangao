@@ -1,49 +1,58 @@
-"""向量化和检索服务"""
+"""向量检索 — 直接查询 PG 的 pgvector"""
 import logging
 from typing import List, Dict
-
-from supabase import create_client
+import asyncpg
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
-class EmbeddingService:
-    """管理经验向量的存储和检索"""
-
-    def __init__(self):
-        self.supabase = create_client(
-            settings.supabase_url,
-            settings.supabase_service_key,
+async def search_similar_experiences(
+    query_embedding: List[float],
+    user_id: str,
+    limit: int = 5,
+) -> List[Dict]:
+    """在 PG 中检索与查询最相似的用户经验"""
+    conn = None
+    try:
+        conn = await asyncpg.connect(settings.database_url)
+        # pgvector <=> 操作符做余弦相似度排序
+        rows = await conn.fetch(
+            """
+            SELECT e.id, e.content, e.domain, e.like_count,
+                   u.nickname as author_name
+            FROM experiences e
+            LEFT JOIN users u ON u.id = e.author_id
+            WHERE e.status = 'published' AND e.author_id = $1
+            ORDER BY e.embedding <=> $2::vector
+            LIMIT $3
+            """,
+            user_id,
+            str(query_embedding),
+            limit,
         )
+        return [dict(r) for r in rows]
+    except Exception as e:
+        logger.error(f"Search failed: {e}")
+        return []
+    finally:
+        if conn:
+            await conn.close()
 
-    async def index_experience(self, experience_id: str, embedding: List[float]):
-        """将经验的向量存入数据库"""
-        try:
-            self.supabase.table("experiences").update({
-                "embedding": embedding,
-            }).eq("id", experience_id).execute()
-        except Exception as e:
-            logger.error(f"Failed to index experience {experience_id}: {e}")
 
-    async def search_similar(
-        self,
-        query_embedding: List[float],
-        user_id: str,
-        limit: int = 5,
-    ) -> List[Dict]:
-        """检索与查询最相似的用户经验"""
-        try:
-            result = self.supabase.rpc(
-                "search_user_experiences",
-                {
-                    "query_embedding": query_embedding,
-                    "user_id": user_id,
-                    "match_limit": limit,
-                },
-            ).execute()
-            return result.data or []
-        except Exception as e:
-            logger.error(f"Failed to search experiences: {e}")
-            return []
+async def index_experience(experience_id: str, embedding: List[float]):
+    """将向量写入 PG"""
+    conn = None
+    try:
+        conn = await asyncpg.connect(settings.database_url)
+        await conn.execute(
+            "UPDATE experiences SET embedding = $1::vector WHERE id = $2",
+            str(embedding),
+            experience_id,
+        )
+    except Exception as e:
+        logger.error(f"Index failed: {e}")
+    finally:
+        if conn:
+            await conn.close()

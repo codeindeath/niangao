@@ -12,20 +12,32 @@ const (
 	DomainEmotion      Domain = "emotion"
 )
 
+type User struct {
+	ID              string  `json:"id"`
+	WechatOpenID    string  `json:"-"`
+	WechatUnionID   *string `json:"-"`
+	Nickname        string  `json:"nickname"`
+	AvatarURL       *string `json:"avatar_url,omitempty"`
+	Bio             *string `json:"bio,omitempty"`
+	ExperienceCount int     `json:"experience_count"`
+	BookmarkCount   int     `json:"bookmark_count"`
+	PracticedCount  int     `json:"practiced_count"`
+}
+
 type Experience struct {
-	ID                       string    `json:"id"`
-	AuthorID                 string    `json:"author_id"`
-	Content                  string    `json:"content"`
-	Interpretation           *string   `json:"interpretation,omitempty"`
-	Domain                   Domain    `json:"domain"`
-	IsOfficial               bool      `json:"is_official"`
-	SourceLabel              *string   `json:"source_label,omitempty"`
-	LikeCount                int       `json:"like_count"`
-	BookmarkCount            int       `json:"bookmark_count"`
-	InterpretationGenerated  bool      `json:"interpretation_generated"`
-	Status                   string    `json:"status"`
-	CreatedAt                time.Time `json:"created_at"`
-	UpdatedAt                time.Time `json:"updated_at"`
+	ID                      string    `json:"id"`
+	AuthorID                string    `json:"author_id"`
+	Content                 string    `json:"content"`
+	Interpretation          *string   `json:"interpretation,omitempty"`
+	Domain                  Domain    `json:"domain"`
+	IsOfficial              bool      `json:"is_official"`
+	SourceLabel             *string   `json:"source_label,omitempty"`
+	LikeCount               int       `json:"like_count"`
+	BookmarkCount           int       `json:"bookmark_count"`
+	InterpretationGenerated bool      `json:"interpretation_generated"`
+	Status                  string    `json:"status"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
 	// Joined fields
 	AuthorName   *string `json:"author_name,omitempty"`
 	AuthorAvatar *string `json:"author_avatar,omitempty"`
@@ -40,11 +52,11 @@ type CreateExperienceRequest struct {
 }
 
 type ExperienceListQuery struct {
-	Domain   Domain  `form:"domain"`
-	Sort     string  `form:"sort"`     // latest, popular
-	Page     int     `form:"page"`     // default 1
-	PageSize int     `form:"page_size"` // default 20
-	Search   string  `form:"search"`
+	Domain   Domain `form:"domain"`
+	Sort     string `form:"sort"`
+	Page     int    `form:"page"`
+	PageSize int    `form:"page_size"`
+	Search   string `form:"search"`
 }
 
 type Conversation struct {
@@ -56,29 +68,17 @@ type Conversation struct {
 }
 
 type Message struct {
-	ID                       string    `json:"id"`
-	ConversationID           string    `json:"conversation_id"`
-	Role                     string    `json:"role"` // user, assistant
-	Content                  string    `json:"content"`
-	ReferencedExperienceIDs  []string  `json:"referenced_experience_ids,omitempty"`
-	RetrievedExperienceIDs   []string  `json:"retrieved_experience_ids,omitempty"`
-	CreatedAt                time.Time `json:"created_at"`
+	ID                      string    `json:"id"`
+	ConversationID          string    `json:"conversation_id"`
+	Role                    string    `json:"role"`
+	Content                 string    `json:"content"`
+	ReferencedExperienceIDs []string  `json:"referenced_experience_ids,omitempty"`
+	CreatedAt               time.Time `json:"created_at"`
 }
 
 type ChatRequest struct {
 	ConversationID string `json:"conversation_id,omitempty"`
 	Message        string `json:"message" binding:"required"`
-}
-
-type UserProfile struct {
-	ID        string `json:"id"`
-	Nickname  string `json:"nickname"`
-	AvatarURL string `json:"avatar_url"`
-	Bio       string `json:"bio"`
-	// Stats
-	ExperienceCount int `json:"experience_count"`
-	BookmarkCount   int `json:"bookmark_count"`
-	PracticedCount  int `json:"practiced_count"`
 }
 
 var ValidDomains = map[Domain]string{

@@ -18,19 +18,20 @@ import (
 )
 
 func main() {
-	// Load env
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using system env")
-	}
+	godotenv.Load()
 
 	cfg := config.Load()
+	if cfg.JWTSecret == "" {
+		log.Fatal("JWT_SECRET is required")
+	}
 
 	// Database
 	db, err := repository.NewDB(context.Background(), cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Database connection failed: %v", err)
 	}
 	defer db.Close()
+	log.Println("Database connected")
 
 	// Repositories
 	expRepo := repository.NewExperienceRepo(db)
@@ -40,10 +41,8 @@ func main() {
 
 	// Router
 	r := gin.Default()
-
-	// Middleware
 	r.Use(middleware.CORS())
-	r.Use(middleware.AuthMiddleware(cfg.SupabaseJWTSecret))
+	r.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 
 	// Health
 	r.GET("/health", func(c *gin.Context) {
@@ -53,21 +52,30 @@ func main() {
 	// API v1
 	v1 := r.Group("/api/v1")
 	{
+		// 登录（无需认证）
+		handler.RegisterAuthRoutes(v1, db, cfg.JWTSecret, handler.WechatConfig{
+			AppID:     cfg.WechatAppID,
+			AppSecret: cfg.WechatAppSecret,
+		})
+
+		// 经验
 		handler.RegisterExperienceRoutes(v1, expRepo, likeRepo, bookmarkRepo)
+		// 对话（需认证）
 		handler.RegisterConversationRoutes(v1, convRepo)
-		handler.RegisterUserRoutes(v1)
+		// 用户
+		handler.RegisterUserRoutes(v1, db)
 	}
 
-	// Graceful shutdown
+	// Server
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: r,
 	}
 
 	go func() {
-		log.Printf("Server starting on :%s", cfg.Port)
+		log.Printf("年糕 API 已启动 :%s", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed: %v", err)
+			log.Fatalf("Server error: %v", err)
 		}
 	}()
 

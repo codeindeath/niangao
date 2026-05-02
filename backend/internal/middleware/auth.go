@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/niangao/backend/internal/auth"
 )
 
+// AuthMiddleware 验证自签 JWT，注入 user_id 到 context
 func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -22,22 +23,15 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		token, err := jwt.Parse(parts[1], func(t *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
-		if err != nil || !token.Valid {
+		claims, err := auth.ParseToken(jwtSecret, parts[1])
+		if err != nil {
 			c.Next()
 			return
 		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			c.Next()
-			return
-		}
-
-		userID, _ := claims["sub"].(string)
-		c.Set("user_id", userID)
+		c.Set("user_id", claims.UserID)
+		c.Set("open_id", claims.OpenID)
+		c.Set("nickname", claims.Nickname)
 		c.Next()
 	}
 }
@@ -56,12 +50,11 @@ func CORS() gin.HandlerFunc {
 	}
 }
 
-// RequireAuth is a middleware that returns 401 if not authenticated
 func RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get("user_id")
 		if !exists || userID == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "请先登录"})
 			c.Abort()
 			return
 		}

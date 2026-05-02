@@ -1,4 +1,3 @@
-import os
 import logging
 from contextlib import asynccontextmanager
 
@@ -7,32 +6,26 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import chat, experience
 from app.core.config import settings
-from app.services.embedding import EmbeddingService
 from app.services.llm import LLMService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global services
-embedding_service: EmbeddingService = None
 llm_service: LLMService = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global embedding_service, llm_service
-    logger.info("Starting AI service...")
-    embedding_service = EmbeddingService()
+    global llm_service
+    logger.info("年糕 AI 服务启动中...")
     llm_service = LLMService()
     yield
-    logger.info("Shutting down AI service...")
+    logger.info("年糕 AI 服务关闭")
+    if llm_service:
+        await llm_service.close()
 
 
-app = FastAPI(
-    title="年糕 AI Service",
-    version="0.1.0",
-    lifespan=lifespan,
-)
+app = FastAPI(title="年糕 AI Service", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,8 +41,3 @@ app.include_router(experience.router, prefix="/api/v1/ai/experience", tags=["exp
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
-
-@app.get("/")
-async def root():
-    return {"service": "年糕 AI", "version": "0.1.0"}
