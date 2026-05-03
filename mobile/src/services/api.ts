@@ -99,3 +99,17 @@ export async function generateInterpretation(
 ): Promise<{interpretation: string}> {
   return aiPost('/api/v1/chat/generate-interpretation', {content, domain});
 }
+
+// ============================================================
+// 登录 API
+// ============================================================
+
+export async function appleLogin(
+  identityToken: string,
+  fullName?: string,
+): Promise<{token: string; refresh_token: string; user: any}> {
+  return apiPost('/api/v1/auth/apple/login', {
+    identity_token: identityToken,
+    full_name: fullName,
+  });
+}

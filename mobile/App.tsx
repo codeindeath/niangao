@@ -4,10 +4,10 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {StatusBar} from 'react-native';
-import BottomTabNavigator from './navigation/BottomTabNavigator';
-import DetailScreen from './screens/DetailScreen';
-import LoginScreen from './screens/LoginScreen';
-import {registerWechat, isLoggedIn} from './services/auth';
+import BottomTabNavigator from './src/navigation/BottomTabNavigator';
+import DetailScreen from './src/screens/DetailScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import {getToken} from './src/services/config';
 
 const Stack = createNativeStackNavigator();
 
@@ -17,14 +17,13 @@ export default function App() {
 
   useEffect(() => {
     async function init() {
-      // 微信 SDK 注册 — 开发阶段跳过可能的原生模块错误
-      try {
-        registerWechat();
-      } catch (e) {
-        console.log('WeChat SDK not available in dev:', e);
+      // 检查是否有已保存的 token
+      const token = await getToken();
+      if (token) {
+        setAuthenticated(true);
+      } else {
+        setAuthenticated(false);
       }
-      // 临时：跳过登录验证，直接进入主界面
-      setAuthenticated(true);
       setLoading(false);
     }
     init();

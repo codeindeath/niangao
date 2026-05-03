@@ -56,7 +56,7 @@ func main() {
 		handler.RegisterAuthRoutes(v1, db, cfg.JWTSecret, handler.WechatConfig{
 			AppID:     cfg.WechatAppID,
 			AppSecret: cfg.WechatAppSecret,
-		})
+		}, cfg.AppleBundleID)
 
 		// 经验
 		handler.RegisterExperienceRoutes(v1, expRepo, likeRepo, bookmarkRepo)

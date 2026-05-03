@@ -1,20 +1,32 @@
-import * as WeChat from 'react-native-wechat-lib';
 import { apiPost, setToken, setUserInfo, clearToken } from './config';
 
 // 替换为你的微信 AppID
 const WECHAT_APP_ID = 'your_wechat_app_id';
 
+// 微信原生模块 — Expo Go 不可用，仅 dev client / 裸 RN 可用
+let WeChat: any = null;
+try {
+  WeChat = require('react-native-wechat-lib');
+} catch (e) {
+  console.log('react-native-wechat-lib not available, running in Expo Go');
+}
+
 export function registerWechat(): void {
-  WeChat.registerApp(WECHAT_APP_ID);
+  if (WeChat) {
+    WeChat.registerApp(WECHAT_APP_ID);
+  }
 }
 
 // 微信登录
 export async function loginWithWechat(): Promise<{ success: boolean; user?: any; error?: string }> {
+  if (!WeChat) {
+    return { success: false, error: '微信登录仅在原生环境可用' };
+  }
+
   try {
     // 1. 向微信请求授权，拿到 code
     const authResp = await WeChat.sendAuthRequest('snsapi_userinfo', 'niangao_login');
     if (authResp.errCode !== 0) {
-      // 用户取消或授权失败
       return { success: false, error: '用户取消登录' };
     }
 

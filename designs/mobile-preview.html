@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年糕 App — 移动端预览</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#e8e4df;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;justify-content:center;padding:20px}
+.phone{width:390px;height:844px;background:#faf8f5;border-radius:40px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.15);position:relative;display:flex;flex-direction:column}
+.status-bar{height:44px;background:#faf8f5;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12px;font-weight:600;color:#1a1a1a}
+.status-bar .time{font-weight:700}
+.status-bar .icons{display:flex;gap:6px;align-items:center;font-size:11px}
+.tabs{display:flex;border-top:.5px solid #e8e4df;background:rgba(250,248,245,.93);padding:6px 0 10px;position:relative}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:none;background:none;padding:0}
+.tab .icon{font-size:20px;line-height:1;opacity:.5}
+.tab.active .icon{opacity:1}
+.tab .label{font-size:10px;font-weight:600;color:#9a9a9a}
+.tab.active .label{color:#4a7c59}
+.tab.create-btn{position:relative}
+.tab.create-btn .create-circle{width:48px;height:48px;border-radius:24px;background:#4a7c59;display:flex;align-items:center;justify-content:center;margin-bottom:4px;box-shadow:0 4px 12px rgba(74,124,89,.35)}
+.tab.create-btn .create-circle span{color:#fff;font-size:24px;font-weight:600;line-height:28px}
+.screen{flex:1;overflow-y:auto;display:none;flex-direction:column}
+.screen.active{display:flex}
+.header{padding:12px 18px;border-bottom:.5px solid #e8e4df;background:#faf8f5}
+.header-title{font-size:13px;font-weight:700;color:#9a9a9a;letter-spacing:1px;text-transform:uppercase}
+.header-sub{font-size:11px;color:#9a9a9a;margin-top:1px}
+.card{background:#fff;border-radius:16px;padding:16px;margin:0 14px 10px;border:.5px solid #f0ece7}
+.card .author-row{display:flex;align-items:center;margin-bottom:8px}
+.card .avatar{width:22px;height:22px;border-radius:11px;background:#eaf2e8;display:flex;align-items:center;justify-content:center;margin-right:6px;font-size:11px;font-weight:700;color:#4a7c59}
+.card .author-name{font-size:12px;font-weight:500;color:#6e6e6e;flex:1}
+.card .domain-tag{background:#eaf2e8;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600;color:#4a7c59}
+.card .content{font-size:15px;line-height:23px;font-weight:600;color:#1a1a1a;margin-bottom:10px}
+.card .actions{display:flex;gap:16px;padding-top:8px;border-top:.5px solid #f0ece7}
+.card .action{font-size:11px;color:#9a9a9a;cursor:pointer}
+.card .action.liked{color:#e85d5d}
+.card .action.saved{color:#e8a850}
+.list{padding:6px 0 20px}
+.input-bar{display:flex;align-items:flex-end;padding:10px 14px;background:#fff;border-top:.5px solid #e8e4df}
+.input-bar input{flex:1;background:#f5f3f0;border-radius:20px;padding:10px 16px;font-size:15px;color:#1a1a1a;border:none;outline:none}
+.input-bar button{margin-left:10px;background:#4a7c59;color:#fff;border-radius:20px;padding:10px 18px;font-size:14px;font-weight:600;border:none;cursor:pointer}
+.bubble-row{display:flex;margin-bottom:14px;align-items:flex-end}
+.bubble-row.user{justify-content:flex-end}
+.bubble-row .b-avatar{width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.bubble-row .b-avatar.ai{background:#eaf2e8;color:#4a7c59;margin-right:8px}
+.bubble-row .b-avatar.usr{background:#d4d4d4;color:#6e6e6e;margin-left:8px}
+.bubble{max-width:75%;border-radius:18px;padding:10px 14px}
+.bubble.ai{background:#fff;border:.5px solid #f0ece7;border-bottom-left-radius:4px;font-size:15px;line-height:22px;color:#1a1a1a}
+.bubble.usr{background:#4a7c59;border-bottom-right-radius:4px;font-size:15px;line-height:22px;color:#fff}
+.chat-list{flex:1;overflow-y:auto;padding:12px 14px}
+.form-body{padding:20px 18px}
+.form-body label{font-size:13px;font-weight:600;color:#6e6e6e;margin-bottom:8px;margin-top:20px;display:block}
+.form-body textarea{width:100%;background:#fff;border-radius:14px;padding:14px;font-size:16px;line-height:24px;color:#1a1a1a;border:.5px solid #f0ece7;resize:none;outline:none;min-height:120px}
+.char-count{font-size:11px;color:#b5b0a8;text-align:right;margin-top:4px}
+.domain-row{display:flex;flex-wrap:wrap;gap:8px}
+.domain-chip{padding:8px 14px;border-radius:18px;background:#fff;border:.5px solid #e8e4df;font-size:13px;font-weight:500;color:#6e6e6e;cursor:pointer}
+.domain-chip.active{background:#4a7c59;border-color:#4a7c59;color:#fff}
+.ai-btn-zone{margin-top:24px;text-align:center}
+.ai-btn{padding:12px 24px;border-radius:20px;background:#eaf2e8;border:1px solid #4a7c59;color:#4a7c59;font-size:15px;font-weight:600;cursor:pointer}
+.interpretation-box{background:#fff;border-radius:14px;padding:14px;border:.5px solid #d4e0d6;font-size:14px;line-height:22px;color:#3d3d3d;margin-top:20px}
+.detail-body{padding:18px}
+.detail-body .d-author{display:flex;align-items:center;margin-bottom:12px}
+.detail-body .d-avatar{width:32px;height:32px;border-radius:16px;background:#eaf2e8;display:flex;align-items:center;justify-content:center;margin-right:10px;font-size:14px;font-weight:700;color:#4a7c59}
+.detail-body .d-name{font-size:14px;font-weight:600;color:#4a4a4a;flex:1}
+.detail-body .d-content-card{background:#fff;border-radius:16px;padding:18px;border:.5px solid #f0ece7}
+.detail-body .d-content{font-size:20px;line-height:30px;font-weight:700;color:#1a1a1a}
+.detail-body .d-source{font-size:12px;color:#9a9a9a;margin-top:12px}
+.detail-body .d-actions{display:flex;gap:12px;margin-top:16px}
+.detail-body .d-action{padding:10px 18px;border-radius:22px;background:#fff;border:.5px solid #f0ece7;font-size:13px;font-weight:600;color:#6e6e6e;cursor:pointer}
+.detail-body .d-interpretation{background:#fff;border-radius:16px;padding:18px;border:.5px solid #d4e0d6;margin-top:20px}
+.detail-body .d-interpretation h4{font-size:14px;font-weight:700;color:#4a7c59;margin-bottom:10px}
+.detail-body .d-interpretation p{font-size:15px;line-height:24px;color:#3d3d3d}
+.search-bar{display:flex;padding:12px 14px;gap:8px}
+.search-bar input{flex:1;background:#fff;border-radius:20px;padding:10px 16px;font-size:15px;color:#1a1a1a;border:.5px solid #e8e4df;outline:none}
+.search-bar button{background:#4a7c59;color:#fff;border-radius:20px;padding:10px 18px;font-size:14px;font-weight:600;border:none;cursor:pointer}
+.domain-filter{display:flex;padding:0 14px 10px;gap:6px}
+.domain-filter .df-chip{padding:6px 12px;border-radius:14px;background:#fff;border:.5px solid #e8e4df;font-size:12px;font-weight:500;color:#6e6e6e;cursor:pointer}
+.domain-filter .df-chip.active{background:#4a7c59;border-color:#4a7c59;color:#fff}
+.profile-header{text-align:center;padding:30px 0 24px;background:#fff;border-bottom:.5px solid #e8e4df}
+.profile-header .p-avatar{width:64px;height:64px;border-radius:32px;background:#eaf2e8;display:inline-flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#4a7c59;margin-bottom:12px}
+.profile-header .p-name{font-size:18px;font-weight:700;color:#1a1a1a;margin-bottom:4px}
+.profile-header .p-bio{font-size:13px;color:#9a9a9a;margin-bottom:20px}
+.stats-row{display:flex;justify-content:center}
+.stat{text-align:center;padding:0 28px}
+.stat .num{font-size:18px;font-weight:700;color:#1a1a1a}
+.stat .lbl{font-size:11px;color:#9a9a9a;margin-top:2px}
+.stat-divider{width:.5px;height:24px;background:#e8e4df}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="status-bar"><span class="time">9:41</span><span class="icons">5G ▮▮▮▮ 🔋</span></div>
+
+  <!-- Screen: Home -->
+  <div class="screen active" id="screen-home">
+    <div class="header"><div class="header-title">为你推荐</div><div class="header-sub">基于你的兴趣</div></div>
+    <div class="list" id="home-list"></div>
+  </div>
+
+  <!-- Screen: Chat -->
+  <div class="screen" id="screen-chat">
+    <div class="header"><div class="header-title">年糕对话</div><div class="header-sub">AI 成长伙伴</div></div>
+    <div class="chat-list" id="chat-list"></div>
+    <div class="input-bar"><input id="chat-input" placeholder="输入你想聊的..." onkeydown="if(event.key==='Enter')sendChat()"><button onclick="sendChat()">发送</button></div>
+  </div>
+
+  <!-- Screen: Create -->
+  <div class="screen" id="screen-create">
+    <div class="header" style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;color:#9a9a9a;cursor:pointer" onclick="switchTab('home')">取消</span><span style="font-size:16px;font-weight:700;color:#1a1a1a">发布经验</span><span style="font-size:15px;color:#4a7c59;font-weight:600;cursor:pointer" onclick="publish()">发布</span></div>
+    <div class="form-body">
+      <label>经验内容</label>
+      <textarea id="create-content" placeholder="写下你的经验，不超过 100 字..." maxlength="100" oninput="document.getElementById('cc').textContent=this.value.length"></textarea>
+      <div class="char-count"><span id="cc">0</span>/100</div>
+      <label>领域</label>
+      <div class="domain-row" id="domain-row"></div>
+      <div class="ai-btn-zone"><button class="ai-btn" onclick="genAI()">🤖 AI 生成解读</button></div>
+      <div id="ai-result"></div>
+    </div>
+  </div>
+
+  <!-- Screen: Search -->
+  <div class="screen" id="screen-search">
+    <div class="search-bar"><input id="search-input" placeholder="搜索经验..." onkeydown="if(event.key==='Enter')doSearch()"><button onclick="doSearch()">搜索</button></div>
+    <div class="domain-filter" id="domain-filter"></div>
+    <div class="list" id="search-list" style="flex:1;overflow-y:auto"></div>
+  </div>
+
+  <!-- Screen: Profile -->
+  <div class="screen" id="screen-profile">
+    <div class="profile-header">
+      <div class="p-avatar">?</div>
+      <div class="p-name">未登录</div>
+      <div class="p-bio">登录后查看个人主页</div>
+      <div class="stats-row"><div class="stat"><div class="num">5</div><div class="lbl">经验</div></div><div class="stat-divider"></div><div class="stat"><div class="num">0</div><div class="lbl">收藏</div></div><div class="stat-divider"></div><div class="stat"><div class="num">0</div><div class="lbl">实践</div></div></div>
+    </div>
+    <div class="list" id="profile-list" style="padding-top:24px"></div>
+  </div>
+
+  <!-- Detail popup -->
+  <div id="detail-overlay" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:#faf8f5;z-index:10;flex-direction:column">
+    <div class="header" style="cursor:pointer" onclick="closeDetail()">← 返回</div>
+    <div class="detail-body" id="detail-body" style="overflow-y:auto;flex:1"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('home')"><span class="icon">⌂</span><span class="label">首页</span></button>
+    <button class="tab" onclick="switchTab('chat')"><span class="icon">💬</span><span class="label">对话</span></button>
+    <button class="tab create-btn" onclick="switchTab('create')"><div class="create-circle"><span>+</span></div></button>
+    <button class="tab" onclick="switchTab('search')"><span class="icon">🔍</span><span class="label">搜索</span></button>
+    <button class="tab" onclick="switchTab('profile')"><span class="icon">👤</span><span class="label">我的</span></button>
+  </div>
+</div>
+
+<script>
+const API='http://115.190.177.146:8080';
+const AI='http://115.190.177.146:8000';
+const UID='00000000-0000-0000-0000-000000000000';
+let currentTab='home';
+let domainLabels={career:'职场成长',relationship:'人际关系',cognition:'认知升级',life:'生活智慧',emotion:'情感'};
+let domains=[{k:'career',l:'职场成长'},{k:'relationship',l:'人际关系'},{k:'cognition',l:'认知升级'},{k:'life',l:'生活智慧'},{k:'emotion',l:'情感'}];
+let selDomain='';
+let allExps=[];
+
+// Navigation
+function switchTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.tab')[['home','chat','create','search','profile'].indexOf(name)].classList.add('active');
+  currentTab=name;
+  if(name==='home') loadHome();
+  if(name==='profile') loadProfile();
+  document.getElementById('detail-overlay').style.display='none';
+}
+
+function showDetail(id){
+  fetch(API+'/api/v1/experiences/'+id).then(r=>r.json()).then(exp=>{
+    document.getElementById('detail-body').innerHTML=`
+      <div class="d-author"><div class="d-avatar">${(exp.author_name||'?')[0]}</div><div class="d-name">${exp.author_name||'匿名'}</div><div class="domain-tag">${domainLabels[exp.domain]||exp.domain}</div></div>
+      <div class="d-content-card">
+        <div class="d-content">${exp.content}</div>
+        ${exp.source_label?`<div class="d-source">来源：${exp.source_label}</div>`:''}
+      </div>
+      <div class="d-actions">
+        <div class="d-action" style="${exp.is_liked?'color:#e85d5d':''}">♥ ${exp.like_count||'点赞'}</div>
+        <div class="d-action" style="${exp.is_bookmarked?'color:#e8a850':''}">★ ${exp.is_bookmarked?'已收藏':'收藏'}</div>
+      </div>
+      ${exp.interpretation?`<div class="d-interpretation"><h4>📖 解读</h4><p>${exp.interpretation}</p></div>`:'<div style="text-align:center;padding:40px;color:#b5b0a8">暂无解读</div>'}
+    `;
+    document.getElementById('detail-overlay').style.display='flex';
+  });
+}
+function closeDetail(){document.getElementById('detail-overlay').style.display='none'}
+
+// Home
+function loadHome(){
+  fetch(API+'/api/v1/experiences?limit=10').then(r=>r.json()).then(d=>{
+    allExps=d.data||[];
+    document.getElementById('home-list').innerHTML=allExps.map(e=>`
+      <div class="card" onclick="showDetail('${e.id}')">
+        <div class="author-row"><div class="avatar">${(e.author_name||'?')[0]}</div><div class="author-name">${e.author_name||'匿名'}</div><div class="domain-tag">${domainLabels[e.domain]||e.domain}</div></div>
+        <div class="content">${e.content}</div>
+        <div class="actions"><span class="action${e.is_liked?' liked':''}">♥ ${e.like_count}</span><span class="action${e.is_bookmarked?' saved':''}">★ ${e.is_bookmarked?'已收藏':'收藏'}</span></div>
+      </div>
+    `).join('');
+  });
+}
+
+// Chat
+function sendChat(){
+  let inp=document.getElementById('chat-input');
+  let msg=inp.value.trim(); if(!msg)return;
+  inp.value='';
+  let chat=document.getElementById('chat-list');
+  chat.innerHTML+=`<div class="bubble-row user"><div class="bubble usr">${msg}</div><div class="b-avatar usr">我</div></div>`;
+  chat.innerHTML+=`<div class="bubble-row"><div class="b-avatar ai">糕</div><div class="bubble ai">…</div></div>`;
+  chat.scrollTop=chat.scrollHeight;
+  fetch(AI+'/api/v1/chat/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,user_id:UID,history:[]})})
+    .then(r=>r.json()).then(d=>{
+      let bubbles=chat.querySelectorAll('.bubble.ai');
+      let last=bubbles[bubbles.length-1];
+      last.textContent=d.reply||'抱歉，服务暂不可用';
+      chat.scrollTop=chat.scrollHeight;
+    });
+}
+
+// Create
+function initCreate(){
+  document.getElementById('domain-row').innerHTML=domains.map(d=>`<div class="domain-chip" id="dc-${d.k}" onclick="selDomain='${d.k}';document.querySelectorAll('.domain-chip').forEach(c=>c.classList.remove('active'));document.getElementById('dc-${d.k}').classList.add('active')">${d.l}</div>`).join('');
+}
+function genAI(){
+  let c=document.getElementById('create-content').value.trim();
+  if(!c||!selDomain){alert('请先填写内容和选择领域');return}
+  fetch(AI+'/api/v1/chat/generate-interpretation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:c,domain:selDomain})})
+    .then(r=>r.json()).then(d=>{
+      document.getElementById('ai-result').innerHTML=`<div class="interpretation-box">${d.interpretation||'生成失败'}</div>`;
+    });
+}
+function publish(){
+  let c=document.getElementById('create-content').value.trim();
+  if(!c||!selDomain){alert('请填写内容和选择领域');return}
+  fetch(API+'/api/v1/experiences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:c,domain:selDomain})})
+    .then(r=>r.json()).then(d=>{
+      if(d.error){alert(d.error);return}
+      alert('发布成功！');switchTab('home');
+    });
+}
+
+// Search
+let searchDomain='';
+function initSearch(){
+  document.getElementById('domain-filter').innerHTML='<div class="df-chip active" onclick="searchDomain="";doSearch();document.querySelectorAll(\'.df-chip\').forEach(c=>c.classList.remove(\'active\'));event.target.classList.add(\'active\')">全部</div>'+domains.map(d=>`<div class="df-chip" onclick="searchDomain='${d.k}';doSearch();document.querySelectorAll('.df-chip').forEach(c=>c.classList.remove('active'));event.target.classList.add('active')">${d.l}</div>`).join('');
+}
+function doSearch(){
+  let kw=document.getElementById('search-input').value.trim();
+  if(!kw)return;
+  fetch(API+'/api/v1/experiences?search='+encodeURIComponent(kw)+'&limit=20').then(r=>r.json()).then(d=>{
+    let data=(d.data||[]).filter(e=>!searchDomain||e.domain===searchDomain);
+    document.getElementById('search-list').innerHTML=data.length?data.map(e=>`
+      <div class="card" onclick="showDetail('${e.id}')">
+        <div class="author-row"><div class="avatar">${(e.author_name||'?')[0]}</div><div class="author-name">${e.author_name||'匿名'}</div><div class="domain-tag">${domainLabels[e.domain]||e.domain}</div></div>
+        <div class="content">${e.content}</div>
+        <div class="actions"><span class="action${e.is_liked?' liked':''}">♥ ${e.like_count}</span><span class="action${e.is_bookmarked?' saved':''}">★ ${e.is_bookmarked?'已收藏':'收藏'}</span></div>
+      </div>
+    `).join('):'<div style="text-align:center;padding:60px;color:#9a9a9a">没有找到相关经验</div>';
+  });
+}
+
+// Profile
+function loadProfile(){
+  fetch(API+'/api/v1/experiences?limit=20').then(r=>r.json()).then(d=>{
+    document.getElementById('profile-list').innerHTML=(d.data||[]).map(e=>`
+      <div class="card" onclick="showDetail('${e.id}')">
+        <div class="author-row"><div class="avatar">${(e.author_name||'?')[0]}</div><div class="author-name">${e.author_name||'匿名'}</div><div class="domain-tag">${domainLabels[e.domain]||e.domain}</div></div>
+        <div class="content">${e.content}</div>
+        <div class="actions"><span class="action">♥ ${e.like_count}</span><span class="action">★ ${e.bookmark_count||'收藏'}</span></div>
+      </div>
+    `).join('');
+  });
+}
+
+// Init
+loadHome();initCreate();initSearch();
+</script>
+</body>
+</html>
