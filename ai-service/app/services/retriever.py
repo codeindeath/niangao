@@ -1,6 +1,6 @@
-"""经验检索 — jieba 分词 + ILIKE 匹配"""
+"""经验检索 — jieba 分词 + ILIKE 关键词匹配"""
 import logging
-from typing import List, Dict
+from typing import Dict
 
 import asyncpg
 import jieba
@@ -15,7 +15,7 @@ STOPWORDS = set(
 )
 
 
-def _extract_keywords(text: str, max_kw: int = 6) -> List[str]:
+def _extract_keywords(text: str, max_kw: int = 6) -> list[str]:
     """jieba 分词 + 去停用词，提取关键词"""
     words = jieba.cut(text)
     keywords = []
@@ -26,12 +26,11 @@ def _extract_keywords(text: str, max_kw: int = 6) -> List[str]:
     return keywords[:max_kw]
 
 
-async def search_similar_experiences(
-    query_embedding: List[float] = None,
-    user_id: str = "",
+async def search_experiences(
     query_text: str = "",
+    user_id: str = "",
     limit: int = 5,
-) -> List[Dict]:
+) -> list[Dict]:
     """关键词检索用户经验"""
     conn = None
     try:
@@ -57,15 +56,18 @@ async def search_similar_experiences(
                            u.nickname as author_name
                     FROM experiences e
                     LEFT JOIN users u ON u.id = e.author_id
-                    WHERE e.status = 'published' AND ({where})
+                    WHERE e.status = 'published'
+                      AND (e.author_id = ${len(keywords) + 1} OR e.author_id = '00000000-0000-0000-0000-000000000000')
+                      AND ({where})
                     ORDER BY e.like_count DESC, e.created_at DESC
-                    LIMIT ${len(keywords) + 1}
+                    LIMIT ${len(keywords) + 2}
                 """
+                params.append(user_id)
                 params.append(limit)
                 rows = await conn.fetch(query, *params)
                 return [dict(r) for r in rows]
 
-        # 无关键词时返回最新经验
+        # 无关键词时返回用户自己的 + 官方经验
         rows = await conn.fetch(
             """
             SELECT e.id, e.content, e.domain, e.like_count,
@@ -73,9 +75,11 @@ async def search_similar_experiences(
             FROM experiences e
             LEFT JOIN users u ON u.id = e.author_id
             WHERE e.status = 'published'
+              AND (e.author_id = $1 OR e.author_id = '00000000-0000-0000-0000-000000000000')
             ORDER BY e.like_count DESC, e.created_at DESC
-            LIMIT $1
+            LIMIT $2
             """,
+            user_id,
             limit,
         )
         return [dict(r) for r in rows]
@@ -85,7 +89,3 @@ async def search_similar_experiences(
     finally:
         if conn:
             await conn.close()
-
-
-async def index_experience(experience_id: str, embedding: List[float] = None):
-    pass

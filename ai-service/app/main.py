@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import chat, experience
+from app.api import chat
 from app.core.config import settings
 from app.services.llm import LLMService
 import app.services.llm as llm_module
@@ -34,7 +34,6 @@ app.add_middleware(
 )
 
 app.include_router(chat.router, prefix="/api/v1/chat", tags=["chat"])
-app.include_router(experience.router, prefix="/api/v1/ai/experience", tags=["experience"])
 
 
 @app.get("/health")

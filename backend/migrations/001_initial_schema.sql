@@ -4,7 +4,6 @@
 -- ============================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgvector";
 
 -- ============================================
 -- 用户表（微信登录）
@@ -48,7 +47,6 @@ CREATE TABLE experiences (
   source_label VARCHAR(100),
   like_count INTEGER NOT NULL DEFAULT 0,
   bookmark_count INTEGER NOT NULL DEFAULT 0,
-  embedding VECTOR(1536),
   interpretation_generated BOOLEAN NOT NULL DEFAULT FALSE,
   status VARCHAR(20) NOT NULL DEFAULT 'published' CHECK (status IN ('published', 'hidden', 'flagged')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -59,7 +57,6 @@ CREATE INDEX idx_exp_author ON experiences(author_id);
 CREATE INDEX idx_exp_domain ON experiences(domain);
 CREATE INDEX idx_exp_created ON experiences(created_at DESC);
 CREATE INDEX idx_exp_status ON experiences(status);
-CREATE INDEX idx_exp_embedding ON experiences USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 -- ============================================
 -- 点赞

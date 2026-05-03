@@ -9,7 +9,7 @@ from sse_starlette.sse import EventSourceResponse
 from app.core.config import settings
 from app.core.prompts import build_system_prompt, build_chat_messages
 import app.services.llm as llm_module
-import app.services.embedding as emb_module
+import app.services.retriever as retriever_module
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -31,7 +31,7 @@ class InterpretationRequest(BaseModel):
 async def send_message(req: ChatRequest):
     try:
         # 关键词检索用户经验
-        experiences = await emb_module.search_similar_experiences(
+        experiences = await retriever_module.search_experiences(
             query_text=req.message,
             user_id=req.user_id,
             limit=settings.max_context_experiences,
@@ -54,7 +54,7 @@ async def send_message(req: ChatRequest):
 async def stream_message(req: ChatRequest):
     async def event_generator():
         try:
-            experiences = await emb_module.search_similar_experiences(
+            experiences = await retriever_module.search_experiences(
                 query_text=req.message,
                 user_id=req.user_id,
                 limit=settings.max_context_experiences,

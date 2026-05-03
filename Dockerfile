@@ -10,7 +10,7 @@ RUN go mod download
 COPY backend/ ./
 RUN CGO_ENABLED=0 go build -o /server ./cmd/server
 
-FROM alpine:3.20
+FROM alpine:3.20 AS backend
 RUN apk add --no-cache ca-certificates
 COPY --from=backend-builder /server /server
 EXPOSE 8080

@@ -122,13 +122,12 @@ class TestSettings:
     def test_default_values(self):
         settings = Settings()
         assert settings.deepseek_model == "deepseek-chat"
-        assert settings.embedding_dim == 1536
         assert settings.max_daily_chat_rounds == 50
         assert settings.max_context_experiences == 5
 
-    def test_embedding_model_default(self):
+    def test_deepseek_base_url_default(self):
         settings = Settings()
-        assert "embedding" in settings.embedding_model.lower()
+        assert "deepseek.com" in settings.deepseek_base_url
 
 
 class TestPromptEdgeCases:

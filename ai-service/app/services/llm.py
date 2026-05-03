@@ -65,10 +65,3 @@ class LLMService:
             max_tokens=600,
         )
         return response.choices[0].message.content
-
-    async def get_embedding(self, text: str) -> List[float]:
-        response = await self.client.embeddings.create(
-            model=settings.embedding_model,
-            input=text,
-        )
-        return response.data[0].embedding

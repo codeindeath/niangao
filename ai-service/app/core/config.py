@@ -1,8 +1,10 @@
 import os
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     # DeepSeek
     deepseek_api_key: str = os.getenv("DEEPSEEK_API_KEY", "")
     deepseek_base_url: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
@@ -13,10 +15,6 @@ class Settings(BaseSettings):
 
     max_daily_chat_rounds: int = int(os.getenv("MAX_DAILY_CHAT_ROUNDS", "50"))
     max_context_experiences: int = int(os.getenv("MAX_CONTEXT_EXPERIENCES", "5"))
-
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
 
 
 settings = Settings()
