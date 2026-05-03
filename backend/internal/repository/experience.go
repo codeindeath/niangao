@@ -14,6 +14,9 @@ type ExperienceRepo struct {
 	db *pgxpool.Pool
 }
 
+// nilUUID replaces empty viewerID for PostgreSQL UUID compatibility
+const nilUUID = "00000000-0000-0000-0000-000000000000"
+
 func NewExperienceRepo(db *pgxpool.Pool) *ExperienceRepo {
 	return &ExperienceRepo{db: db}
 }
@@ -45,6 +48,9 @@ func (r *ExperienceRepo) Create(ctx context.Context, authorID string, req model.
 }
 
 func (r *ExperienceRepo) GetByID(ctx context.Context, id string, viewerID string) (*model.Experience, error) {
+	if viewerID == "" {
+		viewerID = nilUUID
+	}
 	row := r.db.QueryRow(ctx,
 		`SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.is_official,
 		        e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
@@ -123,6 +129,9 @@ func (r *ExperienceRepo) List(ctx context.Context, query model.ExperienceListQue
 		idx, idx+1, whereClause, orderClause, idx+2, idx+3,
 	)
 
+	if viewerID == "" {
+		viewerID = nilUUID
+	}
 	args = append(args, viewerID, viewerID, query.PageSize, (query.Page-1)*query.PageSize)
 
 	rows, err := r.db.Query(ctx, selectQuery, args...)
