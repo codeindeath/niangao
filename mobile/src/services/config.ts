@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE = 'https://api.niangao.app'; // 替换为你的 API 地址
+// 后端服务地址（ECS）
+export const API_BASE = 'http://115.190.177.146:8080';
+export const AI_BASE = 'http://115.190.177.146:8000';
 
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'user_info';
@@ -29,11 +31,11 @@ export async function setUserInfo(user: any): Promise<void> {
   await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
-// ---------- HTTP 请求 ----------
+// ---------- Go 后端 HTTP 请求 ----------
 export async function apiGet(path: string): Promise<any> {
   const token = await getToken();
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: token ? {Authorization: `Bearer ${token}`} : {},
   });
   return res.json();
 }
@@ -44,7 +46,21 @@ export async function apiPost(path: string, body: any): Promise<any> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(token ? {Authorization: `Bearer ${token}`} : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+// ---------- AI 服务 HTTP 请求 ----------
+export async function aiPost(path: string, body: any): Promise<any> {
+  const token = await getToken();
+  const res = await fetch(`${AI_BASE}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? {Authorization: `Bearer ${token}`} : {}),
     },
     body: JSON.stringify(body),
   });
