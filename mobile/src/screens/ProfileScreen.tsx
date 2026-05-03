@@ -135,7 +135,7 @@ export default function ProfileScreen({navigation}: any) {
           <TouchableOpacity
             style={styles.loginButton}
             onPress={() => navigation.navigate('login')}>
-            <Text style={styles.loginText}>微信登录</Text>
+            <Text style={styles.loginText}>登录</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
