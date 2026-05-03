@@ -18,10 +18,15 @@ export default function App() {
   useEffect(() => {
     async function init() {
       // 检查是否有已保存的 token
-      const token = await getToken();
-      if (token) {
-        setAuthenticated(true);
-      } else {
+      try {
+        const token = await getToken();
+        if (token) {
+          setAuthenticated(true);
+        } else {
+          setAuthenticated(false);
+        }
+      } catch (e) {
+        console.error('Failed to get token:', e);
         setAuthenticated(false);
       }
       setLoading(false);

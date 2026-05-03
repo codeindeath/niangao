@@ -37,6 +37,10 @@ export async function apiGet(path: string): Promise<any> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: token ? {Authorization: `Bearer ${token}`} : {},
   });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`HTTP ${res.status}: ${body}`);
+  }
   return res.json();
 }
 
@@ -50,6 +54,10 @@ export async function apiPost(path: string, body: any): Promise<any> {
     },
     body: JSON.stringify(body),
   });
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`HTTP ${res.status}: ${errBody}`);
+  }
   return res.json();
 }
 
@@ -64,5 +72,9 @@ export async function aiPost(path: string, body: any): Promise<any> {
     },
     body: JSON.stringify(body),
   });
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`HTTP ${res.status}: ${errBody}`);
+  }
   return res.json();
 }

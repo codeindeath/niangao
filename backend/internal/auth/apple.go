@@ -40,6 +40,7 @@ var (
 	appleKeysCache     *AppleJWKS
 	appleKeysCacheLock sync.RWMutex
 	appleKeysFetchedAt time.Time
+	httpClient         = &http.Client{Timeout: 10 * time.Second}
 )
 
 const (
@@ -129,7 +130,7 @@ func fetchAppleKeys() (*AppleJWKS, error) {
 		return appleKeysCache, nil
 	}
 
-	resp, err := http.Get(appleJWKSURL)
+	resp, err := httpClient.Get(appleJWKSURL)
 	if err != nil {
 		return nil, fmt.Errorf("fetch apple jwks: %w", err)
 	}

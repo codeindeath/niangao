@@ -199,6 +199,12 @@ func (r *ExperienceRepo) Update(ctx context.Context, id, authorID string, req mo
 }
 
 func (r *ExperienceRepo) Delete(ctx context.Context, id, authorID string) error {
-	_, err := r.db.Exec(ctx, `DELETE FROM experiences WHERE id=$1 AND author_id=$2`, id, authorID)
-	return err
+	result, err := r.db.Exec(ctx, `DELETE FROM experiences WHERE id=$1 AND author_id=$2`, id, authorID)
+	if err != nil {
+		return fmt.Errorf("delete experience: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("experience not found or permission denied")
+	}
+	return nil
 }

@@ -14,6 +14,7 @@ export default function DetailScreen({route, navigation}: any) {
   const {id} = route.params;
   const [exp, setExp] = useState<Experience | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadExperience();
@@ -23,8 +24,10 @@ export default function DetailScreen({route, navigation}: any) {
     try {
       const data = await fetchExperience(id);
       setExp(data);
+      setError(null);
     } catch (e) {
       console.error('Failed to load experience:', e);
+      setError('加载失败，请检查网络连接');
     } finally {
       setLoading(false);
     }
@@ -32,18 +35,34 @@ export default function DetailScreen({route, navigation}: any) {
 
   const handleLike = async () => {
     if (!exp) return;
-    await toggleLike(exp.id);
     setExp({
       ...exp,
       is_liked: !exp.is_liked,
       like_count: exp.is_liked ? exp.like_count - 1 : exp.like_count + 1,
     });
+    try {
+      await toggleLike(exp.id);
+    } catch (e) {
+      console.error('toggleLike failed:', e);
+      // rollback
+      setExp(prev => prev ? {
+        ...prev,
+        is_liked: !prev.is_liked,
+        like_count: prev.is_liked ? prev.like_count - 1 : prev.like_count + 1,
+      } : null);
+    }
   };
 
   const handleBookmark = async () => {
     if (!exp) return;
-    await toggleBookmark(exp.id);
     setExp({...exp, is_bookmarked: !exp.is_bookmarked});
+    try {
+      await toggleBookmark(exp.id);
+    } catch (e) {
+      console.error('toggleBookmark failed:', e);
+      // rollback
+      setExp(prev => prev ? {...prev, is_bookmarked: !prev.is_bookmarked} : null);
+    }
   };
 
   const domainLabels: Record<string, string> = {
@@ -58,6 +77,19 @@ export default function DetailScreen({route, navigation}: any) {
     return (
       <SafeAreaView style={styles.container}>
         <ActivityIndicator size="large" color="#4a7c59" style={{marginTop: 200}} />
+      </SafeAreaView>
+    );
+  }
+
+  if (error && !exp) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => { setError(null); setLoading(true); loadExperience(); }}>
+            <Text style={styles.retryButtonText}>重试</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -282,5 +314,27 @@ const styles = StyleSheet.create({
   noInterpretationText: {
     fontSize: 14,
     color: '#b5b0a8',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 80,
+  },
+  errorText: {
+    fontSize: 15,
+    color: '#9a9a9a',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#4a7c59',
+    borderRadius: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

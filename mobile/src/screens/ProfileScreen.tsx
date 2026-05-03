@@ -131,13 +131,6 @@ export default function ProfileScreen({navigation}: any) {
             <Text style={styles.logoutText}>退出登录</Text>
           </TouchableOpacity>
         )}
-        {!user && (
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => navigation.navigate('login')}>
-            <Text style={styles.loginText}>登录</Text>
-          </TouchableOpacity>
-        )}
       </ScrollView>
     </SafeAreaView>
   );

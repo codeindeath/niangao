@@ -16,13 +16,15 @@ export default function HomeScreen({ navigation }: any) {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
+  const [error, setError] = useState<string | null>(null);
   const loadExperiences = useCallback(async (pageNum: number, refresh = false) => {
     try {
       const result = await fetchExperiences(pageNum);
       setExperiences(prev => refresh ? result.data : [...prev, ...result.data]);
+      setError(null);
     } catch (e) {
       console.error('Failed to load experiences:', e);
+      setError('加载失败，请检查网络连接');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -46,7 +48,6 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   const handleLike = async (id: string) => {
-    await toggleLike(id);
     setExperiences(prev =>
       prev.map(e =>
         e.id === id
@@ -54,13 +55,34 @@ export default function HomeScreen({ navigation }: any) {
           : e
       )
     );
+    try {
+      await toggleLike(id);
+    } catch (e) {
+      console.error('toggleLike failed:', e);
+      // rollback
+      setExperiences(prev =>
+        prev.map(e =>
+          e.id === id
+            ? { ...e, is_liked: !e.is_liked, like_count: e.is_liked ? e.like_count - 1 : e.like_count + 1 }
+            : e
+        )
+      );
+    }
   };
 
   const handleBookmark = async (id: string) => {
-    await toggleBookmark(id);
     setExperiences(prev =>
       prev.map(e => (e.id === id ? { ...e, is_bookmarked: !e.is_bookmarked } : e))
     );
+    try {
+      await toggleBookmark(id);
+    } catch (e) {
+      console.error('toggleBookmark failed:', e);
+      // rollback
+      setExperiences(prev =>
+        prev.map(e => (e.id === id ? { ...e, is_bookmarked: !e.is_bookmarked } : e))
+      );
+    }
   };
 
   const domainLabels: Record<string, string> = {
@@ -79,6 +101,19 @@ export default function HomeScreen({ navigation }: any) {
     );
   }
 
+  if (error && experiences.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => { setError(null); handleRefresh(); }}>
+            <Text style={styles.retryButtonText}>重试</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -92,6 +127,11 @@ export default function HomeScreen({ navigation }: any) {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>暂无推荐内容</Text>
+          </View>
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}
@@ -235,5 +275,35 @@ const styles = StyleSheet.create({
   },
   actionSaved: {
     color: '#e8a850',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 80,
+  },
+  errorText: {
+    fontSize: 15,
+    color: '#9a9a9a',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#4a7c59',
+    borderRadius: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    paddingTop: 100,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 15,
+    color: '#9a9a9a',
   },
 });

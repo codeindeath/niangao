@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -46,7 +47,8 @@ func (h *AuthHandler) WechatLogin(c *gin.Context) {
 	// 1. 用 code 向微信换取 openid
 	tokenResp, err := auth.ExchangeCode(h.wechatCfg.AppID, h.wechatCfg.AppSecret, req.Code)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "微信登录失败: " + err.Error()})
+		log.Printf("wechat login error: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "微信登录失败，请重试"})
 		return
 	}
 
@@ -63,7 +65,7 @@ func (h *AuthHandler) WechatLogin(c *gin.Context) {
 
 	// 3. 查找或创建用户
 	var userID string
-	err = h.db.QueryRow(context.Background(),
+	err = h.db.QueryRow(c.Request.Context(),
 		`INSERT INTO users (wechat_openid, wechat_unionid, nickname, avatar_url)
 		 VALUES ($1, $2, $3, $4)
 		 ON CONFLICT (wechat_openid) DO UPDATE SET
@@ -87,7 +89,11 @@ func (h *AuthHandler) WechatLogin(c *gin.Context) {
 		return
 	}
 
-	refreshToken, _ := auth.GenerateRefreshToken()
+	refreshToken, err := auth.GenerateRefreshToken()
+	if err != nil {
+		log.Printf("generate refresh token failed: %v", err)
+		refreshToken = ""
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"token":         token,
@@ -102,7 +108,7 @@ func (h *AuthHandler) WechatLogin(c *gin.Context) {
 
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	// TODO: 实现 refresh token 逻辑
-	c.JSON(http.StatusOK, gin.H{"status": "not implemented yet"})
+	c.JSON(http.StatusNotImplemented, gin.H{"error": "refresh token 功能开发中"})
 }
 
 // Apple Login
@@ -123,7 +129,8 @@ func (h *AuthHandler) AppleLogin(c *gin.Context) {
 	// 1. 验证 Apple identity token
 	claims, err := auth.VerifyAppleIDToken(req.IdentityToken, h.appleBundle)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Apple 登录验证失败: " + err.Error()})
+		log.Printf("apple login verify error: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Apple 登录验证失败，请重试"})
 		return
 	}
 
@@ -139,7 +146,7 @@ func (h *AuthHandler) AppleLogin(c *gin.Context) {
 
 	// 3. 查找或创建用户（apple_user_id = claims.Subject）
 	var userID string
-	err = h.db.QueryRow(context.Background(),
+	err = h.db.QueryRow(c.Request.Context(),
 		`INSERT INTO users (apple_user_id, nickname)
 		 VALUES ($1, $2)
 		 ON CONFLICT (apple_user_id) DO UPDATE SET
@@ -161,7 +168,11 @@ func (h *AuthHandler) AppleLogin(c *gin.Context) {
 		return
 	}
 
-	refreshToken, _ := auth.GenerateRefreshToken()
+	refreshToken, err := auth.GenerateRefreshToken()
+	if err != nil {
+		log.Printf("generate refresh token failed: %v", err)
+		refreshToken = ""
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"token":         token,
