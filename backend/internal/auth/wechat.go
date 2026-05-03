@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var httpClient = &http.Client{Timeout: 10 * time.Second}
+var wechatClient = &http.Client{Timeout: 10 * time.Second}
 
 // WechatAccessTokenResp 微信 access_token 响应
 type WechatAccessTokenResp struct {
@@ -38,7 +38,7 @@ func ExchangeCode(appID, appSecret, code string) (*WechatAccessTokenResp, error)
 		url.QueryEscape(code),
 	)
 
-	resp, err := httpClient.Get(apiURL)
+	resp, err := wechatClient.Get(apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("wechat api error: %w", err)
 	}
@@ -64,7 +64,7 @@ func GetUserInfo(accessToken, openID string) (*WechatUserInfo, error) {
 		url.QueryEscape(openID),
 	)
 
-	resp, err := httpClient.Get(apiURL)
+	resp, err := wechatClient.Get(apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("wechat api error: %w", err)
 	}
