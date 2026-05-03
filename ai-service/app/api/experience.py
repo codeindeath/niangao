@@ -4,7 +4,9 @@ import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.main import llm_service
+from app.services.llm import llm_service
+import app.services.llm as llm_module
+from app.services.embedding import index_experience
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +22,8 @@ class GenerateEmbeddingRequest(BaseModel):
 async def generate_embedding(req: GenerateEmbeddingRequest):
     """为经验生成向量并索引"""
     try:
-        embedding = await llm_service.get_embedding(req.content)
-        from app.main import embedding_service
-        await embedding_service.index_experience(req.experience_id, embedding)
+        embedding = await llm_module.llm_service.get_embedding(req.content)
+        await index_experience(req.experience_id, embedding)
         return {"status": "ok", "dimensions": len(embedding)}
     except Exception as e:
         logger.error(f"Generate embedding error: {e}")

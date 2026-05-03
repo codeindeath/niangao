@@ -8,6 +8,9 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Module-level singleton (set by main.py lifespan)
+llm_service: "LLMService" = None
+
 
 class LLMService:
     def __init__(self):

@@ -6,9 +6,10 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
+from app.core.config import settings
 from app.core.prompts import build_system_prompt, build_chat_messages
-from app.main import llm_service
-from app.services.embedding import search_similar_experiences
+import app.services.llm as llm_module
+import app.services.embedding as emb_module
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -29,13 +30,21 @@ class InterpretationRequest(BaseModel):
 @router.post("/send")
 async def send_message(req: ChatRequest):
     try:
-        query_embedding = await llm_service.get_embedding(req.message)
-        experiences = await search_similar_experiences(query_embedding, req.user_id, 5)
+        # 关键词检索用户经验
+        experiences = await emb_module.search_similar_experiences(
+            query_text=req.message,
+            user_id=req.user_id,
+            limit=settings.max_context_experiences,
+        )
+
         system_prompt = build_system_prompt(experiences)
         messages = build_chat_messages(system_prompt, req.history, req.message)
-        response = await llm_service.chat(messages, stream=False)
+        response = await llm_module.llm_service.chat(messages, stream=False)
 
-        return {"reply": response, "referenced_experience_ids": [e.get("id") for e in experiences]}
+        return {
+            "reply": response,
+            "referenced_experience_ids": [e.get("id") for e in experiences],
+        }
     except Exception as e:
         logger.error(f"Chat error: {e}")
         raise HTTPException(status_code=500, detail="对话服务暂时不可用")
@@ -45,13 +54,17 @@ async def send_message(req: ChatRequest):
 async def stream_message(req: ChatRequest):
     async def event_generator():
         try:
-            query_embedding = await llm_service.get_embedding(req.message)
-            experiences = await search_similar_experiences(query_embedding, req.user_id, 5)
+            experiences = await emb_module.search_similar_experiences(
+                query_text=req.message,
+                user_id=req.user_id,
+                limit=settings.max_context_experiences,
+            )
+
             system_prompt = build_system_prompt(experiences)
             messages = build_chat_messages(system_prompt, req.history, req.message)
 
             full = ""
-            async for token in llm_service.chat(messages, stream=True):
+            async for token in llm_module.llm_service.chat(messages, stream=True):
                 full += token
                 yield {"data": token}
             yield {"event": "references", "data": str([e.get("id") for e in experiences])}
@@ -64,7 +77,9 @@ async def stream_message(req: ChatRequest):
 @router.post("/generate-interpretation")
 async def generate_interpretation(req: InterpretationRequest):
     try:
-        interpretation = await llm_service.generate_interpretation(req.content, req.domain)
+        interpretation = await llm_module.llm_service.generate_interpretation(
+            req.content, req.domain
+        )
         return {"interpretation": interpretation}
     except Exception as e:
         raise HTTPException(status_code=500, detail="生成解读失败")

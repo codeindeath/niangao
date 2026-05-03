@@ -8,18 +8,15 @@ class Settings(BaseSettings):
     deepseek_base_url: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
     deepseek_model: str = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
-    # PostgreSQL (直连)
+    # PostgreSQL
     database_url: str = os.getenv("DATABASE_URL", "")
-
-    # Embedding
-    embedding_model: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
-    embedding_dim: int = 1536
 
     max_daily_chat_rounds: int = int(os.getenv("MAX_DAILY_CHAT_ROUNDS", "50"))
     max_context_experiences: int = int(os.getenv("MAX_CONTEXT_EXPERIENCES", "5"))
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 
 settings = Settings()

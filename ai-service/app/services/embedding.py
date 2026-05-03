@@ -1,35 +1,81 @@
-"""向量检索 — 直接查询 PG 的 pgvector"""
+"""经验检索 — jieba 分词 + ILIKE 匹配"""
 import logging
 from typing import List, Dict
+
 import asyncpg
+import jieba
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# 常见停用词
+STOPWORDS = set(
+    "的 了 是 在 我 有 和 就 不 人 都 一 一个 上 也 很 到 说 要 去 你 会 着 没有 看 好 自己 这 那 他 她 它 们 吗 吧 呢 啊 哦 嗯 什么 怎么 为什么 可以 这个 那个 因为 所以 但是 虽然 如果 然后 已经 还是 不过 只是 觉得 应该 可能 比较 非常 真的 太 多 少 很".split()
+)
+
+
+def _extract_keywords(text: str, max_kw: int = 6) -> List[str]:
+    """jieba 分词 + 去停用词，提取关键词"""
+    words = jieba.cut(text)
+    keywords = []
+    for w in words:
+        w = w.strip()
+        if len(w) >= 2 and w not in STOPWORDS:
+            keywords.append(w)
+    return keywords[:max_kw]
+
 
 async def search_similar_experiences(
-    query_embedding: List[float],
-    user_id: str,
+    query_embedding: List[float] = None,
+    user_id: str = "",
+    query_text: str = "",
     limit: int = 5,
 ) -> List[Dict]:
-    """在 PG 中检索与查询最相似的用户经验"""
+    """关键词检索用户经验"""
     conn = None
     try:
         conn = await asyncpg.connect(settings.database_url)
-        # pgvector <=> 操作符做余弦相似度排序
+
+        if query_text:
+            keywords = _extract_keywords(query_text)
+            logger.info(f"Keywords: {keywords}")
+            if keywords:
+                # ILIKE 条件：任意关键词匹配 content 或 interpretation
+                conditions = []
+                params = []
+                for i, kw in enumerate(keywords):
+                    p = f"${i+1}"
+                    conditions.append(
+                        f"(e.content ILIKE '%' || {p} || '%' OR e.interpretation ILIKE '%' || {p} || '%')"
+                    )
+                    params.append(kw)
+
+                where = " OR ".join(conditions)
+                query = f"""
+                    SELECT e.id, e.content, e.domain, e.like_count,
+                           u.nickname as author_name
+                    FROM experiences e
+                    LEFT JOIN users u ON u.id = e.author_id
+                    WHERE e.status = 'published' AND ({where})
+                    ORDER BY e.like_count DESC, e.created_at DESC
+                    LIMIT ${len(keywords) + 1}
+                """
+                params.append(limit)
+                rows = await conn.fetch(query, *params)
+                return [dict(r) for r in rows]
+
+        # 无关键词时返回最新经验
         rows = await conn.fetch(
             """
             SELECT e.id, e.content, e.domain, e.like_count,
                    u.nickname as author_name
             FROM experiences e
             LEFT JOIN users u ON u.id = e.author_id
-            WHERE e.status = 'published' AND e.author_id = $1
-            ORDER BY e.embedding <=> $2::vector
-            LIMIT $3
+            WHERE e.status = 'published'
+            ORDER BY e.like_count DESC, e.created_at DESC
+            LIMIT $1
             """,
-            user_id,
-            str(query_embedding),
             limit,
         )
         return [dict(r) for r in rows]
@@ -41,18 +87,5 @@ async def search_similar_experiences(
             await conn.close()
 
 
-async def index_experience(experience_id: str, embedding: List[float]):
-    """将向量写入 PG"""
-    conn = None
-    try:
-        conn = await asyncpg.connect(settings.database_url)
-        await conn.execute(
-            "UPDATE experiences SET embedding = $1::vector WHERE id = $2",
-            str(embedding),
-            experience_id,
-        )
-    except Exception as e:
-        logger.error(f"Index failed: {e}")
-    finally:
-        if conn:
-            await conn.close()
+async def index_experience(experience_id: str, embedding: List[float] = None):
+    pass
