@@ -89,6 +89,19 @@ func (r *ConversationRepo) GetMessages(ctx context.Context, convID string, limit
 	return messages, nil
 }
 
+func (r *ConversationRepo) GetByID(ctx context.Context, id string) (*model.Conversation, error) {
+	c := &model.Conversation{}
+	err := r.db.QueryRow(ctx,
+		`SELECT id, user_id, title, created_at, updated_at
+		 FROM conversations WHERE id=$1`,
+		id,
+	).Scan(&c.ID, &c.UserID, &c.Title, &c.CreatedAt, &c.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
 func (r *ConversationRepo) ListByUser(ctx context.Context, userID string) ([]model.Conversation, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT id, user_id, title, created_at, updated_at

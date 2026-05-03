@@ -18,7 +18,10 @@ func RegisterUserRoutes(r *gin.RouterGroup, db *pgxpool.Pool) {
 }
 
 func getProfile(c *gin.Context, db *pgxpool.Pool) {
-	userID, _ := c.Get("user_id")
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
 
 	var nickname string
 	var avatarURL *string

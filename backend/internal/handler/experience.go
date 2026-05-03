@@ -75,7 +75,10 @@ func (h *ExperienceHandler) Get(c *gin.Context) {
 }
 
 func (h *ExperienceHandler) Create(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
 
 	var req model.CreateExperienceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -88,7 +91,7 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	exp, err := h.repo.Create(c.Request.Context(), userID.(string), req)
+	exp, err := h.repo.Create(c.Request.Context(), userID, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create experience"})
 		return
@@ -98,7 +101,10 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 }
 
 func (h *ExperienceHandler) Update(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
 	id := c.Param("id")
 
 	var req model.CreateExperienceRequest
@@ -107,7 +113,12 @@ func (h *ExperienceHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if err := h.repo.Update(c.Request.Context(), id, userID.(string), req); err != nil {
+	if !model.IsValidDomain(req.Domain) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid domain"})
+		return
+	}
+
+	if err := h.repo.Update(c.Request.Context(), id, userID, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update"})
 		return
 	}
@@ -116,10 +127,13 @@ func (h *ExperienceHandler) Update(c *gin.Context) {
 }
 
 func (h *ExperienceHandler) Delete(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
 	id := c.Param("id")
 
-	if err := h.repo.Delete(c.Request.Context(), id, userID.(string)); err != nil {
+	if err := h.repo.Delete(c.Request.Context(), id, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete"})
 		return
 	}
@@ -128,10 +142,13 @@ func (h *ExperienceHandler) Delete(c *gin.Context) {
 }
 
 func (h *ExperienceHandler) ToggleLike(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
 	id := c.Param("id")
 
-	liked, err := h.likeRepo.Toggle(c.Request.Context(), userID.(string), id)
+	liked, err := h.likeRepo.Toggle(c.Request.Context(), userID, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to toggle like"})
 		return
@@ -141,10 +158,13 @@ func (h *ExperienceHandler) ToggleLike(c *gin.Context) {
 }
 
 func (h *ExperienceHandler) ToggleBookmark(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
 	id := c.Param("id")
 
-	bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID.(string), id)
+	bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to toggle bookmark"})
 		return

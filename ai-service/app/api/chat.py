@@ -64,7 +64,7 @@ async def stream_message(req: ChatRequest):
             messages = build_chat_messages(system_prompt, req.history, req.message)
 
             full = ""
-            async for token in llm_module.llm_service.chat(messages, stream=True):
+            async for token in await llm_module.llm_service.chat(messages, stream=True):
                 full += token
                 yield {"data": token}
             yield {"event": "references", "data": str([e.get("id") for e in experiences])}

@@ -24,9 +24,12 @@ func RegisterConversationRoutes(r *gin.RouterGroup, repo *repository.Conversatio
 }
 
 func (h *ConversationHandler) List(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
 
-	convs, err := h.repo.ListByUser(c.Request.Context(), userID.(string))
+	convs, err := h.repo.ListByUser(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list conversations"})
 		return
@@ -36,9 +39,12 @@ func (h *ConversationHandler) List(c *gin.Context) {
 }
 
 func (h *ConversationHandler) Create(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
 
-	conv, err := h.repo.Create(c.Request.Context(), userID.(string))
+	conv, err := h.repo.Create(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create conversation"})
 		return
@@ -48,10 +54,18 @@ func (h *ConversationHandler) Create(c *gin.Context) {
 }
 
 func (h *ConversationHandler) GetMessages(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
 	convID := c.Param("id")
 
-	_ = userID // In production, verify conversation belongs to user
+	// Verify conversation belongs to user
+	conv, err := h.repo.GetByID(c.Request.Context(), convID)
+	if err != nil || conv.UserID != userID {
+		c.JSON(http.StatusNotFound, gin.H{"error": "conversation not found"})
+		return
+	}
 
 	messages, err := h.repo.GetMessages(c.Request.Context(), convID, 100)
 	if err != nil {

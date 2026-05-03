@@ -174,6 +174,21 @@ func (r *ExperienceRepo) SearchByEmbedding(ctx context.Context, embedding []floa
 	return experiences, nil
 }
 
+func (r *ExperienceRepo) Update(ctx context.Context, id, authorID string, req model.CreateExperienceRequest) error {
+	result, err := r.db.Exec(ctx,
+		`UPDATE experiences SET content=$1, interpretation=$2, domain=$3, updated_at=NOW()
+		 WHERE id=$4 AND author_id=$5`,
+		req.Content, req.Interpretation, req.Domain, id, authorID,
+	)
+	if err != nil {
+		return fmt.Errorf("update experience: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("experience not found or permission denied")
+	}
+	return nil
+}
+
 func (r *ExperienceRepo) Delete(ctx context.Context, id, authorID string) error {
 	_, err := r.db.Exec(ctx, `DELETE FROM experiences WHERE id=$1 AND author_id=$2`, id, authorID)
 	return err

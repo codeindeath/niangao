@@ -1,0 +1,19 @@
+package handler
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+// getAuthUserID extracts user_id from gin context.
+// Returns empty string if not found (only happens when RequireAuth middleware is not applied).
+func getAuthUserID(c *gin.Context) string {
+	uid, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "请先登录"})
+		c.Abort()
+		return ""
+	}
+	return uid.(string)
+}
