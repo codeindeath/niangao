@@ -28,6 +28,7 @@ func RegisterAuthRoutes(r *gin.RouterGroup, db *pgxpool.Pool, jwtSecret string, 
 	{
 		auth.POST("/wechat/login", h.WechatLogin)
 		auth.POST("/apple/login", h.AppleLogin)
+		auth.POST("/dev/login", h.DevLogin)
 		auth.POST("/refresh", h.RefreshToken)
 	}
 }
@@ -105,8 +106,65 @@ func (h *AuthHandler) WechatLogin(c *gin.Context) {
 	})
 }
 
+// DevLogin — 开发环境模拟登录，创建测试用户直接返回 JWT
+// 仅在开发用途，生产环境应移除
+
+type DevLoginRequest struct {
+	Nickname string `json:"nickname"`
+}
+
+func (h *AuthHandler) DevLogin(c *gin.Context) {
+	var req DevLoginRequest
+	_ = c.ShouldBindJSON(&req)
+
+	nickname := req.Nickname
+	if nickname == "" {
+		nickname = "开发者"
+	}
+
+	devUserID := "dev-" + nickname
+
+	var userID string
+	err := h.db.QueryRow(c.Request.Context(),
+		`INSERT INTO users (apple_user_id, nickname)
+		 VALUES ($1, $2)
+		 ON CONFLICT (apple_user_id) DO UPDATE SET
+		   nickname = CASE WHEN users.nickname = '' THEN $2 ELSE users.nickname END,
+		   updated_at = NOW()
+		 RETURNING id`,
+		devUserID, nickname,
+	).Scan(&userID)
+
+	if err != nil {
+		log.Printf("dev login db error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "登录失败"})
+		return
+	}
+
+	token, err := auth.GenerateToken(h.jwtSecret, userID, devUserID, nickname)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成 token 失败"})
+		return
+	}
+
+	refreshToken, err := auth.GenerateRefreshToken()
+	if err != nil {
+		log.Printf("generate refresh token failed: %v", err)
+		refreshToken = ""
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"token":         token,
+		"refresh_token": refreshToken,
+		"user": gin.H{
+			"id":       userID,
+			"nickname": nickname,
+			"avatar":   nil,
+		},
+	})
+}
+
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
-	// TODO: 实现 refresh token 逻辑
 	c.JSON(http.StatusNotImplemented, gin.H{"error": "refresh token 功能开发中"})
 }
 

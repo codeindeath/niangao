@@ -9,8 +9,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { appleLogin } from '../services/api';
+import { appleLogin, devLogin } from '../services/api';
 import { setToken, setUserInfo } from '../services/config';
+
+declare const __DEV__: boolean;
 
 export default function LoginScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
@@ -41,10 +43,23 @@ export default function LoginScreen({ onLoginSuccess }: { onLoginSuccess: () => 
     } catch (e: any) {
       setLoading(false);
       if (e.code === 'ERR_CANCELED') {
-        // 用户取消，不提示
         return;
       }
       Alert.alert('登录失败', e.message || 'Apple 登录出错');
+    }
+  };
+
+  const handleDevLogin = async () => {
+    setLoading(true);
+    try {
+      const result = await devLogin();
+      await setToken(result.token);
+      await setUserInfo(result.user);
+      setLoading(false);
+      onLoginSuccess();
+    } catch (e: any) {
+      setLoading(false);
+      Alert.alert('登录失败', e.message || '模拟登录失败');
     }
   };
 
@@ -64,6 +79,17 @@ export default function LoginScreen({ onLoginSuccess }: { onLoginSuccess: () => 
           style={styles.appleButton}
           onPress={handleAppleLogin}
         />
+
+        {/* 开发模拟登录 */}
+        {__DEV__ && (
+          <TouchableOpacity
+            style={styles.devButton}
+            onPress={handleDevLogin}
+            activeOpacity={0.6}
+          >
+            <Text style={styles.devButtonText}>🔧 开发模拟登录</Text>
+          </TouchableOpacity>
+        )}
 
         {/* WeChat 保留，标灰提示不可用 */}
         <TouchableOpacity
@@ -117,6 +143,20 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 52,
     marginBottom: 12,
+  },
+  devButton: {
+    width: '100%',
+    height: 44,
+    backgroundColor: '#e8f0e9',
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  devButtonText: {
+    color: '#4a7c59',
+    fontSize: 15,
+    fontWeight: '600',
   },
   wechatButton: {
     width: '100%',

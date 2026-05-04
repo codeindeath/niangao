@@ -113,3 +113,12 @@ export async function appleLogin(
     full_name: fullName,
   });
 }
+
+// 开发环境模拟登录
+export async function devLogin(
+  nickname?: string,
+): Promise<{token: string; refresh_token: string; user: any}> {
+  return apiPost('/api/v1/auth/dev/login', {
+    nickname: nickname || '开发者',
+  });
+}
