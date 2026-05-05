@@ -245,7 +245,7 @@ func (r *ExperienceRepo) ListByAuthor(ctx context.Context, authorID string, page
 	}
 	defer rows.Close()
 
-	return scanExperiences(rows)
+	return scanExperiences(rows, total)
 }
 
 // ListBookmarked — 用户收藏的经验
@@ -286,10 +286,10 @@ func (r *ExperienceRepo) ListBookmarked(ctx context.Context, userID string, page
 	}
 	defer rows.Close()
 
-	return scanExperiences(rows)
+	return scanExperiences(rows, total)
 }
 
-func scanExperiences(rows pgx.Rows) ([]model.Experience, int, error) {
+func scanExperiences(rows pgx.Rows, total int) ([]model.Experience, int, error) {
 	var experiences []model.Experience
 	for rows.Next() {
 		var e model.Experience
@@ -303,5 +303,5 @@ func scanExperiences(rows pgx.Rows) ([]model.Experience, int, error) {
 		}
 		experiences = append(experiences, e)
 	}
-	return experiences, 0, nil
+	return experiences, total, nil
 }
