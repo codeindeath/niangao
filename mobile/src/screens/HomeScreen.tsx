@@ -9,6 +9,9 @@ import {
   Dimensions,
   Alert,
   Animated,
+  PanResponder,
+  GestureResponderEvent,
+  PanResponderGestureState,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
@@ -223,9 +226,11 @@ function FlipCard({item, currentUserId, cardHeight, onLike, onBookmark, onDelete
 // ══════════════════════════════════════════
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const CARD_HEIGHT = SCREEN_HEIGHT - insets.top - TOP_TABS_HEIGHT - TAB_BAR_ESTIMATE;
+  // card = screen - status bar - top tabs(44) - bottom tab(80) - safe margin(15)
+  const CARD_HEIGHT = SCREEN_HEIGHT - insets.top - TOP_TABS_HEIGHT - TAB_BAR_ESTIMATE - 15;
 
   type TabName = 'recommend' | 'my' | 'bookmarks';
+  const tabOrder: TabName[] = ['recommend', 'my', 'bookmarks'];
   const [activeTab, setActiveTab] = useState<TabName>('recommend');
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
@@ -342,6 +347,27 @@ export default function HomeScreen() {
     ]);
   };
 
+  // ═══ 左右滑动手势切换标签 ═══
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (e: GestureResponderEvent, gs: PanResponderGestureState) => {
+        // Only capture horizontal swipes (dx > dy and significant enough)
+        return Math.abs(gs.dx) > 20 && Math.abs(gs.dx) > Math.abs(gs.dy);
+      },
+      onPanResponderRelease: (e: GestureResponderEvent, gs: PanResponderGestureState) => {
+        if (Math.abs(gs.dx) > 60 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5) {
+          const idx = tabOrder.indexOf(activeTab);
+          if (gs.dx < 0 && idx < tabOrder.length - 1) {
+            handleTabChange(tabOrder[idx + 1]);
+          } else if (gs.dx > 0 && idx > 0) {
+            handleTabChange(tabOrder[idx - 1]);
+          }
+        }
+      },
+    }),
+  ).current;
+
   if (loading) {
     return <View style={s.container}><ActivityIndicator size="large" color="#4a7c59" style={{marginTop: 200}} /></View>;
   }
@@ -359,10 +385,10 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={s.container}>
-      {/* ═══ 方案A 顶部三标签 ═══ */}
+    <View style={s.container} {...panResponder.panHandlers}>
+      {/* ═══ 方案A 顶部三标签（透明背景） ═══ */}
       <View style={[s.tabBar, {top: insets.top}]}>
-        {(['recommend', 'my', 'bookmarks'] as TabName[]).map(tab => (
+        {tabOrder.map(tab => (
           <TouchableOpacity key={tab} onPress={() => handleTabChange(tab)} style={s.tabItem}>
             <Text style={[s.tabLabel, activeTab === tab && s.tabLabelActive]}>
               {tab === 'recommend' ? '推荐' : tab === 'my' ? '我的' : '收藏'}
@@ -433,7 +459,7 @@ const s = StyleSheet.create({
     position: 'absolute', left: 0, right: 0, zIndex: 10,
     flexDirection: 'row', justifyContent: 'space-around',
     paddingHorizontal: 24, paddingTop: 8, paddingBottom: 6,
-    backgroundColor: 'rgba(250,248,245,0.97)',
+    backgroundColor: 'transparent',
   },
   tabItem: { alignItems: 'center', paddingHorizontal: 8 },
   tabLabel: { fontSize: 15, fontWeight: '500', color: '#b5b0a8' },
