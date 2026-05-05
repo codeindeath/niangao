@@ -40,7 +40,7 @@ func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.Experience
 func (h *ExperienceHandler) List(c *gin.Context) {
 	var query model.ExperienceListQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "查询参数错误"})
 		return
 	}
 
@@ -80,7 +80,7 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 
 	var req model.CreateExperienceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "请填写完整：经验内容（10-100字）、领域和子领域"})
 		return
 	}
 
@@ -233,7 +233,7 @@ func (h *ExperienceHandler) Update(c *gin.Context) {
 
 	var req model.CreateExperienceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "请填写完整：经验内容（10-100字）、领域和子领域"})
 		return
 	}
 
@@ -363,8 +363,9 @@ func (h *ExperienceHandler) GetRecommendations(c *gin.Context) {
 	}
 
 	limit := parseIntParam(c.Query("limit"), 20)
+	offset := parseIntParam(c.Query("offset"), 0)
 
-	experiences, err := h.repo.Recommend(c.Request.Context(), userID, limit)
+	experiences, err := h.repo.Recommend(c.Request.Context(), userID, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get recommendations"})
 		return

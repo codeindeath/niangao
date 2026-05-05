@@ -150,8 +150,9 @@ export async function deleteAccount(): Promise<{message: string}> {
 
 export async function fetchRecommendations(
   limit: number = 20,
+  offset: number = 0,
 ): Promise<{data: Experience[]; total: number}> {
-  return apiGet(`/api/v1/experiences/recommend?limit=${limit}`);
+  return apiGet(`/api/v1/experiences/recommend?limit=${limit}&offset=${offset}`);
 }
 
 // ============================================================

@@ -276,9 +276,12 @@ func (r *ExperienceRepo) SearchByEmbedding(ctx context.Context, embedding []floa
 
 // Recommend returns experiences the user hasn't seen,
 // ranked by domain preference × hotness (like_count + bookmark_count).
-func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit int) ([]model.Experience, error) {
+func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, offset int) ([]model.Experience, error) {
 	if limit < 1 || limit > 50 {
 		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
 	}
 
 	query := `
@@ -312,9 +315,9 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit int
 		  AND e.author_id != $1
 		  AND e.id NOT IN (SELECT experience_id FROM bookmarks WHERE user_id = $1)
 		ORDER BY rec_score DESC
-		LIMIT $2`
+		LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Query(ctx, query, userID, limit)
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("recommend: %w", err)
 	}

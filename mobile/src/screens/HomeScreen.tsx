@@ -84,35 +84,63 @@ export default function HomeScreen({ navigation }: any) {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPersonalized, setIsPersonalized] = useState(false);
+  const PAGE_SIZE = 20;
+
+  const loadPage = useCallback(async (offset: number, append: boolean) => {
+    const token = await getToken();
+    let result;
+    if (token) {
+      result = await fetchRecommendations(PAGE_SIZE, offset);
+      setIsPersonalized(true);
+    } else {
+      result = await fetchExperiences(Math.floor(offset / PAGE_SIZE) + 1);
+      setIsPersonalized(false);
+    }
+    const data = Array.isArray(result?.data) ? result.data : [];
+    if (append) {
+      setExperiences(prev => [...prev, ...data]);
+    } else {
+      setExperiences(data);
+    }
+    setError(null);
+    return data.length;
+  }, []);
 
   const loadRecommendations = useCallback(async (refresh = false) => {
     try {
-      const token = await getToken();
-      let result;
-      if (token) {
-        result = await fetchRecommendations(20);
-        setIsPersonalized(true);
-      } else {
-        result = await fetchExperiences(1);
-        setIsPersonalized(false);
-      }
-      const data = Array.isArray(result?.data) ? result.data : [];
-      setExperiences(data);
-      setError(null);
+      const count = await loadPage(0, false);
+      // If first page returned less than PAGE_SIZE, no more
     } catch (e) {
-      console.error('Failed to load recommendations:', e);
+      console.error('Failed to load:', e);
       setError('加载失败，请检查网络连接');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [loadPage]);
 
   useEffect(() => { loadRecommendations(true); }, []);
 
   const handleRefresh = () => { setRefreshing(true); loadRecommendations(true); };
+
+  const handleLoadMore = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const offset = experiences.length;
+      const count = await loadPage(offset, true);
+      if (count < PAGE_SIZE) {
+        // No more data, don't set a flag — just stop loading
+      }
+    } catch (e) {
+      console.error('Failed to load more:', e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handleLike = async (id: string) => {
     setExperiences(prev => prev.map(e =>
@@ -243,6 +271,15 @@ export default function HomeScreen({ navigation }: any) {
         keyExtractor={item => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#4a7c59" />}
         contentContainerStyle={s.list}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ paddingVertical: 20 }}>
+              <ActivityIndicator size="small" color="#4a7c59" />
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View style={s.emptyContainer}>
             <Text style={s.emptyText}>暂无推荐内容</Text>
