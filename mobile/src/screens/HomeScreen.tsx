@@ -248,6 +248,12 @@ export default function HomeScreen() {
   const tokenRef = useRef<string | null>(null);
   const offsetRef = useRef(0);
 
+  // 供 PanResponder 闭包读取最新值
+  const activeTabRef = useRef(activeTab);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+  const handleTabChangeRef = useRef(handleTabChange);
+  useEffect(() => { handleTabChangeRef.current = handleTabChange; }, [handleTabChange]);
+
   useEffect(() => {
     getToken().then(t => { tokenRef.current = t; });
     getUserInfo().then(u => setCurrentUserId(u?.id || null));
@@ -351,28 +357,34 @@ export default function HomeScreen() {
   };
 
   // ═══ 左右滑动手势 → 循环切换标签 ═══
+  // Capture 阶段拦截横向滑动，不干扰 FlatList 纵向滚和卡片点击翻页
   // 左滑(dx<0): 推荐→我的→收藏→推荐
   // 右滑(dx>0): 推荐→收藏→我的→推荐
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (e: GestureResponderEvent, gs: PanResponderGestureState) => {
-        // 只捕获横向滑动
-        return Math.abs(gs.dx) > 30 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5;
+      // 不在 touch start 抢手势 — 让子组件正常工作
+      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+      // 捕获阶段：横向滑动超过阈值 → 直接拦截（先于子组件）
+      onMoveShouldSetPanResponderCapture: (_e, gs) => {
+        return Math.abs(gs.dx) > 25 && Math.abs(gs.dx) > Math.abs(gs.dy) * 2;
       },
-      onPanResponderRelease: (e: GestureResponderEvent, gs: PanResponderGestureState) => {
-        if (Math.abs(gs.dx) > 60 && Math.abs(gs.dx) > Math.abs(gs.dy) * 2) {
-          const idx = tabOrder.indexOf(activeTab);
+      // 兜底：如果捕获阶段没触发，move 阶段也尝试
+      onMoveShouldSetPanResponder: (_e, gs) => {
+        return Math.abs(gs.dx) > 40 && Math.abs(gs.dx) > Math.abs(gs.dy) * 2;
+      },
+      onPanResponderRelease: (_e, gs) => {
+        if (Math.abs(gs.dx) > 50 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.8) {
+          const idx = tabOrder.indexOf(activeTabRef.current);
           const n = tabOrder.length;
           if (gs.dx < 0) {
-            // 左滑 → 下一个 tab（循环）
-            handleTabChange(tabOrder[(idx + 1) % n]);
+            handleTabChangeRef.current(tabOrder[(idx + 1) % n]);
           } else {
-            // 右滑 → 上一个 tab（循环）
-            handleTabChange(tabOrder[(idx - 1 + n) % n]);
+            handleTabChangeRef.current(tabOrder[(idx - 1 + n) % n]);
           }
         }
       },
+      onPanResponderTerminate: () => {},
     }),
   ).current;
 
