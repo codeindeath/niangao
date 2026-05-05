@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>V4 撞色大胆 | 年糕经验流</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f0f0f;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+.phone{width:390px;height:844px;border-radius:36px;overflow:hidden;position:relative;box-shadow:0 0 0 4px #1a1a1a,0 30px 80px rgba(0,0,0,.6)}
+.card{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px;transition:transform .4s cubic-bezier(.25,.46,.45,.94)}
+.card:nth-child(1){transform:translateY(0);background:linear-gradient(160deg,#ff6b35 0%,#f7c948 50%,#1dd1a1 100%)}
+.card:nth-child(2){transform:translateY(100%);background:linear-gradient(160deg,#a29bfe 0%,#6c5ce7 40%,#fd79a8 100%)}
+.card:nth-child(3){transform:translateY(200%);background:linear-gradient(160deg,#00b894 0%,#00cec9 40%,#0984e3 100%)}
+.badge{position:absolute;top:50px;left:24px;display:flex;gap:6px}
+.badge span{font-size:10px;font-weight:800;color:#fff;background:rgba(0,0,0,.2);padding:4px 10px;border-radius:12px;letter-spacing:.5px}
+.platform-badge{background:rgba(255,255,255,.3)!important;font-size:9px!important;width:18px;height:18px;border-radius:9px!important;display:flex;align-items:center;justify-content:center;padding:0!important}
+.content-box{background:rgba(0,0,0,.25);backdrop-filter:blur(16px);border-radius:24px;padding:32px 28px;max-width:320px;border:1px solid rgba(255,255,255,.1)}
+.content{font-size:22px;font-weight:800;line-height:1.6;color:#fff;text-align:center}
+.creator-row{display:flex;align-items:center;gap:10px;margin-top:28px}
+.avatar{width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;border:1.5px solid rgba(255,255,255,.3)}
+.creator-name{font-size:14px;font-weight:700;color:#fff}
+.source{font-size:11px;color:rgba(255,255,255,.6)}
+.star-row{display:flex;align-items:center;gap:6px;margin-top:14px;justify-content:center}
+.stars{color:#ffd700;font-size:18px;letter-spacing:3px}
+.score-label{font-size:12px;color:rgba(255,255,255,.55);font-style:italic}
+.interp-toggle{font-size:12px;color:rgba(255,255,255,.5);margin-top:14px;text-align:center;cursor:pointer}
+.interp-body{font-size:13px;line-height:1.7;color:rgba(255,255,255,.7);margin-top:10px;text-align:center;max-height:0;overflow:hidden;transition:max-height .35s}
+.interp-body.open{max-height:160px}
+.actions{position:absolute;bottom:40px;display:flex;gap:12px}
+.action{width:56px;height:56px;border-radius:28px;background:rgba(0,0,0,.3);backdrop-filter:blur(10px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:1px solid rgba(255,255,255,.1)}
+.action:active{transform:scale(.92)}
+.action-icon{font-size:18px}
+.action-label{font-size:10px;color:rgba(255,255,255,.7);font-weight:500}
+.action.liked{background:rgba(232,93,93,.3);border-color:rgba(232,93,93,.4)}
+.action.saved{background:rgba(232,168,80,.3);border-color:rgba(232,168,80,.4)}
+.page-dots{position:absolute;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+.dot{width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,.3);transition:all .3s}
+.dot.active{background:#fff;height:24px;border-radius:3px}
+.title{position:absolute;top:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.25);font-size:10px;font-weight:700;letter-spacing:2px}
+.fab{position:absolute;top:52px;right:20px;width:32px;height:32px;border-radius:16px;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="title">V4 · 撞色大胆</div>
+<div class="card"><div class="badge"><span>思维模型</span><span class="platform-badge">官</span></div><div class="content-box"><p class="content">遇到问题回到最基础的物理学原理去思考，不要依赖类比。第一性原理能让你看到别人看不到的路径。</p><div class="creator-row"><div class="avatar">E</div><div><div class="creator-name">Elon Musk</div><div class="source">Tesla · SpaceX CEO</div></div></div><div class="star-row"><span class="stars">★★★★★</span><span class="score-label">底层重构的思维方式</span></div><span class="interp-toggle" onclick="this.nextElementSibling.classList.toggle('open')">轻触查看解读</span><div class="interp-body">马斯克开发 SpaceX 时，没有接受"火箭就是这么贵"的类比思维，而是拆解到原材料成本，发现实际成本只有报价的2%。</div></div><div class="fab">✦</div><div class="actions"><div class="action liked" onclick="this.classList.toggle('liked')"><span class="action-icon">♥</span><span class="action-label">128</span></div><div class="action saved" onclick="this.classList.toggle('saved')"><span class="action-icon">★</span><span class="action-label">收藏</span></div></div></div>
+<div class="card"><div class="badge"><span>思维模型</span><span class="platform-badge">官</span></div><div class="content-box"><p class="content">Stay hungry, stay foolish。不要因已有的成就而满足，永远保持初学者的好奇心。</p><div class="creator-row"><div class="avatar">S</div><div><div class="creator-name">Steve Jobs</div><div class="source">Apple 创始人</div></div></div><div class="star-row"><span class="stars">★★★★★</span><span class="score-label">初学者的心无所不能</span></div><span class="interp-toggle" onclick="this.nextElementSibling.classList.toggle('open')">轻触查看解读</span><div class="interp-body">乔布斯在斯坦福演讲中分享："记住你终将死去"是他做重大决策时的核心心法。保持饥饿指永不满足的追求。</div></div><div class="fab">✦</div><div class="actions"><div class="action" onclick="this.classList.toggle('liked')"><span class="action-icon">♥</span><span class="action-label">203</span></div><div class="action" onclick="this.classList.toggle('saved')"><span class="action-icon">★</span><span class="action-label">收藏</span></div></div></div>
+<div class="card"><div class="badge"><span>决策判断</span><span class="platform-badge">官</span></div><div class="content-box"><p class="content">做对的事情，然后把事情做对。大部分人把时间花在把事情做对上，却很少想做的事情对不对。</p><div class="creator-row"><div class="avatar">段</div><div><div class="creator-name">段永平</div><div class="source">步步高·OPPO·vivo 创始人</div></div></div><div class="star-row"><span class="stars">★★★★★</span><span class="score-label">方向比效率重要十倍</span></div><span class="interp-toggle" onclick="this.nextElementSibling.classList.toggle('open')">轻触查看解读</span><div class="interp-body">段永平的核心理念是"本分"——做正确的事，而不是做容易的事。方向错了，效率越高死得越快。</div></div><div class="fab">✦</div><div class="actions"><div class="action" onclick="this.classList.toggle('liked')"><span class="action-icon">♥</span><span class="action-label">91</span></div><div class="action saved" onclick="this.classList.toggle('saved')"><span class="action-icon">★</span><span class="action-label">收藏</span></div></div></div>
+<div class="page-dots"><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+</div>
+<script>
+let cur=0;const cards=document.querySelectorAll('.card'),dots=document.querySelectorAll('.dot');
+function go(i){if(i<0||i>=3)return;cur=i;cards.forEach((c,j)=>{c.style.transform=`translateY(${(j-i)*100}%)`});dots.forEach((d,j)=>d.classList.toggle('active',j===i))}
+let sy=0;document.querySelector('.phone').addEventListener('touchstart',e=>{sy=e.touches[0].clientY},{passive:true});
+document.querySelector('.phone').addEventListener('touchend',e=>{const dy=e.changedTouches[0].clientY-sy;if(Math.abs(dy)>40)go(dy<0?cur+1:cur-1)});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowDown')go(cur+1);if(e.key==='ArrowUp')go(cur-1)});
+</script>
+</body>
+</html>

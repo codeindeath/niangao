@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>V3 杂志排版 | 年糕经验流</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2a2a2a;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:"PingFang SC","Noto Serif SC",Georgia,"Microsoft YaHei",serif}
+.phone{width:390px;height:844px;border-radius:36px;overflow:hidden;position:relative;box-shadow:0 0 0 4px #1a1a1a,0 30px 80px rgba(0,0,0,.6);background:#fdfaf5}
+.card{position:absolute;inset:0;display:flex;flex-direction:column;padding:60px 36px 30px;transition:transform .4s cubic-bezier(.25,.46,.45,.94)}
+.card:nth-child(1){transform:translateY(0)}.card:nth-child(2){transform:translateY(100%)}.card:nth-child(3){transform:translateY(200%)}
+.issue{font-size:10px;font-weight:700;letter-spacing:3px;color:#c4b998;text-transform:uppercase;margin-bottom:8px}
+.ornament{width:24px;height:1px;background:#c4b998;margin-bottom:32px}
+.domain{font-size:11px;font-weight:600;color:#8a7a5a;letter-spacing:2px;margin-bottom:28px;font-family:-apple-system,sans-serif}
+.content{font-size:28px;font-weight:700;line-height:1.65;color:#1a1815;font-family:"Noto Serif SC",Georgia,serif;margin-bottom:40px}
+.content em{font-style:normal;color:#8a7a5a}
+.rule{height:1px;background:#e8e0d0;margin-bottom:24px}
+.creator-row{display:flex;align-items:center;gap:12px}
+.avatar{width:44px;height:44px;border-radius:22px;background:#f0ebe0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#8a7a5a;font-family:-apple-system,sans-serif}
+.creator-name{font-size:15px;font-weight:700;color:#3a3028}
+.source{font-size:12px;color:#a09888;margin-top:2px;font-family:-apple-system,sans-serif}
+.star-row{display:flex;align-items:center;gap:8px;margin-top:16px}
+.stars{color:#c4a860;font-size:14px;letter-spacing:2px}
+.score-label{font-size:11px;color:#b5a890;font-style:italic;font-family:-apple-system,sans-serif}
+.interp-toggle{font-size:12px;color:#c4b998;margin-top:16px;cursor:pointer;font-family:-apple-system,sans-serif;letter-spacing:.5px}
+.interp-body{font-size:14px;line-height:1.8;color:#6a5f50;margin-top:12px;max-height:0;overflow:hidden;transition:max-height .35s}
+.interp-body.open{max-height:180px}
+.actions{position:absolute;bottom:30px;right:36px;display:flex;gap:16px}
+.action{font-size:13px;color:#a09888;cursor:pointer;font-family:-apple-system,sans-serif}
+.action.liked{color:#c85a5a}.action.saved{color:#c4a860}
+.page-dots{position:absolute;right:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+.dot{width:2px;border-radius:1px;background:#d8cfc0;transition:all .3s}
+.dot.active{background:#8a7a5a;height:28px}.dot:not(.active){height:14px}
+.title{position:absolute;top:16px;left:50%;transform:translateX(-50%);color:#ccc;font-size:10px;font-weight:600;letter-spacing:2px;font-family:-apple-system,sans-serif}
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="title">V3 · 杂志排版</div>
+<div class="card"><div class="issue">VOL.1 — FIRST PRINCIPLES</div><div class="ornament"></div><div class="domain">思维模型</div><p class="content">遇到问题回到最基础的<em>物理学原理</em>去思考，不要依赖类比。第一性原理能让你看到别人看不到的路径。</p><div class="rule"></div><div class="creator-row"><div class="avatar">E</div><div><div class="creator-name">Elon Musk</div><div class="source">Tesla · SpaceX CEO</div></div></div><div class="star-row"><span class="stars">★★★★★</span><span class="score-label">底层重构的思维方式</span></div><span class="interp-toggle" onclick="this.nextElementSibling.classList.toggle('open')">展开解读 ↓</span><div class="interp-body">马斯克开发 SpaceX 时，所有供应商报价都高得离谱。他没有接受"火箭就是这么贵"的类比思维，而是拆解到原材料成本，发现实际成本只有报价的2%。类比思维让你接受现状，第一性原理让你重构问题。</div><div class="actions"><span class="action liked" onclick="this.classList.toggle('liked')">♥ 128</span><span class="action saved" onclick="this.classList.toggle('saved')">★ 收藏</span></div></div>
+<div class="card"><div class="issue">VOL.2 — STAY HUNGRY</div><div class="ornament"></div><div class="domain">思维模型</div><p class="content"><em>Stay hungry, stay foolish。</em>不要因已有的成就而满足，永远保持初学者的好奇心。</p><div class="rule"></div><div class="creator-row"><div class="avatar">S</div><div><div class="creator-name">Steve Jobs</div><div class="source">Apple 创始人</div></div></div><div class="star-row"><span class="stars">★★★★★</span><span class="score-label">初学者的心无所不能</span></div><span class="interp-toggle" onclick="this.nextElementSibling.classList.toggle('open')">展开解读 ↓</span><div class="interp-body">乔布斯在斯坦福大学毕业典礼演讲中分享了自己被诊断癌症后的感悟。"记住你终将死去"是他做重大决策时的核心心法——所有外界期望、骄傲、对失败的恐惧，在死亡面前都会消失。</div><div class="actions"><span class="action" onclick="this.classList.toggle('liked')">♥ 203</span><span class="action saved" onclick="this.classList.toggle('saved')">★ 收藏</span></div></div>
+<div class="card"><div class="issue">VOL.3 — DO THE RIGHT THING</div><div class="ornament"></div><div class="domain">决策判断</div><p class="content">做<em>对的事情</em>，然后把事情做对。大部分人把时间花在把事情做对上，却很少想做的事情对不对。</p><div class="rule"></div><div class="creator-row"><div class="avatar">段</div><div><div class="creator-name">段永平</div><div class="source">步步高·OPPO·vivo 创始人</div></div></div><div class="star-row"><span class="stars">★★★★★</span><span class="score-label">方向比效率重要十倍</span></div><span class="interp-toggle" onclick="this.nextElementSibling.classList.toggle('open')">展开解读 ↓</span><div class="interp-body">段永平创建步步高、OPPO、vivo 的核心理念就是"本分"——做正确的事，而不是做容易的事。方向错了，效率越高死得越快。选择"做什么"比"怎么做"重要十倍。</div><div class="actions"><span class="action" onclick="this.classList.toggle('liked')">♥ 91</span><span class="action saved" onclick="this.classList.toggle('saved')">★ 收藏</span></div></div>
+<div class="page-dots"><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+</div>
+<script>
+let cur=0;const cards=document.querySelectorAll('.card'),dots=document.querySelectorAll('.dot');
+function go(i){if(i<0||i>=3)return;cur=i;cards.forEach((c,j)=>{c.style.transform=`translateY(${(j-i)*100}%)`});dots.forEach((d,j)=>d.classList.toggle('active',j===i))}
+let sy=0;document.querySelector('.phone').addEventListener('touchstart',e=>{sy=e.touches[0].clientY},{passive:true});
+document.querySelector('.phone').addEventListener('touchend',e=>{const dy=e.changedTouches[0].clientY-sy;if(Math.abs(dy)>40)go(dy<0?cur+1:cur-1)});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowDown')go(cur+1);if(e.key==='ArrowUp')go(cur-1)});
+</script>
+</body>
+</html>

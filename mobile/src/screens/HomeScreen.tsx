@@ -227,7 +227,6 @@ export default function HomeScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPersonalized, setIsPersonalized] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const loadingMoreRef = useRef(false);
@@ -264,7 +263,6 @@ export default function HomeScreen() {
       setHasMore(true);
       offsetRef.current = 0;
       setExperiences(data);
-      setActiveIndex(0);
     }
     offsetRef.current += data.length;
     return data.length;
@@ -319,12 +317,6 @@ export default function HomeScreen() {
     ]);
   };
 
-  const onViewableItemsChanged = useRef(({viewableItems}: any) => {
-    if (viewableItems.length > 0) {
-      setActiveIndex(viewableItems[0].index || 0);
-    }
-  }).current;
-
   if (loading) {
     return <View style={s.container}><ActivityIndicator size="large" color="#4a7c59" style={{marginTop: 200}} /></View>;
   }
@@ -343,13 +335,6 @@ export default function HomeScreen() {
 
   return (
     <View style={s.container}>
-      {/* Page indicator — top right */}
-      <View style={s.indicator}>
-        <Text style={s.indicatorText}>
-          {activeIndex + 1}/{experiences.length}{loadingMore ? '…' : ''}
-        </Text>
-      </View>
-
       <FlatList
         data={experiences}
         keyExtractor={item => item.id}
@@ -377,8 +362,6 @@ export default function HomeScreen() {
         decelerationRate="fast"
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={{itemVisiblePercentThreshold: 50}}
         ListEmptyComponent={
           <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5', justifyContent: 'center', alignItems: 'center'}}>
             <Text style={{fontSize:15,color:'#9a9a9a'}}>暂无推荐内容</Text>
@@ -403,14 +386,6 @@ export default function HomeScreen() {
 
 const s = StyleSheet.create({
   container: {flex: 1, backgroundColor: '#faf8f5'},
-
-  // ═══ Page indicator (fixed overlay) ═══
-  indicator: {
-    position: 'absolute', top: 60, right: 22, zIndex: 10,
-    backgroundColor: 'rgba(250,248,245,0.85)',
-    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10,
-  },
-  indicatorText: {fontSize: 13, fontWeight: '600', color: '#b5b0a8'},
 
   // ═══ Card page (full screen) ═══
   cardPage: {
