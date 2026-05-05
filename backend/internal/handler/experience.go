@@ -30,12 +30,9 @@ func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.Experience
 		exp.POST("/:id/bookmark", middleware.RequireAuth(), h.ToggleBookmark)
 	}
 
-	// 个人维度 API（避免 /experiences/my 与 /:id 冲突）
-	me := r.Group("/me", middleware.RequireAuth())
-	{
-		me.GET("/experiences", h.MyExperiences)
-		me.GET("/bookmarks", h.MyBookmarks)
-	}
+	// 个人维度 API — 直接在 v1 下注册，不走子 Group
+	r.GET("/me/experiences", middleware.RequireAuth(), h.MyExperiences)
+	r.GET("/me/bookmarks", middleware.RequireAuth(), h.MyBookmarks)
 }
 
 func (h *ExperienceHandler) List(c *gin.Context) {
