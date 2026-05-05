@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   fetchRecommendations,
   fetchExperiences,
@@ -85,6 +84,7 @@ export default function HomeScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPersonalized, setIsPersonalized] = useState(false);
 
@@ -109,11 +109,13 @@ export default function HomeScreen({ navigation }: any) {
     const data = Array.isArray(result?.data) ? result.data : [];
     if (data.length < PAGE_SIZE) {
       hasMoreRef.current = false;
+      setHasMore(false);
     }
     if (append) {
       setExperiences(prev => [...prev, ...data]);
     } else {
       hasMoreRef.current = true;
+      setHasMore(true);
       offsetRef.current = 0;
       setExperiences(data);
     }
@@ -272,7 +274,7 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={s.container}>
+    <View style={s.container}>
       <View style={s.header}>
         <Text style={s.headerTitle}>为你推荐</Text>
         <Text style={s.headerSub}>
@@ -284,12 +286,16 @@ export default function HomeScreen({ navigation }: any) {
         keyExtractor={item => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#4a7c59" />}
         contentContainerStyle={s.list}
-        onEndReached={handleLoadMore}
+        onEndReached={() => { handleLoadMore(); }}
         onEndReachedThreshold={0.3}
         ListFooterComponent={
           loadingMore ? (
-            <View style={{ paddingVertical: 20 }}>
+            <View style={{ paddingVertical: 16 }}>
               <ActivityIndicator size="small" color="#4a7c59" />
+            </View>
+          ) : !hasMore && experiences.length > 0 ? (
+            <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+              <Text style={{ fontSize: 12, color: '#b5b0a8' }}>— 已经到底了 —</Text>
             </View>
           ) : null
         }
@@ -301,7 +307,7 @@ export default function HomeScreen({ navigation }: any) {
         }
         renderItem={renderItem}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
