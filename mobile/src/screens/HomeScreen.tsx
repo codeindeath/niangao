@@ -4,14 +4,11 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Dimensions,
   Alert,
   Animated,
-  PanResponder,
-  GestureResponderEvent,
-  PanResponderGestureState,
+  StyleSheet,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
@@ -248,12 +245,6 @@ export default function HomeScreen() {
   const tokenRef = useRef<string | null>(null);
   const offsetRef = useRef(0);
 
-  // 供 PanResponder 闭包读取最新值
-  const activeTabRef = useRef(activeTab);
-  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
-  const handleTabChangeRef = useRef(handleTabChange);
-  useEffect(() => { handleTabChangeRef.current = handleTabChange; }, [handleTabChange]);
-
   useEffect(() => {
     getToken().then(t => { tokenRef.current = t; });
     getUserInfo().then(u => setCurrentUserId(u?.id || null));
@@ -356,37 +347,32 @@ export default function HomeScreen() {
     ]);
   };
 
-  // ═══ 左右滑动手势 → 循环切换标签 ═══
-  // Capture 阶段拦截横向滑动，不干扰 FlatList 纵向滚和卡片点击翻页
-  // 左滑(dx<0): 推荐→我的→收藏→推荐
-  // 右滑(dx>0): 推荐→收藏→我的→推荐
-  const panResponder = useRef(
-    PanResponder.create({
-      // 不在 touch start 抢手势 — 让子组件正常工作
-      onStartShouldSetPanResponder: () => false,
-      onStartShouldSetPanResponderCapture: () => false,
-      // 捕获阶段：横向滑动超过阈值 → 直接拦截（先于子组件）
-      onMoveShouldSetPanResponderCapture: (_e, gs) => {
-        return Math.abs(gs.dx) > 25 && Math.abs(gs.dx) > Math.abs(gs.dy) * 2;
-      },
-      // 兜底：如果捕获阶段没触发，move 阶段也尝试
-      onMoveShouldSetPanResponder: (_e, gs) => {
-        return Math.abs(gs.dx) > 40 && Math.abs(gs.dx) > Math.abs(gs.dy) * 2;
-      },
-      onPanResponderRelease: (_e, gs) => {
-        if (Math.abs(gs.dx) > 50 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.8) {
-          const idx = tabOrder.indexOf(activeTabRef.current);
-          const n = tabOrder.length;
-          if (gs.dx < 0) {
-            handleTabChangeRef.current(tabOrder[(idx + 1) % n]);
-          } else {
-            handleTabChangeRef.current(tabOrder[(idx - 1 + n) % n]);
-          }
-        }
-      },
-      onPanResponderTerminate: () => {},
-    }),
-  ).current;
+  // ═══ 左右滑动切标签（Touch 事件，不干扰 FlatList/卡片） ═══
+  // 左滑(dx<0): 推荐→我的→收藏→推荐（循环）
+  // 右滑(dx>0): 推荐→收藏→我的→推荐（循环）
+  const swipeStart = useRef<{x: number; y: number} | null>(null);
+
+  const handleTouchStart = (e: any) => {
+    const {pageX, pageY} = e.nativeEvent;
+    swipeStart.current = {x: pageX, y: pageY};
+  };
+
+  const handleTouchEnd = (e: any) => {
+    const s = swipeStart.current;
+    swipeStart.current = null;
+    if (!s) return;
+    const dx = e.nativeEvent.pageX - s.x;
+    const dy = e.nativeEvent.pageY - s.y;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 2) {
+      const idx = tabOrder.indexOf(activeTab);
+      const n = tabOrder.length;
+      if (dx < 0) {
+        handleTabChange(tabOrder[(idx + 1) % n]);
+      } else {
+        handleTabChange(tabOrder[(idx - 1 + n) % n]);
+      }
+    }
+  };
 
   if (loading) {
     return <View style={s.container}><ActivityIndicator size="large" color="#4a7c59" style={{marginTop: 200}} /></View>;
@@ -405,7 +391,11 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={s.container} {...panResponder.panHandlers}>
+    <View
+      style={s.container}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* ═══ 方案A 顶部三标签（透明背景） ═══ */}
       <View style={[s.tabBar, {top: insets.top}]}>
         {tabOrder.map(tab => (
