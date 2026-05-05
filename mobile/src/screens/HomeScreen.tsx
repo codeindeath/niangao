@@ -4,11 +4,11 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
   ActivityIndicator,
   Dimensions,
   Alert,
+  Animated,
 } from 'react-native';
 import {
   fetchRecommendations,
@@ -20,7 +20,7 @@ import {
 } from '../services/api';
 import {getToken, getUserInfo} from '../services/config';
 
-const {height: SCREEN_HEIGHT} = Dimensions.get('window');
+const {height: SCREEN_HEIGHT, width: SCREEN_WIDTH} = Dimensions.get('window');
 const PAGE_SIZE = 20;
 
 const DOMAIN_LABELS: Record<string, string> = {
@@ -41,7 +41,179 @@ const SUB_LABELS: Record<string, string> = {
   'happiness': '幸福感', 'stress-mgmt': '压力管理',
 };
 
-export default function HomeScreen({navigation: _navigation}: any) {
+// ══════════════════════════════════════════
+// FlipCard — 3D 翻转卡片组件
+// ══════════════════════════════════════════
+function FlipCard({item, currentUserId, onLike, onBookmark, onDelete}: {
+  item: Experience;
+  currentUserId: string | null;
+  onLike: (id: string) => void;
+  onBookmark: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const flipAnim = useRef(new Animated.Value(0)).current;
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  const isPlatform = item.source_type === 'platform';
+  const domainLabel = SUB_LABELS[item.sub_domain] || DOMAIN_LABELS[item.domain] || item.domain;
+  const displayName = item.creator_name || item.author_name || '匿名';
+  const showScore = item.quality_score != null && item.quality_score > 0;
+  const stars = showScore ? Math.round(item.quality_score! / 2) : 0;
+
+  const handleFlip = () => {
+    if (!item.interpretation) return; // 没有解读不能翻
+    const toValue = isFlipped ? 0 : 1;
+    Animated.spring(flipAnim, {
+      toValue,
+      friction: 8,
+      tension: 60,
+      useNativeDriver: true,
+    }).start();
+    setIsFlipped(!isFlipped);
+  };
+
+  const frontInterpolate = flipAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+  const backInterpolate = flipAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['180deg', '360deg'],
+  });
+
+  const frontOpacity = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 0, 0],
+  });
+  const backOpacity = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 0, 1],
+  });
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.95}
+      onPress={handleFlip}
+      style={s.cardPage}
+    >
+      {/* ═══ 正面 — 经验内容 ═══ */}
+      <Animated.View
+        style={[
+          s.face,
+          {
+            transform: [{perspective: 1000}, {rotateY: frontInterpolate}],
+            opacity: frontOpacity,
+          },
+        ]}
+        pointerEvents={isFlipped ? 'none' : 'auto'}
+      >
+        {/* Top tags */}
+        <View style={s.topRow}>
+          <View style={s.tag}><Text style={s.tagText}>{domainLabel}</Text></View>
+          {isPlatform && <View style={s.platformTag}><Text style={s.platformTagText}>官</Text></View>}
+        </View>
+
+        {/* Flip hint */}
+        {item.interpretation ? (
+          <View style={s.flipHint}>
+            <Text style={s.flipHintText}>点击翻转 ↻</Text>
+          </View>
+        ) : null}
+
+        {/* Content */}
+        <View style={s.frontContent}>
+          <Text style={s.quoteMark}>"</Text>
+          <Text style={s.content}>{item.content}</Text>
+          <View style={s.divider} />
+
+          {/* Creator info */}
+          <View style={s.creatorRow}>
+            <View style={s.avatar}><Text style={s.avatarText}>{displayName.charAt(0)}</Text></View>
+            <View>
+              <Text style={s.creatorName}>{displayName}</Text>
+              {item.source_label ? <Text style={s.sourceLabel}>{item.source_label}</Text> : null}
+            </View>
+          </View>
+
+          {/* Stars */}
+          {showScore && (
+            <View style={s.starRow}>
+              <Text style={s.stars}>{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</Text>
+              {item.score_reason ? <Text style={s.scoreText}>{item.score_reason}</Text> : null}
+            </View>
+          )}
+        </View>
+
+        {/* Bottom actions — always visible on front */}
+        <View style={s.bottomActions}>
+          <TouchableOpacity
+            style={[s.actionBtn, item.is_liked && s.actionLiked]}
+            onPress={(e) => { e.stopPropagation(); onLike(item.id); }}
+          >
+            <Text style={[s.actionText, item.is_liked && s.actionLikedText]}>
+              ♥ {item.like_count > 0 ? item.like_count : '点赞'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.actionBtn, item.is_bookmarked && s.actionSaved]}
+            onPress={(e) => { e.stopPropagation(); onBookmark(item.id); }}
+          >
+            <Text style={[s.actionText, item.is_bookmarked && s.actionSavedText]}>
+              ★ {item.is_bookmarked ? '已收藏' : '收藏'}
+            </Text>
+          </TouchableOpacity>
+          {currentUserId && item.author_id === currentUserId && (
+            <TouchableOpacity
+              style={s.deleteBtn}
+              onPress={(e) => { e.stopPropagation(); onDelete(item.id); }}
+            >
+              <Text style={s.deleteText}>删除</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </Animated.View>
+
+      {/* ═══ 背面 — 经验解读 ═══ */}
+      <Animated.View
+        style={[
+          s.face,
+          {
+            transform: [{perspective: 1000}, {rotateY: backInterpolate}],
+            opacity: backOpacity,
+          },
+        ]}
+        pointerEvents={isFlipped ? 'auto' : 'none'}
+      >
+        {/* Back header */}
+        <View style={s.backHeader}>
+          <Text style={s.backHeaderTitle}>经验解读</Text>
+          <View style={s.backDomainTag}>
+            <Text style={s.backDomainText}>{domainLabel}</Text>
+          </View>
+        </View>
+
+        {/* Interpretation content */}
+        <View style={s.backContent}>
+          <Text style={s.backQuote}>“{item.content}”</Text>
+          <View style={s.backDivider} />
+          <Text style={s.interpText}>
+            {item.interpretation || '暂无解读'}
+          </Text>
+        </View>
+
+        {/* Back tap hint */}
+        <View style={s.backHint}>
+          <Text style={s.backHintText}>点击翻回正面 ↻</Text>
+        </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
+// ══════════════════════════════════════════
+// HomeScreen
+// ══════════════════════════════════════════
+export default function HomeScreen() {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -50,13 +222,11 @@ export default function HomeScreen({navigation: _navigation}: any) {
   const [isPersonalized, setIsPersonalized] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [openInterps, setOpenInterps] = useState<Set<string>>(new Set());
 
   const loadingMoreRef = useRef(false);
   const hasMoreRef = useRef(true);
   const tokenRef = useRef<string | null>(null);
   const offsetRef = useRef(0);
-  const listRef = useRef<FlatList>(null);
 
   useEffect(() => {
     getToken().then(t => { tokenRef.current = t; });
@@ -164,129 +334,38 @@ export default function HomeScreen({navigation: _navigation}: any) {
     );
   }
 
-  const renderCard = ({item, index}: {item: Experience; index: number}) => {
-    const isPlatform = item.source_type === 'platform';
-    const domainLabel = SUB_LABELS[item.sub_domain] || DOMAIN_LABELS[item.domain] || item.domain;
-    const displayName = item.creator_name || item.author_name || '匿名';
-    const showScore = item.quality_score != null && item.quality_score > 0;
-    const stars = showScore ? Math.round(item.quality_score! / 2) : 0;
-
-    return (
-      <View style={s.cardPage}>
-        {/* Top tags */}
-        <View style={s.topRow}>
-          <View style={s.tag}><Text style={s.tagText}>{domainLabel}</Text></View>
-          {isPlatform && <View style={s.platformTag}><Text style={s.platformTagText}>官</Text></View>}
-        </View>
-
-        {/* Page counter */}
-        <Text style={s.counter}>{index + 1}/{experiences.length}{loadingMore ? '…' : ''}</Text>
-
-        {/* Scrollable content area — only scrollable when interpretation is open */}
-        <ScrollView
-          style={s.scrollArea}
-          contentContainerStyle={s.scrollContent}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-          scrollEnabled={openInterps.has(item.id)}
-          nestedScrollEnabled={true}
-        >
-          <Text style={s.quoteMark}>{'"'}</Text>
-          <Text style={s.content}>{item.content}</Text>
-          <View style={s.divider} />
-
-          {/* Creator info */}
-          <View style={s.creatorRow}>
-            <View style={s.avatar}><Text style={s.avatarText}>{displayName.charAt(0)}</Text></View>
-            <View>
-              <Text style={s.creatorName}>{displayName}</Text>
-              {item.source_label ? <Text style={s.sourceLabel}>{item.source_label}</Text> : null}
-            </View>
-          </View>
-
-          {/* Stars */}
-          {showScore && (
-            <View style={s.starRow}>
-              <Text style={s.stars}>{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</Text>
-              {item.score_reason ? <Text style={s.scoreText}>{item.score_reason}</Text> : null}
-            </View>
-          )}
-
-          {/* Interpretation toggle */}
-          {item.interpretation ? (
-            <>
-              <TouchableOpacity onPress={() => {
-                setOpenInterps(prev => {
-                  const next = new Set(prev);
-                  next.has(item.id) ? next.delete(item.id) : next.add(item.id);
-                  return next;
-                });
-              }}>
-                <Text style={s.interpToggle}>
-                  {openInterps.has(item.id) ? '▾' : '▸'} 查看解读
-                </Text>
-              </TouchableOpacity>
-              {openInterps.has(item.id) && (
-                <Text style={s.interpBody}>{item.interpretation}</Text>
-              )}
-            </>
-          ) : null}
-
-          {/* Bottom spacer so content doesn't hide behind action bar */}
-          <View style={{height: 80}} />
-        </ScrollView>
-
-        {/* Bottom actions */}
-        <View style={s.bottomActions}>
-          <TouchableOpacity
-            style={[s.actionBtn, item.is_liked && s.actionLiked]}
-            onPress={() => handleLike(item.id)}
-          >
-            <Text style={[s.actionText, item.is_liked && s.actionLikedText]}>
-              ♥ {item.like_count > 0 ? item.like_count : '点赞'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[s.actionBtn, item.is_bookmarked && s.actionSaved]}
-            onPress={() => handleBookmark(item.id)}
-          >
-            <Text style={[s.actionText, item.is_bookmarked && s.actionSavedText]}>
-              ★ {item.is_bookmarked ? '已收藏' : '收藏'}
-            </Text>
-          </TouchableOpacity>
-          {currentUserId && item.author_id === currentUserId && (
-            <TouchableOpacity style={s.deleteBtn} onPress={() => handleDelete(item.id)}>
-              <Text style={s.deleteText}>删除</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Page counter */}
-        <Text style={s.counter}>{index + 1}/{experiences.length}{loadingMore ? '…' : ''}</Text>
-      </View>
-    );
-  };
-
   return (
     <View style={s.container}>
+      {/* Page indicator — top right */}
+      <View style={s.indicator}>
+        <Text style={s.indicatorText}>
+          {activeIndex + 1}/{experiences.length}{loadingMore ? '…' : ''}
+        </Text>
+      </View>
+
       <FlatList
         data={experiences}
         keyExtractor={item => item.id}
-        renderItem={renderCard}
+        renderItem={({item, index}) => (
+          <View>
+            <FlipCard
+              item={item}
+              currentUserId={currentUserId}
+              onLike={handleLike}
+              onBookmark={handleBookmark}
+              onDelete={handleDelete}
+            />
+            {/* Page number at bottom of each card */}
+            <Text style={s.pageNum}>{index + 1}/{experiences.length}</Text>
+          </View>
+        )}
+        pagingEnabled
         showsVerticalScrollIndicator={false}
-        snapToInterval={SCREEN_HEIGHT}
         decelerationRate="fast"
-        disableIntervalMomentum
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={{itemVisiblePercentThreshold: 50}}
-        getItemLayout={(_, index) => ({
-          length: SCREEN_HEIGHT,
-          offset: SCREEN_HEIGHT * index,
-          index,
-        })}
-        removeClippedSubviews={false}
         ListEmptyComponent={
           <View style={s.cardPage}>
             <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
@@ -313,27 +392,30 @@ export default function HomeScreen({navigation: _navigation}: any) {
 
 const s = StyleSheet.create({
   container: {flex: 1, backgroundColor: '#faf8f5'},
+
+  // ═══ Page indicator (fixed overlay) ═══
+  indicator: {
+    position: 'absolute', top: 60, right: 22, zIndex: 10,
+    backgroundColor: 'rgba(250,248,245,0.85)',
+    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10,
+  },
+  indicatorText: {fontSize: 13, fontWeight: '600', color: '#b5b0a8'},
+
+  // ═══ Card page (full screen) ═══
   cardPage: {
     height: SCREEN_HEIGHT,
     backgroundColor: '#faf8f5',
   },
-
-  // Scrollable area
-  scrollArea: {
-    flex: 1,
-    marginTop: 130,
-    marginBottom: 100,
-  },
-  scrollContent: {
-    paddingHorizontal: 32,
-    alignItems: 'center',
+  face: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#faf8f5',
+    backfaceVisibility: 'hidden' as const,
   },
 
-  // Top
+  // ═══ Top row (fixed) ═══
   topRow: {
     position: 'absolute', top: 60, left: 24,
-    flexDirection: 'row', gap: 6,
-    zIndex: 1,
+    flexDirection: 'row', gap: 6, zIndex: 2,
   },
   tag: {backgroundColor: '#eaf2e8', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12},
   tagText: {fontSize: 11, fontWeight: '600', color: '#4a7c59'},
@@ -343,7 +425,20 @@ const s = StyleSheet.create({
   },
   platformTagText: {fontSize: 9, fontWeight: '800', color: '#fff'},
 
-  // Content
+  // ═══ Flip hint ═══
+  flipHint: {
+    position: 'absolute', top: 62, right: 70, zIndex: 2,
+  },
+  flipHintText: {fontSize: 11, color: '#c4c0b8', fontWeight: '500'},
+
+  // ═══ Front — content area ═══
+  frontContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 120,
+  },
   quoteMark: {
     fontSize: 72, color: '#4a7c59', opacity: 0.12,
     fontFamily: 'Georgia', lineHeight: 72, marginBottom: -20,
@@ -352,7 +447,7 @@ const s = StyleSheet.create({
     fontSize: 26, fontWeight: '700', lineHeight: 40,
     color: '#1a1a1a', textAlign: 'center',
   },
-  divider: {width: 40, height: 2, backgroundColor: '#d4e0d6', marginVertical: 28},
+  divider: {width: 40, height: 2, backgroundColor: '#d4e0d6', marginVertical: 24},
 
   // Creator
   creatorRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
@@ -365,24 +460,16 @@ const s = StyleSheet.create({
   sourceLabel: {fontSize: 11, color: '#9a9a9a', marginTop: 1},
 
   // Stars
-  starRow: {flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10},
+  starRow: {flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8},
   stars: {fontSize: 16, color: '#e8a850', letterSpacing: 2},
   scoreText: {fontSize: 10, color: '#b5b0a8'},
 
-  // Interpretation
-  interpToggle: {
-    fontSize: 13, color: '#b5b0a8', marginTop: 14, textAlign: 'center',
-  },
-  interpBody: {
-    fontSize: 13, lineHeight: 22, color: '#6e6e6e',
-    textAlign: 'center', marginTop: 8, paddingHorizontal: 10,
-  },
-
-  // Bottom actions
+  // ═══ Bottom actions (fixed) ═══
   bottomActions: {
     position: 'absolute', bottom: 50,
     left: 0, right: 0,
     flexDirection: 'row', justifyContent: 'center', gap: 12,
+    zIndex: 2,
   },
   actionBtn: {
     paddingHorizontal: 16, paddingVertical: 8,
@@ -401,9 +488,48 @@ const s = StyleSheet.create({
   },
   deleteText: {fontSize: 13, color: '#e85d5d', fontWeight: '500'},
 
-  // Counter
-  counter: {
-    position: 'absolute', top: 60, right: 22,
-    fontSize: 13, fontWeight: '600', color: '#d4d0c8',
+  // ═══ Back face — interpretation ═══
+  backHeader: {
+    position: 'absolute', top: 60, left: 24, right: 24,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+  },
+  backHeaderTitle: {
+    fontSize: 15, fontWeight: '700', color: '#4a7c59',
+  },
+  backDomainTag: {
+    backgroundColor: '#eaf2e8', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10,
+  },
+  backDomainText: {fontSize: 11, fontWeight: '600', color: '#4a7c59'},
+
+  backContent: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 80,
+  },
+  backQuote: {
+    fontSize: 17, fontWeight: '600', color: '#4a4a4a',
+    lineHeight: 28, textAlign: 'center', fontStyle: 'italic',
+    marginBottom: 20,
+  },
+  backDivider: {
+    width: 40, height: 2, backgroundColor: '#d4e0d6',
+    alignSelf: 'center', marginBottom: 20,
+  },
+  interpText: {
+    fontSize: 15, lineHeight: 26, color: '#3d3d3d',
+    textAlign: 'left',
+  },
+
+  backHint: {
+    position: 'absolute', bottom: 40, left: 0, right: 0,
+    alignItems: 'center',
+  },
+  backHintText: {fontSize: 12, color: '#b5b0a8'},
+
+  // ═══ Page number (bottom of each page) ═══
+  pageNum: {
+    position: 'absolute', bottom: 12, right: 22,
+    fontSize: 12, color: '#d4d0c8', fontWeight: '500',
   },
 });
