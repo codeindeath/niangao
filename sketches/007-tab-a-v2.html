@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>首页三Tab — 方案A + 当前卡片</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+.phone { width: 375px; height: 812px; background: #faf8f5; border-radius: 40px; overflow: hidden; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+
+/* Status bar */
+.status-bar { height: 47px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 24px 8px; font-size: 12px; color: #1a1a1a; font-weight: 600; }
+
+/* ═══ 方案A：抖音经典顶栏 ═══ */
+.tab-bar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; justify-content: space-around;
+  padding: 10px 24px 8px;
+  background: linear-gradient(180deg, rgba(250,248,245,0.97) 60%, rgba(250,248,245,0) 100%);
+  backdrop-filter: blur(6px);
+}
+.tab-item {
+  font-size: 15px; font-weight: 500; color: #b5b0a8;
+  padding: 0 8px 8px; cursor: pointer; transition: 0.2s;
+  position: relative;
+}
+.tab-item.active { color: #1a1a1a; font-weight: 700; }
+.tab-item.active::after {
+  content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 20px; height: 3px; background: #4a7c59; border-radius: 2px;
+}
+
+/* ═══ 当前真实卡片设计 ═══ */
+.card {
+  height: 680px; /* ≈ screen - statusBar(47) - tabBar(40) - bottomTab(80) + margin */
+  position: relative;
+  background: #faf8f5;
+}
+.card-face {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  background: #faf8f5;
+}
+
+/* Top tags */
+.top-row {
+  position: absolute; top: 10px; left: 24px;
+  flex-direction: row; display: flex; gap: 6px; z-index: 2;
+}
+.tag {
+  background: #eaf2e8; padding: 4px 10px; border-radius: 12px;
+  font-size: 11px; font-weight: 600; color: #4a7c59;
+}
+.official-badge {
+  background: #4a7c59; width: 18px; height: 18px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800; color: #fff;
+}
+
+/* Flip hint */
+.flip-hint {
+  position: absolute; top: 12px; right: 70px; z-index: 2;
+  font-size: 11px; color: #c4c0b8; font-weight: 500;
+}
+
+/* Content */
+.front-content {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  padding: 32px 32px 130px;
+}
+.quote-mark { font-size: 72px; color: #4a7c59; opacity: 0.12; font-family: Georgia; line-height: 72px; margin-bottom: -20px; }
+.content-text { font-size: 26px; font-weight: 700; line-height: 40px; color: #1a1a1a; text-align: center; }
+.divider { width: 40px; height: 2px; background: #d4e0d6; margin: 24px 0; }
+
+/* Creator row */
+.creator-row { display: flex; align-items: center; gap: 8px; }
+.avatar {
+  width: 32px; height: 32px; border-radius: 16px; background: #eaf2e8;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #4a7c59; flex-shrink: 0;
+}
+.creator-name { font-size: 14px; font-weight: 600; color: #4a4a4a; }
+.source-label { font-size: 11px; color: #9a9a9a; margin-top: 1px; }
+.author-title { font-size: 11px; color: #4a7c59; font-weight: 500; margin-top: 2px; }
+
+/* Stars */
+.star-row { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+.stars-rating { font-size: 16px; color: #e8a850; letter-spacing: 2px; }
+.stars-label { font-size: 10px; color: #b5b0a8; }
+
+/* Bottom actions */
+.bottom-actions {
+  position: absolute; bottom: 50px; left: 0; right: 0;
+  display: flex; justify-content: center; gap: 12px; z-index: 2;
+}
+.action-btn {
+  padding: 8px 16px; border-radius: 20px; background: #fff;
+  border: 0.5px solid #f0ece7; font-size: 13px; color: #9a9a9a; font-weight: 500;
+  cursor: pointer;
+}
+.delete-btn {
+  padding: 8px 16px; border-radius: 20px; background: #fff5f5;
+  border: 0.5px solid #fce8e8; font-size: 13px; color: #e85d5d; font-weight: 500;
+  cursor: pointer;
+}
+
+/* ═══ 当前底部 Tab Bar（保持现有设计） ═══ */
+.btm-bar {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
+  background: #faf8f5; display: flex; justify-content: space-around;
+  align-items: center; padding-bottom: 22px; border-top: 0.5px solid #f0ece7;
+}
+.btm-item { font-size: 10px; color: #b5b0a8; text-align: center; font-weight: 500; }
+.btm-item.active { color: #4a7c59; font-weight: 600; }
+.btm-icon { font-size: 18px; display: block; margin-bottom: 2px; }
+
+/* Notes */
+.notes {
+  position: absolute; top: 315px; left: 0; right: 0;
+  text-align: center; font-size: 11px; color: #b5b0a8;
+  background: rgba(250,248,245,0.92); padding: 4px 0;
+}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status-bar">9:41</div>
+
+  <!-- ═══ 方案A Tab 顶栏 ═══ -->
+  <div class="tab-bar">
+    <span class="tab-item active">推荐</span>
+    <span class="tab-item">我的</span>
+    <span class="tab-item">收藏</span>
+  </div>
+
+  <!-- ═══ 当前真实卡片 ═══ -->
+  <div class="card">
+    <div class="card-face">
+      <!-- Top tags -->
+      <div class="top-row">
+        <span class="tag">学习成长</span>
+      </div>
+
+      <!-- Flip hint -->
+      <div class="flip-hint">点击翻转 ↻</div>
+
+      <!-- Content -->
+      <div class="front-content">
+        <div class="quote-mark">"</div>
+        <div class="content-text">选择比努力更重要，但选择的能力只能通过努力获得</div>
+        <div class="divider"></div>
+
+        <!-- Creator -->
+        <div class="creator-row">
+          <div class="avatar">李</div>
+          <div>
+            <div class="creator-name">李敏</div>
+            <div class="author-title">终身学习者</div>
+          </div>
+        </div>
+
+        <!-- Stars -->
+        <div class="star-row">
+          <span class="stars-rating">★★★★☆</span>
+          <span class="stars-label">价值度 8/10</span>
+        </div>
+      </div>
+
+      <!-- Bottom actions -->
+      <div class="bottom-actions">
+        <span class="action-btn">♥ 点赞</span>
+        <span class="action-btn">★ 收藏</span>
+        <span class="delete-btn">删除</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 当前底部 Tab Bar ═══ -->
+  <div class="btm-bar">
+    <span class="btm-item active"><span class="btm-icon">🏠</span>首页</span>
+    <span class="btm-item"><span class="btm-icon">✚</span>发布</span>
+    <span class="btm-item"><span class="btm-icon">💬</span>AI对话</span>
+    <span class="btm-item"><span class="btm-icon">👤</span>我的</span>
+  </div>
+
+  <div class="notes">← 上下滑动切换卡片  ·  点击卡片翻转查看解读 →</div>
+</div>
+</body>
+</html>

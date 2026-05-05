@@ -14,6 +14,8 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   fetchRecommendations,
   fetchExperiences,
+  fetchMyExperiences,
+  fetchMyBookmarks,
   Experience,
   toggleLike,
   toggleBookmark,
@@ -23,6 +25,7 @@ import {getToken, getUserInfo} from '../services/config';
 
 // Tab bar height (React Navigation bottom tab + safe area ≈ 80px)
 const TAB_BAR_ESTIMATE = 80;
+const TOP_TABS_HEIGHT = 44; // 方案A 顶部三标签栏
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const PAGE_SIZE = 20;
 
@@ -220,8 +223,10 @@ function FlipCard({item, currentUserId, cardHeight, onLike, onBookmark, onDelete
 // ══════════════════════════════════════════
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const CARD_HEIGHT = SCREEN_HEIGHT - insets.top - TAB_BAR_ESTIMATE;
+  const CARD_HEIGHT = SCREEN_HEIGHT - insets.top - TOP_TABS_HEIGHT - TAB_BAR_ESTIMATE;
 
+  type TabName = 'recommend' | 'my' | 'bookmarks';
+  const [activeTab, setActiveTab] = useState<TabName>('recommend');
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -240,14 +245,21 @@ export default function HomeScreen() {
     getUserInfo().then(u => setCurrentUserId(u?.id || null));
   }, []);
 
-  const loadPage = useCallback(async (offset: number, append: boolean) => {
+  const loadPage = useCallback(async (offset: number, append: boolean, tab: TabName) => {
     let result;
-    if (tokenRef.current) {
+    if (!tokenRef.current || tab !== 'recommend') {
+      // 我的 / 收藏 — always use paginated API
+      if (tab === 'bookmarks') {
+        result = await fetchMyBookmarks(Math.floor(offset / PAGE_SIZE) + 1);
+      } else if (tab === 'my') {
+        result = await fetchMyExperiences(Math.floor(offset / PAGE_SIZE) + 1);
+      } else {
+        result = await fetchExperiences(Math.floor(offset / PAGE_SIZE) + 1);
+      }
+      setIsPersonalized(false);
+    } else {
       result = await fetchRecommendations(PAGE_SIZE, offset);
       setIsPersonalized(true);
-    } else {
-      result = await fetchExperiences(Math.floor(offset / PAGE_SIZE) + 1);
-      setIsPersonalized(false);
     }
     const data = Array.isArray(result?.data) ? result.data : [];
     if (data.length < PAGE_SIZE) {
@@ -269,22 +281,34 @@ export default function HomeScreen() {
     return data.length;
   }, []);
 
-  const loadInitial = useCallback(async () => {
-    try { await loadPage(0, false); }
+  const loadInitial = useCallback(async (tab: TabName) => {
+    try { await loadPage(0, false, tab); }
     catch (e) { console.error(e); setError('加载失败'); }
     finally { setLoading(false); }
   }, [loadPage]);
 
-  useEffect(() => { loadInitial(); }, []);
+  useEffect(() => { loadInitial('recommend'); }, []);
 
   const handleLoadMore = useCallback(async () => {
     if (loadingMoreRef.current || !hasMoreRef.current || offsetRef.current === 0) return;
     loadingMoreRef.current = true;
     setLoadingMore(true);
-    try { await loadPage(offsetRef.current, true); }
+    try { await loadPage(offsetRef.current, true, activeTab); }
     catch (e) { console.error(e); }
     finally { loadingMoreRef.current = false; setLoadingMore(false); }
-  }, [loadPage]);
+  }, [loadPage, activeTab]);
+
+  const handleTabChange = (tab: TabName) => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setExperiences([]);
+    setHasMore(true);
+    hasMoreRef.current = true;
+    offsetRef.current = 0;
+    setLoading(true);
+    setError(null);
+    loadPage(0, false, tab).catch(e => { console.error(e); setError('加载失败'); }).finally(() => setLoading(false));
+  };
 
   const handleLike = async (id: string) => {
     setExperiences(prev => prev.map(e =>
@@ -326,7 +350,7 @@ export default function HomeScreen() {
       <View style={s.container}>
         <View style={{flex:1,justifyContent:'center',alignItems:'center',paddingBottom:80}}>
           <Text style={{fontSize:15,color:'#9a9a9a',marginBottom:16}}>{error}</Text>
-          <TouchableOpacity style={{backgroundColor:'#4a7c59',borderRadius:20,paddingHorizontal:24,paddingVertical:10}} onPress={() => { setError(null); loadInitial(); }}>
+          <TouchableOpacity style={{backgroundColor:'#4a7c59',borderRadius:20,paddingHorizontal:24,paddingVertical:10}} onPress={() => { setError(null); loadInitial(activeTab); }}>
             <Text style={{color:'#fff',fontSize:14,fontWeight:'600'}}>重试</Text>
           </TouchableOpacity>
         </View>
@@ -336,6 +360,18 @@ export default function HomeScreen() {
 
   return (
     <View style={s.container}>
+      {/* ═══ 方案A 顶部三标签 ═══ */}
+      <View style={[s.tabBar, {top: insets.top}]}>
+        {(['recommend', 'my', 'bookmarks'] as TabName[]).map(tab => (
+          <TouchableOpacity key={tab} onPress={() => handleTabChange(tab)} style={s.tabItem}>
+            <Text style={[s.tabLabel, activeTab === tab && s.tabLabelActive]}>
+              {tab === 'recommend' ? '推荐' : tab === 'my' ? '我的' : '收藏'}
+            </Text>
+            {activeTab === tab && <View style={s.tabUnderline} />}
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <FlatList
         data={experiences}
         keyExtractor={item => item.id}
@@ -365,8 +401,12 @@ export default function HomeScreen() {
         onEndReachedThreshold={0.5}
         ListEmptyComponent={
           <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5', justifyContent: 'center', alignItems: 'center'}}>
-            <Text style={{fontSize:15,color:'#9a9a9a'}}>暂无推荐内容</Text>
-            <Text style={{fontSize:12,color:'#b5b0a8',marginTop:6}}>发布经验后，推荐会更精准</Text>
+            <Text style={{fontSize:15,color:'#9a9a9a'}}>
+              {activeTab === 'recommend' ? '暂无推荐内容' : activeTab === 'my' ? '你还没有发布经验' : '你还没有收藏经验'}
+            </Text>
+            <Text style={{fontSize:12,color:'#b5b0a8',marginTop:6}}>
+              {activeTab === 'recommend' ? '发布经验后，推荐会更精准' : activeTab === 'my' ? '分享一条你的经验吧' : '去发现页面收藏喜欢的经验'}
+            </Text>
           </View>
         }
         ListFooterComponent={
@@ -387,6 +427,18 @@ export default function HomeScreen() {
 
 const s = StyleSheet.create({
   container: {flex: 1, backgroundColor: '#faf8f5'},
+
+  // ═══ 方案A 顶部三标签 ═══
+  tabBar: {
+    position: 'absolute', left: 0, right: 0, zIndex: 10,
+    flexDirection: 'row', justifyContent: 'space-around',
+    paddingHorizontal: 24, paddingTop: 8, paddingBottom: 6,
+    backgroundColor: 'rgba(250,248,245,0.97)',
+  },
+  tabItem: { alignItems: 'center', paddingHorizontal: 8 },
+  tabLabel: { fontSize: 15, fontWeight: '500', color: '#b5b0a8' },
+  tabLabelActive: { color: '#1a1a1a', fontWeight: '700' },
+  tabUnderline: { width: 20, height: 3, backgroundColor: '#4a7c59', borderRadius: 2, marginTop: 4 },
 
   // ═══ Card page (full screen) ═══
   cardPage: {
