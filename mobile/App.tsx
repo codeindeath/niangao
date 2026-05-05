@@ -7,9 +7,31 @@ import {StatusBar} from 'react-native';
 import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import DetailScreen from './src/screens/DetailScreen';
 import LoginScreen from './src/screens/LoginScreen';
-import {getToken} from './src/services/config';
+import {getToken, clearToken, API_BASE} from './src/services/config';
+import {isLoggedIn} from './src/services/auth';
 
 const Stack = createNativeStackNavigator();
+
+async function checkAndValidateToken(): Promise<boolean> {
+  try {
+    const token = await getToken();
+    if (!token) return false;
+
+    // Quick server-side validation
+    const res = await fetch(`${API_BASE}/api/v1/user/profile`, {
+      headers: {Authorization: `Bearer ${token}`},
+    });
+    if (res.status === 401) {
+      await clearToken();
+      return false;
+    }
+    return res.ok;
+  } catch {
+    // Network error — trust local token for now
+    const token = await getToken();
+    return !!token;
+  }
+}
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -17,16 +39,11 @@ export default function App() {
 
   useEffect(() => {
     async function init() {
-      // 检查是否有已保存的 token
       try {
-        const token = await getToken();
-        if (token) {
-          setAuthenticated(true);
-        } else {
-          setAuthenticated(false);
-        }
+        const loggedIn = await checkAndValidateToken();
+        setAuthenticated(loggedIn);
       } catch (e) {
-        console.error('Failed to get token:', e);
+        console.error('Failed to check login state:', e);
         setAuthenticated(false);
       }
       setLoading(false);
@@ -50,6 +67,7 @@ export default function App() {
           <Stack.Navigator screenOptions={{headerShown: false}}>
             <Stack.Screen name="main" component={BottomTabNavigator} />
             <Stack.Screen name="detail" component={DetailScreen} />
+            <Stack.Screen name="login" component={LoginScreen} />
           </Stack.Navigator>
         ) : (
           <LoginScreen onLoginSuccess={() => setAuthenticated(true)} />

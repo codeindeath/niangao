@@ -8,14 +8,25 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { appleLogin, devLogin } from '../services/api';
-import { setToken, setUserInfo } from '../services/config';
+import { setToken, setRefreshToken, setUserInfo } from '../services/config';
 
 declare const __DEV__: boolean;
 
-export default function LoginScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
+export default function LoginScreen({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const [loading, setLoading] = useState(false);
+  const navigation = useNavigation<any>();
+
+  const handleSuccess = () => {
+    if (onLoginSuccess) {
+      onLoginSuccess();
+    } else {
+      // Inside authenticated stack — navigate back to main
+      navigation.navigate('main');
+    }
+  };
 
   const handleAppleLogin = async () => {
     try {
@@ -37,9 +48,12 @@ export default function LoginScreen({ onLoginSuccess }: { onLoginSuccess: () => 
       const result = await appleLogin(credential.identityToken!, fullName);
 
       await setToken(result.token);
+      if (result.refresh_token) {
+        await setRefreshToken(result.refresh_token);
+      }
       await setUserInfo(result.user);
       setLoading(false);
-      onLoginSuccess();
+      handleSuccess();
     } catch (e: any) {
       setLoading(false);
       if (e.code === 'ERR_CANCELED') {
@@ -54,9 +68,12 @@ export default function LoginScreen({ onLoginSuccess }: { onLoginSuccess: () => 
     try {
       const result = await devLogin();
       await setToken(result.token);
+      if (result.refresh_token) {
+        await setRefreshToken(result.refresh_token);
+      }
       await setUserInfo(result.user);
       setLoading(false);
-      onLoginSuccess();
+      handleSuccess();
     } catch (e: any) {
       setLoading(false);
       Alert.alert('登录失败', e.message || '模拟登录失败');

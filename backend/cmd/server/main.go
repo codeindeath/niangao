@@ -33,16 +33,24 @@ func main() {
 	defer db.Close()
 	log.Println("Database connected")
 
+	// Run migrations (manual)
+	// Migrations are run via: psql $DATABASE_URL -f migrations/005_auth_tokens.sql
+	_ = "migrations"
+
 	// Repositories
 	expRepo := repository.NewExperienceRepo(db)
 	likeRepo := repository.NewLikeRepo(db)
 	bookmarkRepo := repository.NewBookmarkRepo(db)
 	convRepo := repository.NewConversationRepo(db)
 
+	// Dev mode flag
+	devMode := cfg.Env != "production"
+	log.Printf("Starting in %s mode (dev=%v)", cfg.Env, devMode)
+
 	// Router
 	r := gin.Default()
 	r.Use(middleware.CORS())
-	r.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+	r.Use(middleware.AuthMiddleware(cfg.JWTSecret, db))
 
 	// Health
 	r.GET("/health", func(c *gin.Context) {
@@ -53,7 +61,7 @@ func main() {
 	v1 := r.Group("/api/v1")
 	{
 		// 登录（无需认证）
-		handler.RegisterAuthRoutes(v1, db, cfg.JWTSecret, cfg.AppleBundleID)
+		handler.RegisterAuthRoutes(v1, db, cfg.JWTSecret, cfg.AppleBundleID, devMode)
 
 		// 经验
 		handler.RegisterExperienceRoutes(v1, expRepo, likeRepo, bookmarkRepo)
@@ -73,6 +81,15 @@ func main() {
 		log.Printf("年糕 API 已启动 :%s", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	// Periodic token cleanup
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			middleware.CleanupExpiredTokens(context.Background(), db)
 		}
 	}()
 

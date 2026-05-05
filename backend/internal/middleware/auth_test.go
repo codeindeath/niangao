@@ -55,7 +55,7 @@ func TestCORSMiddleware(t *testing.T) {
 
 func TestAuthMiddlewareNoToken(t *testing.T) {
 	r := gin.New()
-	r.Use(AuthMiddleware("test-secret"))
+	r.Use(AuthMiddleware("test-secret", nil))
 	r.GET("/test", func(c *gin.Context) {
 		userID, _ := c.Get("user_id")
 		c.JSON(http.StatusOK, gin.H{"user_id": userID})
@@ -78,7 +78,7 @@ func TestAuthMiddlewareNoToken(t *testing.T) {
 
 func TestAuthMiddlewareInvalidToken(t *testing.T) {
 	r := gin.New()
-	r.Use(AuthMiddleware("test-secret"))
+	r.Use(AuthMiddleware("test-secret", nil))
 	r.GET("/test", func(c *gin.Context) {
 		userID, _ := c.Get("user_id")
 		c.JSON(http.StatusOK, gin.H{"user_id": userID})
@@ -102,7 +102,7 @@ func TestAuthMiddlewareInvalidToken(t *testing.T) {
 
 func TestAuthMiddlewareMalformedHeader(t *testing.T) {
 	r := gin.New()
-	r.Use(AuthMiddleware("test-secret"))
+	r.Use(AuthMiddleware("test-secret", nil))
 	r.GET("/test", func(c *gin.Context) {
 		userID, _ := c.Get("user_id")
 		c.JSON(http.StatusOK, gin.H{"user_id": userID})

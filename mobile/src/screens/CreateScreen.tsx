@@ -144,7 +144,7 @@ export default function CreateScreen({navigation}: any) {
           disabled={submitting}
           style={[styles.publishBtn, (!isPublishReady || submitting) && styles.publishBtnDisabled]}>
           {submitting ? (
-            <ActivityIndicator size=small color=#fff />
+            <ActivityIndicator size="small" color="#fff" />
           ) : (
             <Text style={[styles.publishBtnText, !isPublishReady && styles.publishBtnTextDisabled]}>
               发布
@@ -159,18 +159,18 @@ export default function CreateScreen({navigation}: any) {
         <ScrollView
           style={styles.body}
           contentContainerStyle={{paddingBottom: 40}}
-          keyboardShouldPersistTaps=handled>
+          keyboardShouldPersistTaps="handled">
           {/* Content */}
           <Text style={styles.label}>经验内容</Text>
           <TextInput
             style={styles.contentInput}
             value={content}
             onChangeText={setContent}
-            placeholder=写下你的经验，不超过 100 字...
-            placeholderTextColor=#b5b0a8
+            placeholder="写下你的经验，不超过 100 字..."
+            placeholderTextColor="#b5b0a8"
             multiline
             maxLength={100}
-            textAlignVertical=top
+            textAlignVertical="top"
           />
           <Text style={styles.charCount}>{content.length}/100</Text>
 
@@ -226,7 +226,7 @@ export default function CreateScreen({navigation}: any) {
               onPress={handleGenerateAI}
               disabled={aiLoading}>
               {aiLoading ? (
-                <ActivityIndicator size=small color=#4a7c59 />
+                <ActivityIndicator size="small" color="#4a7c59" />
               ) : (
                 <Text style={styles.aiButtonText}>🤖 AI 生成解读</Text>
               )}
@@ -257,7 +257,7 @@ export default function CreateScreen({navigation}: any) {
           onPress={handlePublish}
           disabled={!isPublishReady || submitting}>
           {submitting ? (
-            <ActivityIndicator size=small color=#fff />
+            <ActivityIndicator size="small" color="#fff" />
           ) : (
             <Text style={styles.submitButtonText}>发布经验</Text>
           )}

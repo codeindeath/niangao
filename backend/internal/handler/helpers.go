@@ -31,3 +31,12 @@ func getOptionalUserID(c *gin.Context) string {
 	}
 	return s
 }
+
+// getAuthJTI extracts jti from context.
+func getAuthJTI(c *gin.Context) string {
+	jti, _ := c.Get("jti")
+	if jti == nil {
+		return ""
+	}
+	return jti.(string)
+}

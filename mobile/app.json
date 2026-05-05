@@ -14,8 +14,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.swt.niangaogao"
+      "bundleIdentifier": "com.swt.niangaogao",
+      "usesAppleSignIn": true
     },
+    "plugins": [
+      "expo-apple-authentication"
+    ],
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

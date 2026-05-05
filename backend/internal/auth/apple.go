@@ -31,8 +31,8 @@ type AppleJWKS struct {
 
 // AppleIDTokenClaims Apple identity token 的 claims
 type AppleIDTokenClaims struct {
-	Email        string `json:"email"`
-	EmailVerified string `json:"email_verified"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
 	jwt.RegisteredClaims
 }
 

@@ -6,15 +6,16 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {getUserInfo, clearToken} from '../services/config';
-import {fetchMyExperiences, fetchMyBookmarks, Experience} from '../services/api';
+import {fetchMyExperiences, fetchMyBookmarks, fetchProfile, updateProfile, Experience, UserProfile} from '../services/api';
+import {logout} from '../services/auth';
 
 type TabType = 'my' | 'bookmarks';
 
 export default function ProfileScreen({navigation}: any) {
-  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [tab, setTab] = useState<TabType>('my');
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [bookmarks, setBookmarks] = useState<Experience[]>([]);
@@ -24,31 +25,65 @@ export default function ProfileScreen({navigation}: any) {
     loadProfile();
   }, []);
 
+  // Re-fetch when tab is focused
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadProfile();
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   const loadProfile = async () => {
     try {
-      const userInfo = await getUserInfo();
-      setUser(userInfo);
-
-      if (userInfo) {
-        const [myResult, bmResult] = await Promise.all([
-          fetchMyExperiences(1),
-          fetchMyBookmarks(1),
-        ]);
-        setExperiences(myResult.data || []);
-        setBookmarks(bmResult.data || []);
-      }
-    } catch (e) {
+      // Fetch fresh profile from API
+      const [profileData, myResult, bmResult] = await Promise.all([
+        fetchProfile(),
+        fetchMyExperiences(1),
+        fetchMyBookmarks(1),
+      ]);
+      setProfile(profileData);
+      setExperiences(myResult.data || []);
+      setBookmarks(bmResult.data || []);
+    } catch (e: any) {
       console.error('Failed to load profile:', e);
+      if (e?.status === 401) {
+        // Token expired/invalid — navigate to login
+        setProfile(null);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    await clearToken();
-    setUser(null);
+    await logout();
+    setProfile(null);
     setExperiences([]);
     setBookmarks([]);
+  };
+
+  const handleEditNickname = () => {
+    Alert.prompt(
+      '修改昵称',
+      '输入新昵称（1-30字）',
+      [
+        {text: '取消', style: 'cancel'},
+        {
+          text: '保存',
+          onPress: async (text?: string) => {
+            if (!text || !text.trim()) return;
+            try {
+              const updated = await updateProfile({nickname: text.trim()});
+              setProfile(updated);
+            } catch (e: any) {
+              Alert.alert('修改失败', e?.message || '请稍后再试');
+            }
+          },
+        },
+      ],
+      'plain-text',
+      profile?.nickname || '',
+    );
   };
 
   const domainLabels: Record<string, string> = {
@@ -102,10 +137,38 @@ export default function ProfileScreen({navigation}: any) {
             <View style={styles.profileHeader}>
               <View style={styles.avatarLarge}>
                 <Text style={styles.avatarLargeText}>
-                  {user?.nickname?.charAt(0) || '?'}
+                  {profile?.nickname?.charAt(0) || '?'}
                 </Text>
               </View>
-              <Text style={styles.nickname}>{user?.nickname || '未登录'}</Text>
+              <Text style={styles.nickname}>{profile?.nickname || '未登录'}</Text>
+              {profile && (
+                <TouchableOpacity onPress={handleEditNickname} style={styles.editBtn}>
+                  <Text style={styles.editBtnText}>✎ 修改</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Stats */}
+              {profile && (
+                <View style={styles.statsRow}>
+                  <View style={styles.stat}>
+                    <Text style={styles.statNumber}>{profile.experience_count}</Text>
+                    <Text style={styles.statLabel}>经验</Text>
+                  </View>
+                  <View style={styles.stat}>
+                    <Text style={styles.statNumber}>{profile.bookmark_count}</Text>
+                    <Text style={styles.statLabel}>收藏</Text>
+                  </View>
+                  <View style={styles.stat}>
+                    <Text style={styles.statNumber}>{profile.practiced_count}</Text>
+                    <Text style={styles.statLabel}>实践</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Bio */}
+              {profile?.bio ? (
+                <Text style={styles.bio}>{profile.bio}</Text>
+              ) : null}
 
               {/* Tabs */}
               <View style={styles.tabRow}>
@@ -132,7 +195,7 @@ export default function ProfileScreen({navigation}: any) {
           </>
         }
         ListFooterComponent={
-          user ? (
+          profile ? (
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
               <Text style={styles.logoutText}>退出登录</Text>
             </TouchableOpacity>
@@ -158,6 +221,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 30,
     paddingBottom: 16,
+    paddingHorizontal: 20,
     backgroundColor: '#ffffff',
     borderBottomWidth: 0.5,
     borderBottomColor: '#e8e4df',
@@ -180,7 +244,40 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  editBtn: {
+    marginBottom: 8,
+  },
+  editBtnText: {
+    fontSize: 13,
+    color: '#4a7c59',
+    fontWeight: '500',
+  },
+  bio: {
+    fontSize: 14,
+    color: '#6e6e6e',
+    marginBottom: 12,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 24,
     marginBottom: 16,
+  },
+  stat: {
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#4a7c59',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#8a8a8a',
+    marginTop: 2,
   },
   tabRow: {
     flexDirection: 'row',
@@ -199,21 +296,24 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 14,
+    color: '#8a8a8a',
     fontWeight: '500',
-    color: '#9a9a9a',
   },
   tabTextActive: {
     color: '#4a7c59',
     fontWeight: '700',
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 14,
+    backgroundColor: '#fff',
+    marginHorizontal: 12,
     marginTop: 8,
-    borderWidth: 0.5,
-    borderColor: '#f0ece7',
+    borderRadius: 12,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   cardAuthorRow: {
     flexDirection: 'row',
@@ -221,80 +321,74 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cardAvatar: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#eaf2e8',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 6,
+    marginRight: 8,
   },
   cardAvatarText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
     color: '#4a7c59',
   },
   cardAuthorName: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
     color: '#6e6e6e',
     flex: 1,
   },
   cardDomainTag: {
-    backgroundColor: '#eaf2e8',
+    backgroundColor: '#f0f4ef',
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   cardDomainText: {
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 11,
     color: '#4a7c59',
   },
   cardContent: {
     fontSize: 15,
-    lineHeight: 23,
-    fontWeight: '600',
     color: '#1a1a1a',
-    marginBottom: 10,
+    lineHeight: 22,
+    marginBottom: 8,
   },
   cardActions: {
     flexDirection: 'row',
     gap: 16,
-    paddingTop: 8,
-    borderTopWidth: 0.5,
-    borderTopColor: '#f0ece7',
   },
   cardActionText: {
-    fontSize: 11,
-    color: '#9a9a9a',
+    fontSize: 13,
+    color: '#8a8a8a',
   },
   logoutButton: {
-    marginHorizontal: 18,
-    marginTop: 30,
+    marginTop: 20,
+    marginHorizontal: 12,
     backgroundColor: '#ffffff',
-    borderRadius: 14,
+    borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderColor: '#e8e4df',
   },
   logoutText: {
     fontSize: 15,
-    color: '#e85d5d',
-    fontWeight: '500',
+    color: '#c44',
+    fontWeight: '600',
   },
   loginButton: {
-    marginHorizontal: 18,
-    marginTop: 30,
+    marginTop: 20,
+    marginHorizontal: 12,
     backgroundColor: '#4a7c59',
-    borderRadius: 14,
+    borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
   loginText: {
-    fontSize: 16,
-    color: '#ffffff',
+    fontSize: 15,
+    color: '#fff',
     fontWeight: '600',
   },
 });

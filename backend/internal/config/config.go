@@ -9,6 +9,7 @@ type Config struct {
 	JWTSecret     string
 	AppleBundleID string
 	AIServiceURL  string
+	Env           string
 }
 
 func Load() *Config {
@@ -19,6 +20,7 @@ func Load() *Config {
 		JWTSecret:     getEnv("JWT_SECRET", ""),
 		AppleBundleID: getEnv("APPLE_BUNDLE_ID", "com.swt.niangaogao"),
 		AIServiceURL:  getEnv("AI_SERVICE_URL", "http://localhost:8000"),
+		Env:           getEnv("ENV", "development"),
 	}
 }
 

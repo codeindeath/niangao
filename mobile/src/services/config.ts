@@ -5,6 +5,7 @@ export const API_BASE = 'http://115.190.177.146';  // Nginx 反代，不需要�
 export const AI_BASE = 'http://115.190.177.146:8000';
 
 const TOKEN_KEY = 'auth_token';
+const REFRESH_KEY = 'refresh_token';
 const USER_KEY = 'user_info';
 
 // ---------- Token 管理 ----------
@@ -18,7 +19,17 @@ export async function setToken(token: string): Promise<void> {
 
 export async function clearToken(): Promise<void> {
   await AsyncStorage.removeItem(TOKEN_KEY);
+  await AsyncStorage.removeItem(REFRESH_KEY);
   await AsyncStorage.removeItem(USER_KEY);
+}
+
+// ---------- Refresh Token ----------
+export async function getRefreshToken(): Promise<string | null> {
+  return AsyncStorage.getItem(REFRESH_KEY);
+}
+
+export async function setRefreshToken(token: string): Promise<void> {
+  await AsyncStorage.setItem(REFRESH_KEY, token);
 }
 
 // ---------- 用户信息 ----------
@@ -29,6 +40,19 @@ export async function getUserInfo(): Promise<any | null> {
 
 export async function setUserInfo(user: any): Promise<void> {
   await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+// ---------- Token 过期检查 ----------
+export function isTokenExpired(token: string): boolean {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const payload = JSON.parse(atob(parts[1]));
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true; // 解析失败视为过期
+  }
 }
 
 // ---------- Go 后端 HTTP 请求 ----------
@@ -67,6 +91,46 @@ export async function apiPost(path: string, body: any): Promise<any> {
       ...(token ? {Authorization: `Bearer ${token}`} : {}),
     },
     body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    let message = text;
+    try {
+      const json = JSON.parse(text);
+      message = json.error || json.message || text;
+    } catch {}
+    throw new ApiError(res.status, message);
+  }
+  try { return JSON.parse(text); } catch { return text; }
+}
+
+export async function apiPut(path: string, body: any): Promise<any> {
+  const token = await getToken();
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? {Authorization: `Bearer ${token}`} : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    let message = text;
+    try {
+      const json = JSON.parse(text);
+      message = json.error || json.message || text;
+    } catch {}
+    throw new ApiError(res.status, message);
+  }
+  try { return JSON.parse(text); } catch { return text; }
+}
+
+export async function apiDelete(path: string): Promise<any> {
+  const token = await getToken();
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'DELETE',
+    headers: token ? {Authorization: `Bearer ${token}`} : {},
   });
   const text = await res.text();
   if (!res.ok) {
