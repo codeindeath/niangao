@@ -20,6 +20,7 @@ export interface Experience {
   bookmark_count: number;
   author_name?: string;
   author_avatar?: string;
+  author_title?: string;
   is_liked: boolean;
   is_bookmarked: boolean;
   review_status?: string;
@@ -34,6 +35,7 @@ export interface UserProfile {
   nickname: string;
   avatar_url?: string;
   bio?: string;
+  title?: string;
   experience_count: number;
   bookmark_count: number;
   practiced_count: number;
@@ -136,6 +138,7 @@ export async function updateProfile(fields: {
   nickname?: string;
   avatar_url?: string;
   bio?: string;
+  title?: string;
 }): Promise<UserProfile> {
   return apiPut('/api/v1/user/profile', fields);
 }

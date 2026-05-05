@@ -136,7 +136,7 @@ const experienceSelectCols = `e.id, e.author_id, e.content, e.interpretation, e.
 		e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
 		e.creator_name, e.source_type, e.score_reason,
 		e.status, e.created_at, e.updated_at,
-		u.nickname, u.avatar_url`
+		u.nickname, u.avatar_url, u.title as author_title`
 
 const experienceLikedBookmark = `EXISTS(SELECT 1 FROM likes WHERE user_id=$2 AND experience_id=e.id) as is_liked,
 		EXISTS(SELECT 1 FROM bookmarks WHERE user_id=$2 AND experience_id=e.id) as is_bookmarked`
@@ -148,7 +148,7 @@ func scanExperience(row pgx.Row, e *model.Experience) error {
 		&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
 		&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason,
 		&e.Status, &e.CreatedAt, &e.UpdatedAt,
-		&e.AuthorName, &e.AuthorAvatar, &e.IsLiked, &e.IsBookmarked,
+		&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 	)
 }
 
@@ -237,7 +237,7 @@ func (r *ExperienceRepo) List(ctx context.Context, query model.ExperienceListQue
 			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
 			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason,
 			&e.Status, &e.CreatedAt, &e.UpdatedAt,
-			&e.AuthorName, &e.AuthorAvatar, &e.IsLiked, &e.IsBookmarked,
+				&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan: %w", err)
 		}
@@ -304,7 +304,7 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, of
 		       e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
 		       e.creator_name, e.source_type, e.score_reason,
 		       e.status, e.created_at, e.updated_at,
-		       u.nickname, u.avatar_url,
+		u.nickname, u.avatar_url, u.title as author_title,
 		       EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND experience_id = e.id) AS is_liked,
 		       EXISTS(SELECT 1 FROM bookmarks WHERE user_id = $1 AND experience_id = e.id) AS is_bookmarked,
 		       COALESCE(ds.score, 1) * (e.like_count + e.bookmark_count + 1) AS rec_score
@@ -333,7 +333,7 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, of
 			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
 			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason,
 			&e.Status, &e.CreatedAt, &e.UpdatedAt,
-			&e.AuthorName, &e.AuthorAvatar, &e.IsLiked, &e.IsBookmarked,
+				&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 			&recScore,
 		); err != nil {
 			return nil, fmt.Errorf("recommend scan: %w", err)
@@ -412,7 +412,7 @@ func (r *ExperienceRepo) ListByAuthor(ctx context.Context, authorID string, page
 		        e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
 		        e.creator_name, e.source_type, e.score_reason,
 		        e.status, e.created_at, e.updated_at,
-		        u.nickname, u.avatar_url,
+		        u.nickname, u.avatar_url, u.title as author_title,
 		        EXISTS(SELECT 1 FROM likes WHERE user_id=$1 AND experience_id=e.id) as is_liked,
 		        EXISTS(SELECT 1 FROM bookmarks WHERE user_id=$1 AND experience_id=e.id) as is_bookmarked
 		 FROM experiences e
@@ -453,7 +453,7 @@ func (r *ExperienceRepo) ListBookmarked(ctx context.Context, userID string, page
 		        e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
 		        e.creator_name, e.source_type, e.score_reason,
 		        e.status, e.created_at, e.updated_at,
-		        u.nickname, u.avatar_url,
+		        u.nickname, u.avatar_url, u.title as author_title,
 		        EXISTS(SELECT 1 FROM likes WHERE user_id=$1 AND experience_id=e.id) as is_liked,
 		        true as is_bookmarked
 		 FROM bookmarks b
@@ -481,7 +481,7 @@ func scanExperiences(rows pgx.Rows, total int) ([]model.Experience, int, error) 
 			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
 			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason,
 			&e.Status, &e.CreatedAt, &e.UpdatedAt,
-			&e.AuthorName, &e.AuthorAvatar, &e.IsLiked, &e.IsBookmarked,
+				&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan: %w", err)
 		}

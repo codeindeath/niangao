@@ -36,12 +36,13 @@ func getProfile(c *gin.Context, db *pgxpool.Pool) {
 	var nickname string
 	var avatarURL *string
 	var bio *string
+	var title *string
 	var expCount, bmCount, practicedCount int
 
 	err := db.QueryRow(c.Request.Context(),
-		`SELECT nickname, avatar_url, bio, experience_count, bookmark_count, practiced_count
+		`SELECT nickname, avatar_url, bio, title, experience_count, bookmark_count, practiced_count
 		 FROM users WHERE id = $1`, userID,
-	).Scan(&nickname, &avatarURL, &bio, &expCount, &bmCount, &practicedCount)
+	).Scan(&nickname, &avatarURL, &bio, &title, &expCount, &bmCount, &practicedCount)
 
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
@@ -53,6 +54,7 @@ func getProfile(c *gin.Context, db *pgxpool.Pool) {
 		"nickname":         nickname,
 		"avatar_url":       avatarURL,
 		"bio":              bio,
+		"title":            title,
 		"experience_count": expCount,
 		"bookmark_count":   bmCount,
 		"practiced_count":  practicedCount,
@@ -67,6 +69,7 @@ type UpdateProfileRequest struct {
 	Nickname  *string `json:"nickname"`
 	AvatarURL *string `json:"avatar_url"`
 	Bio       *string `json:"bio"`
+	Title     *string `json:"title"`
 }
 
 func updateProfile(c *gin.Context, db *pgxpool.Pool) {
@@ -82,7 +85,7 @@ func updateProfile(c *gin.Context, db *pgxpool.Pool) {
 	}
 
 	// 至少提供一个字段
-	if req.Nickname == nil && req.AvatarURL == nil && req.Bio == nil {
+	if req.Nickname == nil && req.AvatarURL == nil && req.Bio == nil && req.Title == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "至少需要提供一个要更新的字段"})
 		return
 	}
@@ -102,27 +105,34 @@ func updateProfile(c *gin.Context, db *pgxpool.Pool) {
 		return
 	}
 
+	// 校验称号
+	if req.Title != nil && len([]rune(*req.Title)) > 20 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "称号不能超过 20 字"})
+		return
+	}
+
 	// 动态构建 UPDATE
 	var (
-		nickname  string
-		avatarURL *string
-		bio       *string
-		expCount  int
-		bmCount   int
+		nickname       string
+		avatarURL      *string
+		bio            *string
+		title          *string
+		expCount       int
+		bmCount        int
 		practicedCount int
 	)
 
-	// 先查当前值
 	err := db.QueryRow(c.Request.Context(),
 		`UPDATE users SET
-		   nickname  = COALESCE($2, nickname),
+		   nickname   = COALESCE($2, nickname),
 		   avatar_url = COALESCE($3, avatar_url),
-		   bio       = COALESCE($4, bio),
+		   bio        = COALESCE($4, bio),
+		   title      = COALESCE($5, title),
 		   updated_at = NOW()
 		 WHERE id = $1
-		 RETURNING nickname, avatar_url, bio, experience_count, bookmark_count, practiced_count`,
-		userID, req.Nickname, req.AvatarURL, req.Bio,
-	).Scan(&nickname, &avatarURL, &bio, &expCount, &bmCount, &practicedCount)
+		 RETURNING nickname, avatar_url, bio, title, experience_count, bookmark_count, practiced_count`,
+		userID, req.Nickname, req.AvatarURL, req.Bio, req.Title,
+	).Scan(&nickname, &avatarURL, &bio, &title, &expCount, &bmCount, &practicedCount)
 
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
@@ -134,6 +144,7 @@ func updateProfile(c *gin.Context, db *pgxpool.Pool) {
 		"nickname":         nickname,
 		"avatar_url":       avatarURL,
 		"bio":              bio,
+		"title":            title,
 		"experience_count": expCount,
 		"bookmark_count":   bmCount,
 		"practiced_count":  practicedCount,

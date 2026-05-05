@@ -151,6 +151,7 @@ type User struct {
 	Nickname        string  `json:"nickname"`
 	AvatarURL       *string `json:"avatar_url,omitempty"`
 	Bio             *string `json:"bio,omitempty"`
+	Title           *string `json:"title,omitempty"`
 	ExperienceCount int     `json:"experience_count"`
 	BookmarkCount   int     `json:"bookmark_count"`
 	PracticedCount  int     `json:"practiced_count"`
@@ -183,6 +184,7 @@ type Experience struct {
 	// Joined fields
 	AuthorName   *string `json:"author_name,omitempty"`
 	AuthorAvatar *string `json:"author_avatar,omitempty"`
+	AuthorTitle  *string `json:"author_title,omitempty"`
 	IsLiked      bool    `json:"is_liked"`
 	IsBookmarked bool    `json:"is_bookmarked"`
 }

@@ -136,6 +136,7 @@ function FlipCard({item, currentUserId, cardHeight, onLike, onBookmark, onDelete
             <View>
               <Text style={s.creatorName}>{displayName}</Text>
               {item.source_label ? <Text style={s.sourceLabel}>{item.source_label}</Text> : null}
+              {item.author_title ? <Text style={s.titleText}>{item.author_title}</Text> : null}
             </View>
           </View>
 
@@ -443,6 +444,7 @@ const s = StyleSheet.create({
   avatarText: {fontSize: 13, fontWeight: '700', color: '#4a7c59'},
   creatorName: {fontSize: 14, fontWeight: '600', color: '#4a4a4a'},
   sourceLabel: {fontSize: 11, color: '#9a9a9a', marginTop: 1},
+  titleText: {fontSize: 11, color: '#4a7c59', fontWeight: '500', marginTop: 2},
 
   // Stars
   starRow: {flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8},

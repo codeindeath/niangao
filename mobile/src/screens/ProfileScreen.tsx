@@ -86,6 +86,37 @@ export default function ProfileScreen({navigation}: any) {
     );
   };
 
+  const handleEditTitle = () => {
+    Alert.prompt(
+      '编辑称号',
+      '给自己一个独特称号（20字以内）',
+      [
+        {text: '取消', style: 'cancel'},
+        {text: '清除', style: 'destructive', onPress: async () => {
+          try {
+            const updated = await updateProfile({title: ''});
+            setProfile(updated);
+          } catch (e: any) {
+            Alert.alert('修改失败', e?.message || '请稍后再试');
+          }
+        }},
+        {
+          text: '保存',
+          onPress: async (text?: string) => {
+            try {
+              const updated = await updateProfile({title: text?.trim() || ''});
+              setProfile(updated);
+            } catch (e: any) {
+              Alert.alert('修改失败', e?.message || '请稍后再试');
+            }
+          },
+        },
+      ],
+      'plain-text',
+      profile?.title || '',
+    );
+  };
+
   const domainLabels: Record<string, string> = {
     career: '职场成长',
     relationship: '人际关系',
@@ -144,6 +175,16 @@ export default function ProfileScreen({navigation}: any) {
               {profile && (
                 <TouchableOpacity onPress={handleEditNickname} style={styles.editBtn}>
                   <Text style={styles.editBtnText}>✎ 修改</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Title */}
+              {profile && (
+                <TouchableOpacity onPress={handleEditTitle} style={styles.titleRow}>
+                  <Text style={styles.titleText}>
+                    {profile.title || '点击设置称号'}
+                  </Text>
+                  <Text style={styles.editHint}>✎</Text>
                 </TouchableOpacity>
               )}
 
@@ -253,6 +294,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#4a7c59',
     fontWeight: '500',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    gap: 4,
+  },
+  titleText: {
+    fontSize: 13,
+    color: '#4a7c59',
+    fontWeight: '500',
+    fontStyle: 'italic',
+  },
+  editHint: {
+    fontSize: 11,
+    color: '#b5b0a8',
   },
   bio: {
     fontSize: 14,
