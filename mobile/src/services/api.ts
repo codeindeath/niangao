@@ -1,4 +1,4 @@
-import {apiGet, apiPost, aiPost} from './config';
+import {apiGet, apiPost, apiPut, apiDelete, aiPost} from './config';
 
 // ============================================================
 // 类型
@@ -12,14 +12,31 @@ export interface Experience {
   sub_domain?: string;
   is_private?: boolean;
   is_official: boolean;
+  source_type?: string;
   source_label?: string;
+  creator_name?: string;
+  score_reason?: string;
   like_count: number;
   bookmark_count: number;
   author_name?: string;
   author_avatar?: string;
   is_liked: boolean;
   is_bookmarked: boolean;
+  review_status?: string;
+  review_reason?: string;
+  quality_score?: number;
+  score_details?: string;
   created_at: string;
+}
+
+export interface UserProfile {
+  id: string;
+  nickname: string;
+  avatar_url?: string;
+  bio?: string;
+  experience_count: number;
+  bookmark_count: number;
+  practiced_count: number;
 }
 
 export interface ChatMessage {
@@ -87,6 +104,10 @@ export async function toggleBookmark(
   return apiPost(`/api/v1/experiences/${id}/bookmark`, {});
 }
 
+export async function deleteExperience(id: string): Promise<{status: string}> {
+  return apiDelete(`/api/v1/experiences/${id}`);
+}
+
 // ============================================================
 // 用户个人 API
 // ============================================================
@@ -103,6 +124,25 @@ export async function fetchMyBookmarks(
   return apiGet(`/api/v1/me/bookmarks?page=${page}`);
 }
 
+// ============================================================
+// 用户 Profile API
+// ============================================================
+
+export async function fetchProfile(): Promise<UserProfile> {
+  return apiGet('/api/v1/user/profile');
+}
+
+export async function updateProfile(fields: {
+  nickname?: string;
+  avatar_url?: string;
+  bio?: string;
+}): Promise<UserProfile> {
+  return apiPut('/api/v1/user/profile', fields);
+}
+
+export async function deleteAccount(): Promise<{message: string}> {
+  return apiDelete('/api/v1/user/account');
+}
 
 // ============================================================
 // 推荐 API
@@ -157,6 +197,15 @@ export async function devLogin(
 ): Promise<{token: string; refresh_token: string; user: any}> {
   return apiPost('/api/v1/auth/dev/login', {
     nickname: nickname || '开发者',
+  });
+}
+
+// 刷新 token
+export async function refreshToken(
+  refreshTokenValue: string,
+): Promise<{token: string; refresh_token: string}> {
+  return apiPost('/api/v1/auth/refresh', {
+    refresh_token: refreshTokenValue,
   });
 }
 

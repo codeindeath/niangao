@@ -6,15 +6,17 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
+  Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {fetchExperience, toggleLike, toggleBookmark, Experience} from '../services/api';
+import {fetchExperience, toggleLike, toggleBookmark, deleteExperience, Experience} from '../services/api';
+import {getUserInfo} from '../services/config';
 
 const DOMAIN_LABELS: Record<string, string> = {
   career: '职场成长', relationship: '人际关系', cognition: '认知升级',
   life: '生活智慧', emotion: '情感',
 };
-
 const SUB_DOMAIN_LABELS: Record<string, string> = {
   'career-planning': '职业规划', 'skill-building': '技能提升',
   'side-hustle': '副业创业', 'workplace-comm': '职场沟通',
@@ -29,31 +31,17 @@ const SUB_DOMAIN_LABELS: Record<string, string> = {
   'happiness': '幸福感', 'stress-mgmt': '压力管理',
 };
 
-const REVIEW_STATUS_LABELS: Record<string, {label: string; color: string; bg: string}> = {
-  approved: {label: '✓ 已通过', color: '#4a7c59', bg: '#eaf2e8'},
-  rejected: {label: '✗ 未通过', color: '#e85d5d', bg: '#fce8e8'},
-  pending: {label: '⏳ 审核中', color: '#e8a850', bg: '#fdf3e4'},
-  private: {label: '🔒 私密', color: '#9a9a9a', bg: '#f0f0f0'},
-};
-
-function ScoreBar({score, label}: {score: number; label: string}) {
-  const pct = Math.min(100, Math.max(0, score * 10));
-  return (
-    <View style={s.scoreRow}>
-      <Text style={s.scoreLabel}>{label}</Text>
-      <View style={s.scoreTrack}>
-        <View style={[s.scoreFill, {width: `${pct}%`}]} />
-      </View>
-      <Text style={s.scoreValue}>{score.toFixed(1)}</Text>
-    </View>
-  );
-}
-
 export default function DetailScreen({route, navigation}: any) {
   const {id} = route.params;
   const [exp, setExp] = useState<Experience | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showScoreReason, setShowScoreReason] = useState(false);
+
+  useEffect(() => {
+    getUserInfo().then(u => setCurrentUserId(u?.id || null));
+  }, []);
 
   useEffect(() => { loadExperience(); }, [id]);
 
@@ -85,19 +73,34 @@ export default function DetailScreen({route, navigation}: any) {
     }
   };
 
+  const handleDelete = () => {
+    Alert.alert('删除经验', '确定要删除这条经验吗？', [
+      {text: '取消', style: 'cancel'},
+      {text: '删除', style: 'destructive', onPress: async () => {
+        try { await deleteExperience(exp!.id); navigation.goBack(); }
+        catch (e: any) { Alert.alert('删除失败', e?.message || '请稍后再试'); }
+      }},
+    ]);
+  };
+
   if (loading) {
     return <SafeAreaView style={s.container}><ActivityIndicator size="large" color="#4a7c59" style={{marginTop: 200}} /></SafeAreaView>;
   }
   if (error && !exp) {
-    return <SafeAreaView style={s.container}><View style={s.center}><Text style={s.errorText}>{error}</Text><TouchableOpacity style={s.retryBtn} onPress={() => { setError(null); setLoading(true); loadExperience(); }}><Text style={s.retryText}>重试</Text></TouchableOpacity></View></SafeAreaView>;
+    return <SafeAreaView style={s.container}><View style={s.center}><Text style={s.errorText}>{error}</Text>
+      <TouchableOpacity style={s.retryBtn} onPress={() => { setError(null); setLoading(true); loadExperience(); }}>
+        <Text style={s.retryText}>重试</Text></TouchableOpacity></View></SafeAreaView>;
   }
   if (!exp) {
     return <SafeAreaView style={s.container}><View style={s.center}><Text style={s.emptyText}>经验不存在或已被删除</Text></View></SafeAreaView>;
   }
 
+  const isPlatform = exp.source_type === 'platform';
+  const isRejected = exp.review_status === 'rejected';
+  const displayName = exp.creator_name || exp.author_name || '匿名';
   const domainLabel = SUB_DOMAIN_LABELS[exp.sub_domain] || DOMAIN_LABELS[exp.domain] || exp.domain;
-  const reviewInfo = REVIEW_STATUS_LABELS[exp.review_status] || REVIEW_STATUS_LABELS.pending;
-  const hasScore = exp.quality_score != null && exp.quality_score > 0;
+  const showScore = exp.quality_score != null && exp.quality_score > 0;
+  const stars = showScore ? Math.round(exp.quality_score! / 2) : 0;
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -108,11 +111,17 @@ export default function DetailScreen({route, navigation}: any) {
       </View>
 
       <ScrollView style={s.body} contentContainerStyle={{paddingBottom: 40}}>
-        {/* Author row */}
-        <View style={s.authorRow}>
-          <View style={s.avatar}><Text style={s.avatarText}>{exp.author_name?.charAt(0) || '?'}</Text></View>
-          <Text style={s.authorName}>{exp.author_name || '匿名'}</Text>
-          <View style={s.domainTag}><Text style={s.domainText}>{domainLabel}</Text></View>
+        {/* Creator row */}
+        <View style={s.creatorRow}>
+          <View style={s.avatar}><Text style={s.avatarText}>{displayName.charAt(0)}</Text></View>
+          <Text style={s.creatorName}>{displayName}</Text>
+          {isPlatform && (
+            <View style={s.platformTag}>
+              <Text style={s.platformTagIcon}>官</Text>
+              <Text style={s.platformTagText}>平台生产</Text>
+            </View>
+          )}
+          <View style={s.domainTag}><Text style={s.domainTagText}>{domainLabel}</Text></View>
           {exp.is_private && <Text style={s.privateMark}>🔒</Text>}
         </View>
 
@@ -123,34 +132,40 @@ export default function DetailScreen({route, navigation}: any) {
           <Text style={s.date}>{new Date(exp.created_at).toLocaleDateString('zh-CN', {year: 'numeric', month: 'long', day: 'numeric'})}</Text>
         </View>
 
-        {/* Review status badge */}
-        <View style={[s.reviewBadge, {backgroundColor: reviewInfo.bg}]}>
-          <Text style={[s.reviewText, {color: reviewInfo.color}]}>{reviewInfo.label}</Text>
-          {exp.review_reason ? <Text style={s.reviewReason}>{exp.review_reason}</Text> : null}
-        </View>
-
-        {/* Quality score */}
-        {hasScore && (
-          <View style={s.scoreCard}>
-            <Text style={s.scoreTitle}>📊 质量评分</Text>
-            <View style={s.scoreOverall}>
-              <Text style={s.scoreBig}>{exp.quality_score!.toFixed(1)}</Text>
-              <Text style={s.scoreMax}>/ 10</Text>
+        {/* Rejected indicator (only for rejected experiences) */}
+        {isRejected && (
+          <View style={s.rejectedCard}>
+            <Text style={s.rejectedIcon}>❕</Text>
+            <View style={{flex: 1}}>
+              <Text style={s.rejectedTitle}>这条经验未通过审核，仅你自己可见</Text>
+              {exp.review_reason ? <Text style={s.rejectedReason}>{exp.review_reason}</Text> : null}
             </View>
-            {exp.score_details && (() => {
-              try {
-                const d = JSON.parse(exp.score_details);
-                return (
-                  <View style={s.scoreDetails}>
-                    {d.value != null && <ScoreBar score={d.value} label="内容价值" />}
-                    {d.actionable != null && <ScoreBar score={d.actionable} label="可执行度" />}
-                    {d.universal != null && <ScoreBar score={d.universal} label="普适性" />}
-                    {d.original != null && <ScoreBar score={d.original} label="原创性" />}
-                    {d.clarity != null && <ScoreBar score={d.clarity} label="清晰度" />}
+          </View>
+        )}
+
+        {/* Score stars — click for reason */}
+        {showScore && (
+          <View style={s.scoreCard}>
+            <Text style={s.scoreTitle}>价值度</Text>
+            <TouchableOpacity
+              style={s.scoreStarsRow}
+              onPress={() => exp.score_reason && setShowScoreReason(true)}
+              activeOpacity={exp.score_reason ? 0.6 : 1}
+            >
+              {[1, 2, 3, 4, 5].map(i => (
+                <Text key={i} style={s.star}>{i <= stars ? '★' : '☆'}</Text>
+              ))}
+            </TouchableOpacity>
+            {exp.score_reason && (
+              <Modal visible={showScoreReason} transparent animationType="fade">
+                <TouchableOpacity style={s.scoreOverlay} activeOpacity={1} onPress={() => setShowScoreReason(false)}>
+                  <View style={s.scorePopup}>
+                    <Text style={s.scorePopupTitle}>价值度 · {stars}星</Text>
+                    <Text style={s.scorePopupText}>{exp.score_reason}</Text>
                   </View>
-                );
-              } catch { return null; }
-            })()}
+                </TouchableOpacity>
+              </Modal>
+            )}
           </View>
         )}
 
@@ -164,10 +179,17 @@ export default function DetailScreen({route, navigation}: any) {
           </TouchableOpacity>
         </View>
 
+        {/* Delete — only for author */}
+        {currentUserId && exp.author_id === currentUserId && (
+          <TouchableOpacity style={s.deleteBtn} onPress={handleDelete}>
+            <Text style={s.deleteText}>🗑 删除此经验</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Interpretation */}
         {exp.interpretation ? (
           <View style={s.interpCard}>
-            <Text style={s.interpTitle}>📖 解读</Text>
+            <Text style={s.interpTitle}>📖 经验解读</Text>
             <Text style={s.interpText}>{exp.interpretation}</Text>
           </View>
         ) : (
@@ -188,36 +210,66 @@ const s = StyleSheet.create({
   retryBtn: {backgroundColor: '#4a7c59', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 10},
   retryText: {color: '#ffffff', fontSize: 14, fontWeight: '600'},
   body: {flex: 1},
-  authorRow: {flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingTop: 18, paddingBottom: 12},
-  avatar: {width: 32, height: 32, borderRadius: 16, backgroundColor: '#eaf2e8', justifyContent: 'center', alignItems: 'center', marginRight: 10},
-  avatarText: {fontSize: 14, fontWeight: '700', color: '#4a7c59'},
-  authorName: {fontSize: 14, fontWeight: '600', color: '#4a4a4a', flex: 1},
+
+  // Creator row
+  creatorRow: {flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingTop: 18, paddingBottom: 12},
+  avatar: {width: 36, height: 36, borderRadius: 18, backgroundColor: '#eaf2e8', justifyContent: 'center', alignItems: 'center', marginRight: 10},
+  avatarText: {fontSize: 15, fontWeight: '700', color: '#4a7c59'},
+  creatorName: {fontSize: 15, fontWeight: '700', color: '#1a1a1a', marginRight: 8},
+  platformTag: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#e8f0e8',
+    paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, marginRight: 8,
+  },
+  platformTagIcon: {
+    fontSize: 10, fontWeight: '800', color: '#ffffff', backgroundColor: '#4a7c59',
+    width: 16, height: 16, borderRadius: 8, textAlign: 'center', lineHeight: 16, marginRight: 4,
+  },
+  platformTagText: {fontSize: 10, color: '#4a7c59', fontWeight: '600'},
   domainTag: {backgroundColor: '#eaf2e8', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10},
-  domainText: {fontSize: 11, fontWeight: '600', color: '#4a7c59'},
+  domainTagText: {fontSize: 11, fontWeight: '600', color: '#4a7c59'},
   privateMark: {fontSize: 14, marginLeft: 4},
+
+  // Content
   contentCard: {marginHorizontal: 18, backgroundColor: '#ffffff', borderRadius: 16, padding: 18, borderWidth: 0.5, borderColor: '#f0ece7'},
   content: {fontSize: 20, lineHeight: 30, fontWeight: '700', color: '#1a1a1a'},
   source: {fontSize: 12, color: '#9a9a9a', marginTop: 12},
   date: {fontSize: 11, color: '#b5b0a8', marginTop: 4},
-  reviewBadge: {marginHorizontal: 18, marginTop: 12, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center'},
-  reviewText: {fontSize: 12, fontWeight: '600'},
-  reviewReason: {fontSize: 11, color: '#9a9a9a', marginLeft: 8, flex: 1},
-  scoreCard: {marginHorizontal: 18, marginTop: 12, backgroundColor: '#ffffff', borderRadius: 16, padding: 18, borderWidth: 0.5, borderColor: '#e8e4df'},
-  scoreTitle: {fontSize: 14, fontWeight: '700', color: '#4a7c59', marginBottom: 12},
-  scoreOverall: {flexDirection: 'row', alignItems: 'baseline', marginBottom: 16},
-  scoreBig: {fontSize: 36, fontWeight: '800', color: '#1a1a1a'},
-  scoreMax: {fontSize: 16, color: '#9a9a9a', marginLeft: 4},
-  scoreDetails: {gap: 8},
-  scoreRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
-  scoreLabel: {fontSize: 11, color: '#6e6e6e', width: 60, textAlign: 'right'},
-  scoreTrack: {flex: 1, height: 6, backgroundColor: '#f0ece7', borderRadius: 3},
-  scoreFill: {height: 6, backgroundColor: '#4a7c59', borderRadius: 3},
-  scoreValue: {fontSize: 11, color: '#4a7c59', fontWeight: '600', width: 28},
+
+  // Rejected
+  rejectedCard: {
+    marginHorizontal: 18, marginTop: 12, backgroundColor: '#f8f8f8',
+    borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+  },
+  rejectedIcon: {fontSize: 20, color: '#9a9a9a', marginTop: 1},
+  rejectedTitle: {fontSize: 13, fontWeight: '600', color: '#6e6e6e'},
+  rejectedReason: {fontSize: 12, color: '#9a9a9a', marginTop: 3},
+
+  // Score
+  scoreCard: {marginHorizontal: 18, marginTop: 12, backgroundColor: '#ffffff', borderRadius: 16, padding: 18, borderWidth: 0.5, borderColor: '#f0ece7'},
+  scoreTitle: {fontSize: 12, fontWeight: '600', color: '#9a9a9a', marginBottom: 8},
+  scoreStarsRow: {flexDirection: 'row', gap: 4},
+  star: {fontSize: 26, color: '#e8a850'},
+  scoreOverlay: {flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center'},
+  scorePopup: {
+    backgroundColor: '#ffffff', borderRadius: 16, padding: 24, marginHorizontal: 40,
+    alignItems: 'center', shadowColor: '#000', shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.12, shadowRadius: 12, elevation: 6,
+  },
+  scorePopupTitle: {fontSize: 16, fontWeight: '700', color: '#1a1a1a', marginBottom: 10},
+  scorePopupText: {fontSize: 14, color: '#4a4a4a', lineHeight: 22, textAlign: 'center'},
+
+  // Actions
   actions: {flexDirection: 'row', marginHorizontal: 18, marginTop: 16, gap: 12},
   actionBtn: {backgroundColor: '#ffffff', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 10, borderWidth: 0.5, borderColor: '#f0ece7'},
   actionText: {fontSize: 13, fontWeight: '600', color: '#6e6e6e'},
   actionLiked: {color: '#e85d5d'},
   actionSaved: {color: '#e8a850'},
+
+  // Delete
+  deleteBtn: {marginHorizontal: 18, marginTop: 12, backgroundColor: '#fff5f5', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 0.5, borderColor: '#fce8e8'},
+  deleteText: {fontSize: 14, color: '#e85d5d', fontWeight: '500'},
+
+  // Interpretation
   interpCard: {marginHorizontal: 18, marginTop: 20, backgroundColor: '#ffffff', borderRadius: 16, padding: 18, borderWidth: 0.5, borderColor: '#d4e0d6'},
   interpTitle: {fontSize: 14, fontWeight: '700', color: '#4a7c59', marginBottom: 10},
   interpText: {fontSize: 15, lineHeight: 24, color: '#3d3d3d'},

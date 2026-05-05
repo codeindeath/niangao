@@ -174,8 +174,12 @@ type Experience struct {
 	ReviewReason            *string   `json:"review_reason,omitempty"`
 	QualityScore            *float64  `json:"quality_score,omitempty"`
 	ScoreDetails            *string   `json:"score_details,omitempty"`
-	CreatedAt               time.Time `json:"created_at"`
-	UpdatedAt               time.Time `json:"updated_at"`
+	CreatorName             *string   `json:"creator_name,omitempty"`
+	SourceType              string    `json:"source_type"`
+	ScoreReason             *string   `json:"score_reason,omitempty"`
+	CreatedAt               time.Time  `json:"created_at"`
+	UpdatedAt               time.Time  `json:"updated_at"`
+	DeletedAt               *time.Time `json:"deleted_at,omitempty"`
 	// Joined fields
 	AuthorName   *string `json:"author_name,omitempty"`
 	AuthorAvatar *string `json:"author_avatar,omitempty"`
