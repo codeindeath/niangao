@@ -10,6 +10,7 @@ import {
   Alert,
   Animated,
 } from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   fetchRecommendations,
   fetchExperiences,
@@ -20,7 +21,9 @@ import {
 } from '../services/api';
 import {getToken, getUserInfo} from '../services/config';
 
-const {height: SCREEN_HEIGHT, width: SCREEN_WIDTH} = Dimensions.get('window');
+// Tab bar height (React Navigation bottom tab + safe area ≈ 80px)
+const TAB_BAR_ESTIMATE = 80;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 const PAGE_SIZE = 20;
 
 const DOMAIN_LABELS: Record<string, string> = {
@@ -44,9 +47,10 @@ const SUB_LABELS: Record<string, string> = {
 // ══════════════════════════════════════════
 // FlipCard — 3D 翻转卡片组件
 // ══════════════════════════════════════════
-function FlipCard({item, currentUserId, onLike, onBookmark, onDelete}: {
+function FlipCard({item, currentUserId, cardHeight, onLike, onBookmark, onDelete}: {
   item: Experience;
   currentUserId: string | null;
+  cardHeight: number;
   onLike: (id: string) => void;
   onBookmark: (id: string) => void;
   onDelete: (id: string) => void;
@@ -94,7 +98,7 @@ function FlipCard({item, currentUserId, onLike, onBookmark, onDelete}: {
     <TouchableOpacity
       activeOpacity={0.95}
       onPress={handleFlip}
-      style={s.cardPage}
+      style={[s.cardPage, {height: cardHeight}]}
     >
       {/* ═══ 正面 — 经验内容 ═══ */}
       <Animated.View
@@ -214,6 +218,9 @@ function FlipCard({item, currentUserId, onLike, onBookmark, onDelete}: {
 // HomeScreen
 // ══════════════════════════════════════════
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
+  const CARD_HEIGHT = SCREEN_HEIGHT - insets.top - TAB_BAR_ESTIMATE;
+
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -347,15 +354,15 @@ export default function HomeScreen() {
         data={experiences}
         keyExtractor={item => item.id}
         renderItem={({item, index}) => (
-          <View>
+          <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5'}}>
             <FlipCard
               item={item}
               currentUserId={currentUserId}
+              cardHeight={CARD_HEIGHT}
               onLike={handleLike}
               onBookmark={handleBookmark}
               onDelete={handleDelete}
             />
-            {/* Page number at bottom of each card */}
             <Text style={s.pageNum}>{index + 1}/{experiences.length}</Text>
           </View>
         )}
@@ -367,20 +374,18 @@ export default function HomeScreen() {
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={{itemVisiblePercentThreshold: 50}}
         ListEmptyComponent={
-          <View style={s.cardPage}>
-            <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-              <Text style={{fontSize:15,color:'#9a9a9a'}}>暂无推荐内容</Text>
-              <Text style={{fontSize:12,color:'#b5b0a8',marginTop:6}}>发布经验后，推荐会更精准</Text>
-            </View>
+          <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5', justifyContent: 'center', alignItems: 'center'}}>
+            <Text style={{fontSize:15,color:'#9a9a9a'}}>暂无推荐内容</Text>
+            <Text style={{fontSize:12,color:'#b5b0a8',marginTop:6}}>发布经验后，推荐会更精准</Text>
           </View>
         }
         ListFooterComponent={
           loadingMore ? (
-            <View style={[s.cardPage, {justifyContent:'center',alignItems:'center'}]}>
+            <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5', justifyContent: 'center', alignItems: 'center'}}>
               <ActivityIndicator size="small" color="#4a7c59" />
             </View>
           ) : !hasMore && experiences.length > 0 ? (
-            <View style={[s.cardPage, {justifyContent:'center',alignItems:'center'}]}>
+            <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5', justifyContent: 'center', alignItems: 'center'}}>
               <Text style={{fontSize:14,color:'#b5b0a8'}}>— 已经到底了 —</Text>
             </View>
           ) : null
@@ -403,7 +408,6 @@ const s = StyleSheet.create({
 
   // ═══ Card page (full screen) ═══
   cardPage: {
-    height: SCREEN_HEIGHT,
     backgroundColor: '#faf8f5',
   },
   face: {
