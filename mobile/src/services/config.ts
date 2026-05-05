@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 后端服务地址（ECS）
-export const API_BASE = 'http://115.190.177.146:8080';
+export const API_BASE = 'http://115.190.177.146';  // Nginx 反代，不需要直连端口
 export const AI_BASE = 'http://115.190.177.146:8000';
 
 const TOKEN_KEY = 'auth_token';
@@ -37,11 +37,25 @@ export async function apiGet(path: string): Promise<any> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: token ? {Authorization: `Bearer ${token}`} : {},
   });
+  const text = await res.text();
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`HTTP ${res.status}: ${body}`);
+    let message = text;
+    try {
+      const json = JSON.parse(text);
+      message = json.error || json.message || text;
+    } catch {}
+    throw new ApiError(res.status, message);
   }
-  return res.json();
+  try { return JSON.parse(text); } catch { return text; }
+}
+
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = 'ApiError';
+  }
 }
 
 export async function apiPost(path: string, body: any): Promise<any> {
@@ -54,11 +68,16 @@ export async function apiPost(path: string, body: any): Promise<any> {
     },
     body: JSON.stringify(body),
   });
+  const text = await res.text();
   if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`HTTP ${res.status}: ${errBody}`);
+    let message = text;
+    try {
+      const json = JSON.parse(text);
+      message = json.error || json.message || text;
+    } catch {}
+    throw new ApiError(res.status, message);
   }
-  return res.json();
+  try { return JSON.parse(text); } catch { return text; }
 }
 
 // ---------- AI 服务 HTTP 请求 ----------

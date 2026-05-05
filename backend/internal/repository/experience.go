@@ -24,12 +24,15 @@ func NewExperienceRepo(db *pgxpool.Pool) *ExperienceRepo {
 
 func (r *ExperienceRepo) Create(ctx context.Context, authorID string, req model.CreateExperienceRequest) (*model.Experience, error) {
 	exp := &model.Experience{
-		AuthorID:  authorID,
-		Content:   req.Content,
-		Domain:    req.Domain,
-		Status:    "published",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		AuthorID:     authorID,
+		Content:      req.Content,
+		Domain:       req.Domain,
+		SubDomain:    string(req.SubDomain),
+		IsPrivate:    req.IsPrivate,
+		Status:       "published",
+		ReviewStatus: string(model.ReviewPrivate),
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
 	if req.Interpretation != "" {
@@ -37,12 +40,50 @@ func (r *ExperienceRepo) Create(ctx context.Context, authorID string, req model.
 	}
 
 	err := r.db.QueryRow(ctx,
-		`INSERT INTO experiences (author_id, content, interpretation, domain, status, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
-		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.Status, exp.CreatedAt, exp.UpdatedAt,
+		`INSERT INTO experiences (author_id, content, interpretation, domain, sub_domain, is_private,
+		 review_status, status, created_at, updated_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.SubDomain, exp.IsPrivate,
+		exp.ReviewStatus, exp.Status, exp.CreatedAt, exp.UpdatedAt,
 	).Scan(&exp.ID)
 	if err != nil {
 		return nil, fmt.Errorf("insert experience: %w", err)
+	}
+
+	return exp, nil
+}
+
+// CreateWithReview creates an experience with review fields (sub_domain, is_private, review_status, quality_score).
+func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, req model.CreateExperienceRequest, reviewStatus string, reviewReason *string, qualityScore *float64, scoreDetails *string) (*model.Experience, error) {
+	exp := &model.Experience{
+		AuthorID:     authorID,
+		Content:      req.Content,
+		Domain:       req.Domain,
+		SubDomain:    string(req.SubDomain),
+		IsPrivate:    req.IsPrivate,
+		Status:       "published",
+		ReviewStatus: reviewStatus,
+		ReviewReason: reviewReason,
+		QualityScore: qualityScore,
+		ScoreDetails: scoreDetails,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	if req.Interpretation != "" {
+		exp.Interpretation = &req.Interpretation
+	}
+
+	err := r.db.QueryRow(ctx,
+		`INSERT INTO experiences (author_id, content, interpretation, domain, sub_domain, is_private,
+		 review_status, review_reason, quality_score, score_details, status, created_at, updated_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.SubDomain, exp.IsPrivate,
+		exp.ReviewStatus, exp.ReviewReason, exp.QualityScore, exp.ScoreDetails,
+		exp.Status, exp.CreatedAt, exp.UpdatedAt,
+	).Scan(&exp.ID)
+	if err != nil {
+		return nil, fmt.Errorf("insert experience with review: %w", err)
 	}
 
 	return exp, nil
@@ -90,7 +131,7 @@ func (r *ExperienceRepo) List(ctx context.Context, query model.ExperienceListQue
 	var args []interface{}
 	idx := 1
 
-	conditions = append(conditions, "e.status = 'published'")
+	conditions = append(conditions, "e.status = 'published' AND e.review_status = 'approved' AND e.is_private = FALSE")
 	if query.Domain != "" {
 		conditions = append(conditions, fmt.Sprintf("e.domain = $%d", idx))
 		args = append(args, string(query.Domain))
@@ -158,6 +199,7 @@ func (r *ExperienceRepo) List(ctx context.Context, query model.ExperienceListQue
 	return experiences, total, nil
 }
 
+// TODO: 推荐系统 — 需要 pgvector 扩展 + embedding 列，当前不可用
 func (r *ExperienceRepo) SearchByEmbedding(ctx context.Context, embedding []float32, userID string, limit int) ([]model.Experience, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT e.id, e.content, e.domain, e.like_count, u.nickname as author_name
@@ -177,6 +219,72 @@ func (r *ExperienceRepo) SearchByEmbedding(ctx context.Context, embedding []floa
 		var e model.Experience
 		if err := rows.Scan(&e.ID, &e.Content, &e.Domain, &e.LikeCount, &e.AuthorName); err != nil {
 			return nil, fmt.Errorf("scan: %w", err)
+		}
+		experiences = append(experiences, e)
+	}
+
+	return experiences, nil
+}
+
+// Recommend returns experiences the user hasn't seen,
+// ranked by domain preference × hotness (like_count + bookmark_count).
+// Domain preference = published_count×2 + bookmarked_count×1.
+// Falls back to pure hotness for users without history.
+func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit int) ([]model.Experience, error) {
+	if limit < 1 || limit > 50 {
+		limit = 20
+	}
+
+	query := `
+		WITH user_domain_stats AS (
+			SELECT domain, COUNT(*) * 2 AS weight
+			FROM experiences
+			WHERE author_id = $1 AND status = 'published'
+			GROUP BY domain
+			UNION ALL
+			SELECT e.domain, COUNT(*) AS weight
+			FROM bookmarks b
+			JOIN experiences e ON e.id = b.experience_id
+			WHERE b.user_id = $1 AND e.status = 'published'
+			GROUP BY e.domain
+		),
+		domain_scores AS (
+			SELECT domain, SUM(weight) AS score FROM user_domain_stats GROUP BY domain
+		)
+		SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.is_official,
+		       e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
+		       e.status, e.created_at, e.updated_at,
+		       u.nickname, u.avatar_url,
+		       EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND experience_id = e.id) AS is_liked,
+		       EXISTS(SELECT 1 FROM bookmarks WHERE user_id = $1 AND experience_id = e.id) AS is_bookmarked,
+		       COALESCE(ds.score, 1) * (e.like_count + e.bookmark_count + 1) AS rec_score
+		FROM experiences e
+		LEFT JOIN users u ON u.id = e.author_id
+		LEFT JOIN domain_scores ds ON ds.domain = e.domain
+		WHERE e.status = 'published' AND e.review_status = 'approved' AND e.is_private = FALSE
+		  AND e.author_id != $1
+		  AND e.id NOT IN (SELECT experience_id FROM bookmarks WHERE user_id = $1)
+		ORDER BY rec_score DESC
+		LIMIT $2`
+
+	rows, err := r.db.Query(ctx, query, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("recommend: %w", err)
+	}
+	defer rows.Close()
+
+	var experiences []model.Experience
+	for rows.Next() {
+		var e model.Experience
+		var recScore float64
+		if err := rows.Scan(
+			&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
+			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
+			&e.InterpretationGenerated, &e.Status, &e.CreatedAt, &e.UpdatedAt,
+			&e.AuthorName, &e.AuthorAvatar, &e.IsLiked, &e.IsBookmarked,
+			&recScore,
+		); err != nil {
+			return nil, fmt.Errorf("recommend scan: %w", err)
 		}
 		experiences = append(experiences, e)
 	}
@@ -261,7 +369,7 @@ func (r *ExperienceRepo) ListBookmarked(ctx context.Context, userID string, page
 	err := r.db.QueryRow(ctx,
 		`SELECT COUNT(*) FROM bookmarks b
 		 JOIN experiences e ON e.id = b.experience_id
-		 WHERE b.user_id=$1 AND e.status='published'`, userID,
+		 WHERE b.user_id=$1 AND e.status='published' AND e.review_status IN ('approved', 'private')`, userID,
 	).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count bookmarks: %w", err)
@@ -277,7 +385,7 @@ func (r *ExperienceRepo) ListBookmarked(ctx context.Context, userID string, page
 		 FROM bookmarks b
 		 JOIN experiences e ON e.id = b.experience_id
 		 LEFT JOIN users u ON u.id = e.author_id
-		 WHERE b.user_id=$1 AND e.status='published'
+		 WHERE b.user_id=$1 AND e.status='published' AND e.review_status IN ('approved', 'private')
 		 ORDER BY b.created_at DESC LIMIT $2 OFFSET $3`,
 		userID, pageSize, (page-1)*pageSize,
 	)

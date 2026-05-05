@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -22,6 +23,7 @@ func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.Experience
 	exp := r.Group("/experiences")
 	{
 		exp.GET("", h.List)
+		exp.GET("/recommend", middleware.RequireAuth(), h.GetRecommendations)
 		exp.GET("/:id", h.Get)
 		exp.POST("", middleware.RequireAuth(), h.Create)
 		exp.PUT("/:id", middleware.RequireAuth(), h.Update)
@@ -42,11 +44,7 @@ func (h *ExperienceHandler) List(c *gin.Context) {
 		return
 	}
 
-	viewerID, _ := c.Get("user_id")
-	viewerStr := ""
-	if viewerID != nil {
-		viewerStr = viewerID.(string)
-	}
+	viewerStr := getOptionalUserID(c)
 
 	experiences, total, err := h.repo.List(c.Request.Context(), query, viewerStr)
 	if err != nil {
@@ -63,11 +61,7 @@ func (h *ExperienceHandler) List(c *gin.Context) {
 
 func (h *ExperienceHandler) Get(c *gin.Context) {
 	id := c.Param("id")
-	viewerID, _ := c.Get("user_id")
-	viewerStr := ""
-	if viewerID != nil {
-		viewerStr = viewerID.(string)
-	}
+	viewerStr := getOptionalUserID(c)
 
 	exp, err := h.repo.GetByID(c.Request.Context(), id, viewerStr)
 	if err != nil {
@@ -95,17 +89,140 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	exp, err := h.repo.Create(c.Request.Context(), userID, req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create experience"})
+	if !model.IsValidSubDomain(req.SubDomain) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sub_domain"})
 		return
 	}
 
-	// 自动收藏
-	h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID)
+	if !model.SubDomainBelongsToParent(req.Domain, req.SubDomain) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "sub_domain does not belong to domain"})
+		return
+	}
 
-	c.JSON(http.StatusCreated, exp)
+	// 私密经验：跳过审核，直接保存
+	if req.IsPrivate {
+		exp, err := h.repo.Create(c.Request.Context(), userID, req)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create experience"})
+			return
+		}
+		if bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID); err != nil {
+			log.Printf("auto-bookmark failed for exp=%s user=%s: %v", exp.ID, userID, err)
+		} else if bookmarked {
+			exp.BookmarkCount = 1
+			exp.IsBookmarked = true
+		}
+		c.JSON(http.StatusCreated, exp)
+		return
+	}
+
+	// 公开经验：硬策略检查
+	if result := CheckHardPolicy(req.Content); !result.Passed {
+		reason := result.Reason
+		exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
+			string(model.ReviewRejected), &reason, nil, nil)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
+			return
+		}
+		if bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID); err != nil {
+			log.Printf("auto-bookmark failed for exp=%s user=%s: %v", exp.ID, userID, err)
+		} else if bookmarked {
+			exp.BookmarkCount = 1
+			exp.IsBookmarked = true
+		}
+		c.JSON(http.StatusCreated, gin.H{
+			"experience": exp,
+			"review": gin.H{
+				"status":  "rejected",
+				"reason":  result.Reason,
+				"message": "经验已保存到你的个人经验，但因内容不符合准入规则，未进入平台经验池",
+			},
+		})
+		return
+	}
+
+	// AI 审核
+	aiResult, err := callAIReview(ReviewRequest{
+		Content:   req.Content,
+		Domain:    string(req.Domain),
+		SubDomain: string(req.SubDomain),
+	})
+	if err != nil {
+		log.Printf("AI review failed: %v — saving as pending", err)
+		exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
+			string(model.ReviewPending), nil, nil, nil)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
+			return
+		}
+		if bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID); err != nil {
+			log.Printf("auto-bookmark failed for exp=%s user=%s: %v", exp.ID, userID, err)
+		} else if bookmarked {
+			exp.BookmarkCount = 1
+			exp.IsBookmarked = true
+		}
+		c.JSON(http.StatusCreated, gin.H{
+			"experience": exp,
+			"review": gin.H{
+				"status":  "pending",
+				"message": "经验已保存，审核中，稍后自动进入平台经验池",
+			},
+		})
+		return
+	}
+
+	score, details := qualityScoreToDB(aiResult.Score)
+
+	if !aiResult.Approved {
+		exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
+			string(model.ReviewRejected), &aiResult.Reason, score, details)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
+			return
+		}
+		if bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID); err != nil {
+			log.Printf("auto-bookmark failed for exp=%s user=%s: %v", exp.ID, userID, err)
+		} else if bookmarked {
+			exp.BookmarkCount = 1
+			exp.IsBookmarked = true
+		}
+		c.JSON(http.StatusCreated, gin.H{
+			"experience": exp,
+			"review": gin.H{
+				"status":  "rejected",
+				"reason":  aiResult.Reason,
+				"message": "经验已保存到你的个人经验，但未通过 AI 审核，未进入平台经验池",
+			},
+		})
+		return
+	}
+
+	// 审核通过
+	exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
+		string(model.ReviewApproved), nil, score, details)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
+		return
+	}
+
+	if bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID); err != nil {
+		log.Printf("auto-bookmark failed for exp=%s user=%s: %v", exp.ID, userID, err)
+	} else if bookmarked {
+		exp.BookmarkCount = 1
+		exp.IsBookmarked = true
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"experience": exp,
+		"review": gin.H{
+			"status":  "approved",
+			"score":   aiResult.Score,
+			"message": "经验已发布并进入平台经验池",
+		},
+	})
 }
+
 
 func (h *ExperienceHandler) Update(c *gin.Context) {
 	userID := getAuthUserID(c)
@@ -236,3 +353,26 @@ func (h *ExperienceHandler) MyBookmarks(c *gin.Context) {
 		"page":  page,
 	})
 }
+
+// GetRecommendations returns personalized experience recommendations.
+// Ranks by domain preference (publish×2 + bookmark×1) × hotness.
+func (h *ExperienceHandler) GetRecommendations(c *gin.Context) {
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
+
+	limit := parseIntParam(c.Query("limit"), 20)
+
+	experiences, err := h.repo.Recommend(c.Request.Context(), userID, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get recommendations"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  experiences,
+		"total": len(experiences),
+	})
+}
+

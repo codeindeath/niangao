@@ -203,3 +203,107 @@ func TestExperienceListQueryParams(t *testing.T) {
 		})
 	}
 }
+
+func TestMyExperiencesRequiresAuth(t *testing.T) {
+	r := gin.New()
+	r.GET("/api/v1/me/experiences", middleware.RequireAuth(), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/api/v1/me/experiences", nil)
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", w.Code)
+	}
+}
+
+func TestMyBookmarksRequiresAuth(t *testing.T) {
+	r := gin.New()
+	r.GET("/api/v1/me/bookmarks", middleware.RequireAuth(), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/api/v1/me/bookmarks", nil)
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", w.Code)
+	}
+}
+
+func TestMyExperiencesQueryParams(t *testing.T) {
+	r := gin.New()
+	r.GET("/api/v1/me/experiences", func(c *gin.Context) {
+		page := c.DefaultQuery("page", "1")
+		pageSize := c.DefaultQuery("page_size", "20")
+		c.JSON(http.StatusOK, gin.H{"page": page, "page_size": pageSize})
+	})
+	tests := []struct {
+		name, queryStr, wantPage, wantSize string
+	}{
+		{"defaults", "", "1", "20"},
+		{"custom page", "page=3", "3", "20"},
+		{"custom size", "page_size=10", "1", "10"},
+		{"both", "page=2&page_size=30", "2", "30"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url := "/api/v1/me/experiences"
+			if tt.queryStr != "" {
+				url += "?" + tt.queryStr
+			}
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", url, nil)
+			r.ServeHTTP(w, req)
+			var body map[string]string
+			json.Unmarshal(w.Body.Bytes(), &body)
+			if body["page"] != tt.wantPage {
+				t.Errorf("page = %q, want %q", body["page"], tt.wantPage)
+			}
+			if body["page_size"] != tt.wantSize {
+				t.Errorf("page_size = %q, want %q", body["page_size"], tt.wantSize)
+			}
+		})
+	}
+}
+
+func TestGetRecommendationsRequiresAuth(t *testing.T) {
+	r := gin.New()
+	r.GET("/api/v1/experiences/recommend", middleware.RequireAuth(), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/api/v1/experiences/recommend", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401 for unauthenticated recommend", w.Code)
+	}
+}
+
+func TestGetRecommendationsRouteNotCapturedById(t *testing.T) {
+	// Verify /recommend is NOT captured by /:id — it must be a separate route
+	r := gin.New()
+	recommendHit := false
+	idHit := false
+
+	r.GET("/api/v1/experiences/recommend", func(c *gin.Context) {
+		recommendHit = true
+		c.JSON(http.StatusOK, gin.H{"route": "recommend"})
+	})
+	r.GET("/api/v1/experiences/:id", func(c *gin.Context) {
+		idHit = true
+		c.JSON(http.StatusOK, gin.H{"route": "id", "id": c.Param("id")})
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/api/v1/experiences/recommend", nil)
+	r.ServeHTTP(w, req)
+
+	if !recommendHit {
+		t.Error("recommend route was not hit — /:id captured it instead")
+	}
+	if idHit {
+		t.Error("id route was hit when recommend was expected — route ordering issue")
+	}
+}

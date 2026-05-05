@@ -9,6 +9,8 @@ export interface Experience {
   content: string;
   interpretation?: string;
   domain: string;
+  sub_domain?: string;
+  is_private?: boolean;
   is_official: boolean;
   source_label?: string;
   like_count: number;
@@ -62,9 +64,17 @@ export async function fetchExperience(id: string): Promise<Experience> {
 export async function createExperience(
   content: string,
   domain: string,
+  sub_domain: string,
+  is_private: boolean = false,
   interpretation?: string,
 ): Promise<Experience> {
-  return apiPost('/api/v1/experiences', {content, domain, interpretation});
+  return apiPost('/api/v1/experiences', {
+    content,
+    domain,
+    sub_domain,
+    is_private,
+    interpretation,
+  });
 }
 
 export async function toggleLike(id: string): Promise<{liked: boolean}> {
@@ -91,6 +101,17 @@ export async function fetchMyBookmarks(
   page: number = 1,
 ): Promise<{data: Experience[]; total: number; page: number}> {
   return apiGet(`/api/v1/me/bookmarks?page=${page}`);
+}
+
+
+// ============================================================
+// 推荐 API
+// ============================================================
+
+export async function fetchRecommendations(
+  limit: number = 20,
+): Promise<{data: Experience[]; total: number}> {
+  return apiGet(`/api/v1/experiences/recommend?limit=${limit}`);
 }
 
 // ============================================================
@@ -138,3 +159,5 @@ export async function devLogin(
     nickname: nickname || '开发者',
   });
 }
+
+export {ApiError} from './config';

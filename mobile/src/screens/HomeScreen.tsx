@@ -9,22 +9,38 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fetchExperiences, Experience, toggleLike, toggleBookmark } from '../services/api';
+import {
+  fetchRecommendations,
+  fetchExperiences,
+  Experience,
+  toggleLike,
+  toggleBookmark,
+} from '../services/api';
+import { getToken } from '../services/config';
 
 export default function HomeScreen({ navigation }: any) {
   const [experiences, setExperiences] = useState<Experience[]>([]);
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const loadExperiences = useCallback(async (pageNum: number, refresh = false) => {
+  const [isPersonalized, setIsPersonalized] = useState(false);
+
+  const loadRecommendations = useCallback(async (refresh = false) => {
     try {
-      const result = await fetchExperiences(pageNum);
+      const token = await getToken();
+      let result;
+      if (token) {
+        result = await fetchRecommendations(20);
+        setIsPersonalized(true);
+      } else {
+        result = await fetchExperiences(1);
+        setIsPersonalized(false);
+      }
       const data = Array.isArray(result?.data) ? result.data : [];
-      setExperiences(prev => refresh ? data : [...prev, ...data]);
+      setExperiences(refresh ? data : data);
       setError(null);
     } catch (e) {
-      console.error('Failed to load experiences:', e);
+      console.error('Failed to load recommendations:', e);
       setError('加载失败，请检查网络连接');
     } finally {
       setLoading(false);
@@ -33,19 +49,12 @@ export default function HomeScreen({ navigation }: any) {
   }, []);
 
   useEffect(() => {
-    loadExperiences(1, true);
+    loadRecommendations(true);
   }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setPage(1);
-    loadExperiences(1, true);
-  };
-
-  const handleLoadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    loadExperiences(nextPage);
+    loadRecommendations(true);
   };
 
   const handleLike = async (id: string) => {
@@ -60,7 +69,6 @@ export default function HomeScreen({ navigation }: any) {
       await toggleLike(id);
     } catch (e) {
       console.error('toggleLike failed:', e);
-      // rollback
       setExperiences(prev =>
         prev.map(e =>
           e.id === id
@@ -79,7 +87,6 @@ export default function HomeScreen({ navigation }: any) {
       await toggleBookmark(id);
     } catch (e) {
       console.error('toggleBookmark failed:', e);
-      // rollback
       setExperiences(prev =>
         prev.map(e => (e.id === id ? { ...e, is_bookmarked: !e.is_bookmarked } : e))
       );
@@ -92,6 +99,20 @@ export default function HomeScreen({ navigation }: any) {
     cognition: '认知升级',
     life: '生活智慧',
     emotion: '情感',
+  };
+
+  const subDomainLabels: Record<string, string> = {
+    'career-planning': '职业规划', 'skill-building': '技能提升',
+    'side-hustle': '副业创业', 'workplace-comm': '职场沟通',
+    'intimate': '亲密关系', 'family': '家庭关系',
+    'social-skill': '社交技巧', 'communication': '沟通表达',
+    'mental-model': '思维模型', 'learning': '学习方法',
+    'decision': '决策判断', 'psychology': '心理认知',
+    'finance': '理财规划', 'health': '健康养生',
+    'time-mgmt': '时间管理', 'habits': '习惯养成',
+    'digital-life': '数字生活',
+    'regulation': '情绪调节', 'self-growth': '自我成长',
+    'happiness': '幸福感', 'stress-mgmt': '压力管理',
   };
 
   if (loading) {
@@ -119,18 +140,19 @@ export default function HomeScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>为你推荐</Text>
-        <Text style={styles.headerSub}>基于你的兴趣</Text>
+        <Text style={styles.headerSub}>
+          {isPersonalized ? '基于你的偏好 · 个性化推荐' : '热门经验精选'}
+        </Text>
       </View>
       <FlatList
         data={experiences}
         keyExtractor={item => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#4a7c59" />}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>暂无推荐内容</Text>
+            <Text style={styles.emptyHint}>发布经验后，推荐会更精准</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -139,7 +161,6 @@ export default function HomeScreen({ navigation }: any) {
             onPress={() => navigation.navigate('detail', { id: item.id })}
             activeOpacity={0.8}
           >
-            {/* Author row */}
             <View style={styles.authorRow}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
@@ -149,13 +170,16 @@ export default function HomeScreen({ navigation }: any) {
               <Text style={styles.authorName}>{item.author_name || '匿名'}</Text>
               <View style={styles.domainTag}>
                 <Text style={styles.domainText}>
-                  {domainLabels[item.domain] || item.domain}
+                  {subDomainLabels[item.sub_domain] || domainLabels[item.domain] || item.domain}
                 </Text>
               </View>
+              {item.is_private && (
+                <View style={styles.privateTag}>
+                  <Text style={styles.privateTagText}>🔒</Text>
+                </View>
+              )}
             </View>
-            {/* Content */}
             <Text style={styles.content}>{item.content}</Text>
-            {/* Actions */}
             <View style={styles.actions}>
               <TouchableOpacity onPress={() => handleLike(item.id)} style={styles.actionButton}>
                 <Text style={[styles.actionText, item.is_liked && styles.actionLiked]}>
@@ -250,6 +274,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4a7c59',
   },
+  privateTag: {
+    marginLeft: 4,
+  },
+  privateTagText: {
+    fontSize: 10,
+  },
   content: {
     fontSize: 15,
     lineHeight: 23,
@@ -306,5 +336,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 15,
     color: '#9a9a9a',
+  },
+  emptyHint: {
+    fontSize: 12,
+    color: '#b5b0a8',
+    marginTop: 6,
   },
 });

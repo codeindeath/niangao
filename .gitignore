@@ -45,3 +45,7 @@ tmp/
 *.log
 .learnings/
 pycache/
+
+ai-service/venv/
+__pycache__/
+*.pyc

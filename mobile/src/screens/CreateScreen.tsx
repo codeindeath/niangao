@@ -10,24 +10,72 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Switch,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {createExperience, generateInterpretation} from '../services/api';
+import {createExperience, generateInterpretation, ApiError} from '../services/api';
 
-const DOMAINS: {key: string; label: string}[] = [
+const PRIMARY_DOMAINS: {key: string; label: string}[] = [
   {key: 'career', label: '职场成长'},
   {key: 'relationship', label: '人际关系'},
   {key: 'cognition', label: '认知升级'},
   {key: 'life', label: '生活智慧'},
-  {key: 'emotion', label: '情感'},
+  {key: 'emotion', label: '情绪情感'},
 ];
+
+const SUB_DOMAINS: Record<string, {key: string; label: string}[]> = {
+  career: [
+    {key: 'career-planning', label: '职业规划'},
+    {key: 'skill-building', label: '技能提升'},
+    {key: 'side-hustle', label: '副业探索'},
+    {key: 'workplace-comm', label: '职场沟通'},
+  ],
+  relationship: [
+    {key: 'intimate', label: '亲密关系'},
+    {key: 'family', label: '家庭关系'},
+    {key: 'social-skill', label: '社交技巧'},
+    {key: 'communication', label: '沟通表达'},
+  ],
+  cognition: [
+    {key: 'mental-model', label: '思维模型'},
+    {key: 'learning', label: '学习方法'},
+    {key: 'decision', label: '决策判断'},
+    {key: 'psychology', label: '心理认知'},
+  ],
+  life: [
+    {key: 'finance', label: '财务管理'},
+    {key: 'health', label: '健康养生'},
+    {key: 'time-mgmt', label: '时间管理'},
+    {key: 'habits', label: '习惯养成'},
+    {key: 'digital-life', label: '数字生活'},
+  ],
+  emotion: [
+    {key: 'regulation', label: '情绪调节'},
+    {key: 'self-growth', label: '自我成长'},
+    {key: 'happiness', label: '幸福感'},
+    {key: 'stress-mgmt', label: '压力管理'},
+  ],
+};
 
 export default function CreateScreen({navigation}: any) {
   const [content, setContent] = useState('');
   const [domain, setDomain] = useState('');
+  const [subDomain, setSubDomain] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
   const [interpretation, setInterpretation] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const handleDomainSelect = (key: string) => {
+    if (domain === key) {
+      // Deselecting the first-level domain clears everything
+      setDomain('');
+      setSubDomain('');
+    } else {
+      setDomain(key);
+      setSubDomain(''); // Reset sub-domain when switching first-level domains
+    }
+  };
 
   const handleGenerateAI = async () => {
     if (!content.trim() || !domain) {
@@ -54,27 +102,34 @@ export default function CreateScreen({navigation}: any) {
       Alert.alert('提示', '请选择领域');
       return;
     }
+    if (!subDomain) {
+      Alert.alert('提示', '请选择子领域');
+      return;
+    }
     setSubmitting(true);
     try {
       await createExperience(
         content.trim(),
         domain,
+        subDomain,
+        isPrivate,
         interpretation.trim() || undefined,
       );
       Alert.alert('发布成功', '你的经验已发布', [
         {text: '好的', onPress: () => navigation.goBack()},
       ]);
     } catch (e: any) {
-      const msg = e?.message || String(e);
-      if (msg.includes('401') || msg.includes('Unauthorized')) {
+      if (e instanceof ApiError && e.status === 401) {
         Alert.alert('未登录', '请先登录后再发布经验');
       } else {
-        Alert.alert('发布失败', msg);
+        Alert.alert('发布失败', e?.message || String(e));
       }
     } finally {
       setSubmitting(false);
     }
   };
+
+  const isPublishReady = content.trim() && domain && subDomain;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -87,11 +142,11 @@ export default function CreateScreen({navigation}: any) {
         <TouchableOpacity
           onPress={handlePublish}
           disabled={submitting}
-          style={[styles.publishBtn, (!content.trim() || !domain || submitting) && styles.publishBtnDisabled]}>
+          style={[styles.publishBtn, (!isPublishReady || submitting) && styles.publishBtnDisabled]}>
           {submitting ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size=small color=#fff />
           ) : (
-            <Text style={[styles.publishBtnText, (!content.trim() || !domain) && styles.publishBtnTextDisabled]}>
+            <Text style={[styles.publishBtnText, !isPublishReady && styles.publishBtnTextDisabled]}>
               发布
             </Text>
           )}
@@ -104,34 +159,64 @@ export default function CreateScreen({navigation}: any) {
         <ScrollView
           style={styles.body}
           contentContainerStyle={{paddingBottom: 40}}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps=handled>
           {/* Content */}
           <Text style={styles.label}>经验内容</Text>
           <TextInput
             style={styles.contentInput}
             value={content}
             onChangeText={setContent}
-            placeholder="写下你的经验，不超过 100 字..."
-            placeholderTextColor="#b5b0a8"
+            placeholder=写下你的经验，不超过 100 字...
+            placeholderTextColor=#b5b0a8
             multiline
             maxLength={100}
-            textAlignVertical="top"
+            textAlignVertical=top
           />
           <Text style={styles.charCount}>{content.length}/100</Text>
 
-          {/* Domain */}
+          {/* Domain - First Level */}
           <Text style={styles.label}>领域</Text>
           <View style={styles.domainRow}>
-            {DOMAINS.map(d => (
+            {PRIMARY_DOMAINS.map(d => (
               <TouchableOpacity
                 key={d.key}
                 style={[styles.domainChip, domain === d.key && styles.domainChipActive]}
-                onPress={() => setDomain(d.key)}>
+                onPress={() => handleDomainSelect(d.key)}>
                 <Text style={[styles.domainChipText, domain === d.key && styles.domainChipTextActive]}>
                   {d.label}
                 </Text>
               </TouchableOpacity>
             ))}
+          </View>
+
+          {/* Domain - Second Level (sub-domains) */}
+          {domain !== '' && SUB_DOMAINS[domain] && (
+            <>
+              <Text style={styles.subLabel}>子领域</Text>
+              <View style={styles.domainRow}>
+                {SUB_DOMAINS[domain].map(sd => (
+                  <TouchableOpacity
+                    key={sd.key}
+                    style={[styles.subDomainChip, subDomain === sd.key && styles.subDomainChipActive]}
+                    onPress={() => setSubDomain(sd.key)}>
+                    <Text style={[styles.subDomainChipText, subDomain === sd.key && styles.subDomainChipTextActive]}>
+                      {sd.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
+          {/* Private / Public Toggle */}
+          <View style={styles.privacyRow}>
+            <Text style={styles.privacyLabel}>私密经验（仅自己可见）</Text>
+            <Switch
+              value={isPrivate}
+              onValueChange={setIsPrivate}
+              trackColor={{false: '#e0dcd5', true: '#4a7c59'}}
+              thumbColor={isPrivate ? '#ffffff' : '#f4f3f0'}
+            />
           </View>
 
           {/* AI Interpretation */}
@@ -141,7 +226,7 @@ export default function CreateScreen({navigation}: any) {
               onPress={handleGenerateAI}
               disabled={aiLoading}>
               {aiLoading ? (
-                <ActivityIndicator size="small" color="#4a7c59" />
+                <ActivityIndicator size=small color=#4a7c59 />
               ) : (
                 <Text style={styles.aiButtonText}>🤖 AI 生成解读</Text>
               )}
@@ -165,14 +250,14 @@ export default function CreateScreen({navigation}: any) {
       {/* Bottom bar */}
       <View style={styles.bottomBar}>
         <Text style={styles.bottomHint}>
-          {content.trim() && domain ? '内容就绪，可以发布' : '请填写经验和选择领域'}
+          {isPublishReady ? '内容就绪，可以发布' : '请填写经验和选择领域'}
         </Text>
         <TouchableOpacity
-          style={[styles.submitButton, (!content.trim() || !domain || submitting) && styles.submitButtonDisabled]}
+          style={[styles.submitButton, (!isPublishReady || submitting) && styles.submitButtonDisabled]}
           onPress={handlePublish}
-          disabled={!content.trim() || !domain || submitting}>
+          disabled={!isPublishReady || submitting}>
           {submitting ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size=small color=#fff />
           ) : (
             <Text style={styles.submitButtonText}>发布经验</Text>
           )}
@@ -234,6 +319,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 20,
   },
+  subLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#8a8a8a',
+    marginBottom: 8,
+    marginTop: 14,
+  },
   contentInput: {
     backgroundColor: '#ffffff',
     borderRadius: 14,
@@ -276,6 +368,39 @@ const styles = StyleSheet.create({
   },
   domainChipTextActive: {
     color: '#ffffff',
+  },
+  subDomainChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
+    backgroundColor: '#f5f2ed',
+    borderWidth: 0.5,
+    borderColor: '#e0dcd5',
+  },
+  subDomainChipActive: {
+    backgroundColor: '#2d5a3d',
+    borderColor: '#2d5a3d',
+  },
+  subDomainChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#8a8a8a',
+  },
+  subDomainChipTextActive: {
+    color: '#ffffff',
+  },
+  privacyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+  },
+  privacyLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#4a4a4a',
   },
   aiSection: {
     marginTop: 24,
