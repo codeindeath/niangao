@@ -142,7 +142,7 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   const handleLoadMore = useCallback(async () => {
-    if (loadingMoreRef.current || !hasMoreRef.current) return;
+    if (loadingMoreRef.current || !hasMoreRef.current || offsetRef.current === 0) return;
     loadingMoreRef.current = true;
     setLoadingMore(true);
     try {
@@ -310,7 +310,7 @@ const s = StyleSheet.create({
   header: { paddingHorizontal: 18, paddingTop: 4, paddingBottom: 8 },
   headerTitle: { fontSize: 13, fontWeight: '700', color: '#9a9a9a', letterSpacing: 1, textTransform: 'uppercase' },
   headerSub: { fontSize: 11, color: '#9a9a9a', marginTop: 1 },
-  list: { paddingHorizontal: 14, paddingBottom: 20 },
+  list: { paddingHorizontal: 14, paddingBottom: 0 },
   card: {
     backgroundColor: '#ffffff', borderRadius: 16, padding: 16, marginBottom: 10,
     borderWidth: 0.5, borderColor: '#f0ece7', shadowColor: '#000',
