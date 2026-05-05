@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -87,12 +87,19 @@ export default function HomeScreen({ navigation }: any) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPersonalized, setIsPersonalized] = useState(false);
+
   const PAGE_SIZE = 20;
+  const loadingMoreRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const tokenRef = useRef<string | null>(null);
+  const offsetRef = useRef(0);
+
+  // Init token on mount
+  useEffect(() => { getToken().then(t => { tokenRef.current = t; }); }, []);
 
   const loadPage = useCallback(async (offset: number, append: boolean) => {
-    const token = await getToken();
     let result;
-    if (token) {
+    if (tokenRef.current) {
       result = await fetchRecommendations(PAGE_SIZE, offset);
       setIsPersonalized(true);
     } else {
@@ -100,19 +107,24 @@ export default function HomeScreen({ navigation }: any) {
       setIsPersonalized(false);
     }
     const data = Array.isArray(result?.data) ? result.data : [];
+    if (data.length < PAGE_SIZE) {
+      hasMoreRef.current = false;
+    }
     if (append) {
       setExperiences(prev => [...prev, ...data]);
     } else {
+      hasMoreRef.current = true;
+      offsetRef.current = 0;
       setExperiences(data);
     }
     setError(null);
+    offsetRef.current += data.length;
     return data.length;
   }, []);
 
-  const loadRecommendations = useCallback(async (refresh = false) => {
+  const loadInitial = useCallback(async () => {
     try {
-      const count = await loadPage(0, false);
-      // If first page returned less than PAGE_SIZE, no more
+      await loadPage(0, false);
     } catch (e) {
       console.error('Failed to load:', e);
       setError('加载失败，请检查网络连接');
@@ -122,25 +134,26 @@ export default function HomeScreen({ navigation }: any) {
     }
   }, [loadPage]);
 
-  useEffect(() => { loadRecommendations(true); }, []);
+  useEffect(() => { loadInitial(); }, []);
 
-  const handleRefresh = () => { setRefreshing(true); loadRecommendations(true); };
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadInitial();
+  };
 
-  const handleLoadMore = async () => {
-    if (loadingMore) return;
+  const handleLoadMore = useCallback(async () => {
+    if (loadingMoreRef.current || !hasMoreRef.current) return;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
     try {
-      const offset = experiences.length;
-      const count = await loadPage(offset, true);
-      if (count < PAGE_SIZE) {
-        // No more data, don't set a flag — just stop loading
-      }
+      await loadPage(offsetRef.current, true);
     } catch (e) {
       console.error('Failed to load more:', e);
     } finally {
+      loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  };
+  }, [loadPage]);
 
   const handleLike = async (id: string) => {
     setExperiences(prev => prev.map(e =>
