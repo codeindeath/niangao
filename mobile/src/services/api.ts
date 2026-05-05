@@ -78,6 +78,22 @@ export async function toggleBookmark(
 }
 
 // ============================================================
+// 用户个人 API
+// ============================================================
+
+export async function fetchMyExperiences(
+  page: number = 1,
+): Promise<{data: Experience[]; total: number; page: number}> {
+  return apiGet(`/api/v1/experiences/my?page=${page}`);
+}
+
+export async function fetchMyBookmarks(
+  page: number = 1,
+): Promise<{data: Experience[]; total: number; page: number}> {
+  return apiGet(`/api/v1/experiences/bookmarks?page=${page}`);
+}
+
+// ============================================================
 // AI 对话 API (Python :8000)
 // ============================================================
 

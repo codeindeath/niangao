@@ -3,17 +3,21 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {getUserInfo, clearToken} from '../services/config';
-import {fetchExperiences, Experience} from '../services/api';
+import {fetchMyExperiences, fetchMyBookmarks, Experience} from '../services/api';
+
+type TabType = 'my' | 'bookmarks';
 
 export default function ProfileScreen({navigation}: any) {
   const [user, setUser] = useState<any>(null);
+  const [tab, setTab] = useState<TabType>('my');
   const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [bookmarks, setBookmarks] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,9 +29,14 @@ export default function ProfileScreen({navigation}: any) {
       const userInfo = await getUserInfo();
       setUser(userInfo);
 
-      // 加载经验（未登录时加载官方经验作为示例）
-      const result = await fetchExperiences(1, undefined, 'latest');
-      setExperiences(result.data || []);
+      if (userInfo) {
+        const [myResult, bmResult] = await Promise.all([
+          fetchMyExperiences(1),
+          fetchMyBookmarks(1),
+        ]);
+        setExperiences(myResult.data || []);
+        setBookmarks(bmResult.data || []);
+      }
     } catch (e) {
       console.error('Failed to load profile:', e);
     } finally {
@@ -39,6 +48,7 @@ export default function ProfileScreen({navigation}: any) {
     await clearToken();
     setUser(null);
     setExperiences([]);
+    setBookmarks([]);
   };
 
   const domainLabels: Record<string, string> = {
@@ -49,89 +59,92 @@ export default function ProfileScreen({navigation}: any) {
     emotion: '情感',
   };
 
-  const stats = {
-    experiences: user?.experience_count || 5,
-    bookmarks: user?.bookmark_count || 0,
-    practiced: user?.practiced_count || 0,
-  };
+  const currentList = tab === 'my' ? experiences : bookmarks;
+
+  const renderItem = ({item}: {item: Experience}) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate('detail', {id: item.id})}
+      activeOpacity={0.8}>
+      <View style={styles.cardAuthorRow}>
+        <View style={styles.cardAvatar}>
+          <Text style={styles.cardAvatarText}>
+            {item.author_name?.charAt(0) || '?'}
+          </Text>
+        </View>
+        <Text style={styles.cardAuthorName}>{item.author_name || '匿名'}</Text>
+        <View style={styles.cardDomainTag}>
+          <Text style={styles.cardDomainText}>
+            {domainLabels[item.domain] || item.domain}
+          </Text>
+        </View>
+      </View>
+      <Text style={styles.cardContent}>{item.content}</Text>
+      <View style={styles.cardActions}>
+        <Text style={styles.cardActionText}>♥ {item.like_count}</Text>
+        <Text style={styles.cardActionText}>
+          ★ {item.bookmark_count > 0 ? item.bookmark_count : '收藏'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={{paddingBottom: 40}}>
-        {/* Profile header */}
-        <View style={styles.profileHeader}>
-          <View style={styles.avatarLarge}>
-            <Text style={styles.avatarLargeText}>
-              {user?.nickname?.charAt(0) || '?'}
-            </Text>
-          </View>
-          <Text style={styles.nickname}>{user?.nickname || '未登录'}</Text>
-          <Text style={styles.bio}>{user?.bio || '登录后查看个人主页'}</Text>
-
-          {/* Stats */}
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{stats.experiences}</Text>
-              <Text style={styles.statLabel}>经验</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{stats.bookmarks}</Text>
-              <Text style={styles.statLabel}>收藏</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{stats.practiced}</Text>
-              <Text style={styles.statLabel}>实践</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Section: 经验列表 */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>全部经验</Text>
-        </View>
-
-        {loading ? (
-          <ActivityIndicator size="large" color="#4a7c59" style={{marginTop: 40}} />
-        ) : (
-          experiences.map(item => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.card}
-              onPress={() => navigation.navigate('detail', {id: item.id})}
-              activeOpacity={0.8}>
-              <View style={styles.cardAuthorRow}>
-                <View style={styles.cardAvatar}>
-                  <Text style={styles.cardAvatarText}>
-                    {item.author_name?.charAt(0) || '?'}
-                  </Text>
-                </View>
-                <Text style={styles.cardAuthorName}>{item.author_name || '匿名'}</Text>
-                <View style={styles.cardDomainTag}>
-                  <Text style={styles.cardDomainText}>
-                    {domainLabels[item.domain] || item.domain}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.cardContent}>{item.content}</Text>
-              <View style={styles.cardActions}>
-                <Text style={styles.cardActionText}>♥ {item.like_count}</Text>
-                <Text style={styles.cardActionText}>
-                  ★ {item.bookmark_count > 0 ? item.bookmark_count : '收藏'}
+      <FlatList
+        data={currentList}
+        keyExtractor={item => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={{paddingBottom: 80}}
+        ListHeaderComponent={
+          <>
+            {/* Profile header */}
+            <View style={styles.profileHeader}>
+              <View style={styles.avatarLarge}>
+                <Text style={styles.avatarLargeText}>
+                  {user?.nickname?.charAt(0) || '?'}
                 </Text>
               </View>
-            </TouchableOpacity>
-          ))
-        )}
+              <Text style={styles.nickname}>{user?.nickname || '未登录'}</Text>
 
-        {/* Logout */}
-        {user && (
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutText}>退出登录</Text>
-          </TouchableOpacity>
-        )}
-      </ScrollView>
+              {/* Tabs */}
+              <View style={styles.tabRow}>
+                <TouchableOpacity
+                  style={[styles.tab, tab === 'my' && styles.tabActive]}
+                  onPress={() => setTab('my')}>
+                  <Text style={[styles.tabText, tab === 'my' && styles.tabTextActive]}>
+                    我的经验 ({experiences.length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.tab, tab === 'bookmarks' && styles.tabActive]}
+                  onPress={() => setTab('bookmarks')}>
+                  <Text style={[styles.tabText, tab === 'bookmarks' && styles.tabTextActive]}>
+                    我的收藏 ({bookmarks.length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {loading && (
+              <ActivityIndicator size="large" color="#4a7c59" style={{marginTop: 40}} />
+            )}
+          </>
+        }
+        ListFooterComponent={
+          user ? (
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Text style={styles.logoutText}>退出登录</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={() => navigation.navigate('login')}>
+              <Text style={styles.loginText}>去登录</Text>
+            </TouchableOpacity>
+          )
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -144,7 +157,7 @@ const styles = StyleSheet.create({
   profileHeader: {
     alignItems: 'center',
     paddingTop: 30,
-    paddingBottom: 24,
+    paddingBottom: 16,
     backgroundColor: '#ffffff',
     borderBottomWidth: 0.5,
     borderBottomColor: '#e8e4df',
@@ -167,53 +180,38 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#1a1a1a',
-    marginBottom: 4,
+    marginBottom: 16,
   },
-  bio: {
-    fontSize: 13,
-    color: '#9a9a9a',
-    marginBottom: 20,
-  },
-  statsRow: {
+  tabRow: {
     flexDirection: 'row',
+    gap: 0,
+    width: '100%',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
     alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
-  statItem: {
-    alignItems: 'center',
-    paddingHorizontal: 28,
+  tabActive: {
+    borderBottomColor: '#4a7c59',
   },
-  statNumber: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1a1a1a',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#9a9a9a',
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 0.5,
-    height: 24,
-    backgroundColor: '#e8e4df',
-  },
-  sectionHeader: {
-    paddingHorizontal: 18,
-    paddingTop: 24,
-    paddingBottom: 10,
-  },
-  sectionTitle: {
+  tabText: {
     fontSize: 14,
+    fontWeight: '500',
+    color: '#9a9a9a',
+  },
+  tabTextActive: {
+    color: '#4a7c59',
     fontWeight: '700',
-    color: '#6e6e6e',
-    letterSpacing: 0.5,
   },
   card: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 14,
-    marginBottom: 8,
+    marginTop: 8,
     borderWidth: 0.5,
     borderColor: '#f0ece7',
   },

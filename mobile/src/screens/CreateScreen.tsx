@@ -65,7 +65,12 @@ export default function CreateScreen({navigation}: any) {
         {text: '好的', onPress: () => navigation.goBack()},
       ]);
     } catch (e: any) {
-      Alert.alert('发布失败', '请稍后再试');
+      const msg = e?.message || String(e);
+      if (msg.includes('401') || msg.includes('Unauthorized')) {
+        Alert.alert('未登录', '请先登录后再发布经验');
+      } else {
+        Alert.alert('发布失败', msg);
+      }
     } finally {
       setSubmitting(false);
     }

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/niangao/backend/internal/model"
 )
@@ -207,4 +208,100 @@ func (r *ExperienceRepo) Delete(ctx context.Context, id, authorID string) error 
 		return fmt.Errorf("experience not found or permission denied")
 	}
 	return nil
+}
+
+// ListByAuthor — 用户自己发布的经验
+func (r *ExperienceRepo) ListByAuthor(ctx context.Context, authorID string, page, pageSize int) ([]model.Experience, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 50 {
+		pageSize = 20
+	}
+
+	var total int
+	err := r.db.QueryRow(ctx,
+		`SELECT COUNT(*) FROM experiences WHERE author_id=$1 AND status='published'`, authorID,
+	).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count by author: %w", err)
+	}
+
+	rows, err := r.db.Query(ctx,
+		`SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.is_official,
+		        e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
+		        e.status, e.created_at, e.updated_at,
+		        u.nickname, u.avatar_url,
+		        EXISTS(SELECT 1 FROM likes WHERE user_id=$1 AND experience_id=e.id) as is_liked,
+		        EXISTS(SELECT 1 FROM bookmarks WHERE user_id=$1 AND experience_id=e.id) as is_bookmarked
+		 FROM experiences e
+		 LEFT JOIN users u ON u.id = e.author_id
+		 WHERE e.author_id=$1 AND e.status='published'
+		 ORDER BY e.created_at DESC LIMIT $2 OFFSET $3`,
+		authorID, pageSize, (page-1)*pageSize,
+	)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list by author: %w", err)
+	}
+	defer rows.Close()
+
+	return scanExperiences(rows)
+}
+
+// ListBookmarked — 用户收藏的经验
+func (r *ExperienceRepo) ListBookmarked(ctx context.Context, userID string, page, pageSize int) ([]model.Experience, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 50 {
+		pageSize = 20
+	}
+
+	var total int
+	err := r.db.QueryRow(ctx,
+		`SELECT COUNT(*) FROM bookmarks b
+		 JOIN experiences e ON e.id = b.experience_id
+		 WHERE b.user_id=$1 AND e.status='published'`, userID,
+	).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count bookmarks: %w", err)
+	}
+
+	rows, err := r.db.Query(ctx,
+		`SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.is_official,
+		        e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
+		        e.status, e.created_at, e.updated_at,
+		        u.nickname, u.avatar_url,
+		        EXISTS(SELECT 1 FROM likes WHERE user_id=$1 AND experience_id=e.id) as is_liked,
+		        true as is_bookmarked
+		 FROM bookmarks b
+		 JOIN experiences e ON e.id = b.experience_id
+		 LEFT JOIN users u ON u.id = e.author_id
+		 WHERE b.user_id=$1 AND e.status='published'
+		 ORDER BY b.created_at DESC LIMIT $2 OFFSET $3`,
+		userID, pageSize, (page-1)*pageSize,
+	)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list bookmarks: %w", err)
+	}
+	defer rows.Close()
+
+	return scanExperiences(rows)
+}
+
+func scanExperiences(rows pgx.Rows) ([]model.Experience, int, error) {
+	var experiences []model.Experience
+	for rows.Next() {
+		var e model.Experience
+		if err := rows.Scan(
+			&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
+			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
+			&e.InterpretationGenerated, &e.Status, &e.CreatedAt, &e.UpdatedAt,
+			&e.AuthorName, &e.AuthorAvatar, &e.IsLiked, &e.IsBookmarked,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan: %w", err)
+		}
+		experiences = append(experiences, e)
+	}
+	return experiences, 0, nil
 }

@@ -22,6 +22,8 @@ func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.Experience
 	exp := r.Group("/experiences")
 	{
 		exp.GET("", h.List)
+		exp.GET("/my", middleware.RequireAuth(), h.MyExperiences)
+		exp.GET("/bookmarks", middleware.RequireAuth(), h.MyBookmarks)
 		exp.GET("/:id", h.Get)
 		exp.POST("", middleware.RequireAuth(), h.Create)
 		exp.PUT("/:id", middleware.RequireAuth(), h.Update)
@@ -96,6 +98,9 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create experience"})
 		return
 	}
+
+	// 自动收藏
+	h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID)
 
 	c.JSON(http.StatusCreated, exp)
 }
@@ -182,4 +187,50 @@ func parseIntParam(s string, def int) int {
 		return def
 	}
 	return v
+}
+
+// MyExperiences — 用户自己发布的经验
+func (h *ExperienceHandler) MyExperiences(c *gin.Context) {
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
+
+	page := parseIntParam(c.Query("page"), 1)
+	pageSize := parseIntParam(c.Query("page_size"), 20)
+
+	experiences, total, err := h.repo.ListByAuthor(c.Request.Context(), userID, page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list experiences"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  experiences,
+		"total": total,
+		"page":  page,
+	})
+}
+
+// MyBookmarks — 用户收藏的经验
+func (h *ExperienceHandler) MyBookmarks(c *gin.Context) {
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
+
+	page := parseIntParam(c.Query("page"), 1)
+	pageSize := parseIntParam(c.Query("page_size"), 20)
+
+	experiences, total, err := h.repo.ListBookmarked(c.Request.Context(), userID, page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list bookmarks"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  experiences,
+		"total": total,
+		"page":  page,
+	})
 }
