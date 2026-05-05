@@ -112,7 +112,11 @@ export default function HomeScreen({ navigation }: any) {
       setHasMore(false);
     }
     if (append) {
-      setExperiences(prev => [...prev, ...data]);
+      setExperiences(prev => {
+        const existingIds = new Set(prev.map(e => e.id));
+        const newItems = data.filter((e: Experience) => !existingIds.has(e.id));
+        return [...prev, ...newItems];
+      });
     } else {
       hasMoreRef.current = true;
       setHasMore(true);
