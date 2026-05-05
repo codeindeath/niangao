@@ -14,8 +14,7 @@ const (
 
 type User struct {
 	ID              string  `json:"id"`
-	WechatOpenID    string  `json:"-"`
-	WechatUnionID   *string `json:"-"`
+	AppleUserID     *string `json:"-"`
 	Nickname        string  `json:"nickname"`
 	AvatarURL       *string `json:"avatar_url,omitempty"`
 	Bio             *string `json:"bio,omitempty"`

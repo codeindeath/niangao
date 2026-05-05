@@ -1,4 +1,4 @@
-import React, {useState, useRef, useCallback} from 'react';
+import React, {useState, useRef, useCallback, useEffect} from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,7 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {sendMessage, ChatMessage} from '../services/api';
-
-// 临时：登录未实现前使用系统用户 ID
-const TEMP_USER_ID = '00000000-0000-0000-0000-000000000000';
+import {getUserInfo} from '../services/config';
 
 interface MessageBubble {
   id: string;
@@ -24,6 +22,7 @@ interface MessageBubble {
 }
 
 export default function ChatScreen() {
+  const [userId, setUserId] = useState<string>('');
   const [messages, setMessages] = useState<MessageBubble[]>([
     {
       id: 'welcome',
@@ -34,6 +33,13 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+
+  // 加载用户信息获取 ID
+  useEffect(() => {
+    getUserInfo().then(user => {
+      if (user?.id) setUserId(user.id);
+    });
+  }, []);
 
   // 构建历史消息（最近 10 轮）
   const buildHistory = useCallback((): ChatMessage[] => {
@@ -60,7 +66,7 @@ export default function ChatScreen() {
 
     try {
       const history = buildHistory();
-      const result = await sendMessage(text, TEMP_USER_ID, history);
+      const result = await sendMessage(text, userId, history);
 
       setMessages(prev =>
         prev.map(m =>

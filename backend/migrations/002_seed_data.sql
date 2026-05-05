@@ -3,7 +3,7 @@
 -- ============================================
 
 -- 先插入一个系统账号（冷启内容用到）
-INSERT INTO users (id, wechat_openid, nickname) VALUES
+INSERT INTO users (id, apple_user_id, nickname) VALUES
 ('00000000-0000-0000-0000-000000000000', 'system_official', '年糕官方');
 
 INSERT INTO experiences (author_id, content, interpretation, domain, is_official, source_label) VALUES

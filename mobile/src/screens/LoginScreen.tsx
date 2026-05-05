@@ -91,15 +91,6 @@ export default function LoginScreen({ onLoginSuccess }: { onLoginSuccess: () => 
           </TouchableOpacity>
         )}
 
-        {/* WeChat 保留，标灰提示不可用 */}
-        <TouchableOpacity
-          style={styles.wechatButton}
-          disabled
-          activeOpacity={0.6}
-        >
-          <Text style={styles.wechatButtonText}>微信登录（暂不可用）</Text>
-        </TouchableOpacity>
-
         {loading && (
           <ActivityIndicator style={{ marginTop: 12 }} color="#4a7c59" />
         )}
@@ -155,20 +146,6 @@ const styles = StyleSheet.create({
   },
   devButtonText: {
     color: '#4a7c59',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  wechatButton: {
-    width: '100%',
-    height: 44,
-    backgroundColor: '#d4d4d4',
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  wechatButtonText: {
-    color: '#999',
     fontSize: 15,
     fontWeight: '600',
   },

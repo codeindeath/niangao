@@ -20,7 +20,8 @@ export default function HomeScreen({ navigation }: any) {
   const loadExperiences = useCallback(async (pageNum: number, refresh = false) => {
     try {
       const result = await fetchExperiences(pageNum);
-      setExperiences(prev => refresh ? result.data : [...prev, ...result.data]);
+      const data = Array.isArray(result?.data) ? result.data : [];
+      setExperiences(prev => refresh ? data : [...prev, ...data]);
       setError(null);
     } catch (e) {
       console.error('Failed to load experiences:', e);

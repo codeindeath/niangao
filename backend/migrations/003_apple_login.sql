@@ -15,6 +15,6 @@ ALTER TABLE users ADD CONSTRAINT users_apple_user_id_unique UNIQUE (apple_user_i
 -- 4. 索引
 CREATE INDEX idx_users_apple_id ON users(apple_user_id);
 
--- 5. 约束：至少有一种登录方式
+-- 5. 约束：必须有登录方式
 ALTER TABLE users ADD CONSTRAINT users_login_method_check
-  CHECK (wechat_openid IS NOT NULL OR apple_user_id IS NOT NULL);
+  CHECK (apple_user_id IS NOT NULL);

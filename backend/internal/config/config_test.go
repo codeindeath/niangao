@@ -24,14 +24,12 @@ func TestLoadFromEnv(t *testing.T) {
 	os.Setenv("PORT", "3000")
 	os.Setenv("DATABASE_URL", "postgresql://test:test@localhost:5432/testdb")
 	os.Setenv("JWT_SECRET", "test-jwt-secret")
-	os.Setenv("WECHAT_APP_ID", "wx_test_app_id")
-	os.Setenv("WECHAT_APP_SECRET", "test_app_secret")
+	os.Setenv("APPLE_BUNDLE_ID", "com.test.app")
 	defer func() {
 		os.Unsetenv("PORT")
 		os.Unsetenv("DATABASE_URL")
 		os.Unsetenv("JWT_SECRET")
-		os.Unsetenv("WECHAT_APP_ID")
-		os.Unsetenv("WECHAT_APP_SECRET")
+		os.Unsetenv("APPLE_BUNDLE_ID")
 	}()
 
 	cfg := Load()
@@ -45,11 +43,8 @@ func TestLoadFromEnv(t *testing.T) {
 	if cfg.JWTSecret != "test-jwt-secret" {
 		t.Errorf("JWT secret not loaded from env, got %q", cfg.JWTSecret)
 	}
-	if cfg.WechatAppID != "wx_test_app_id" {
-		t.Errorf("WeChat AppID not loaded from env, got %q", cfg.WechatAppID)
-	}
-	if cfg.WechatAppSecret != "test_app_secret" {
-		t.Errorf("WeChat AppSecret not loaded from env, got %q", cfg.WechatAppSecret)
+	if cfg.AppleBundleID != "com.test.app" {
+		t.Errorf("Apple Bundle ID not loaded from env, got %q", cfg.AppleBundleID)
 	}
 }
 

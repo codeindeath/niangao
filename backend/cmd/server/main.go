@@ -53,10 +53,7 @@ func main() {
 	v1 := r.Group("/api/v1")
 	{
 		// 登录（无需认证）
-		handler.RegisterAuthRoutes(v1, db, cfg.JWTSecret, handler.WechatConfig{
-			AppID:     cfg.WechatAppID,
-			AppSecret: cfg.WechatAppSecret,
-		}, cfg.AppleBundleID)
+		handler.RegisterAuthRoutes(v1, db, cfg.JWTSecret, cfg.AppleBundleID)
 
 		// 经验
 		handler.RegisterExperienceRoutes(v1, expRepo, likeRepo, bookmarkRepo)

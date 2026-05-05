@@ -1,12 +1,12 @@
 -- ============================================
 -- 年糕 App — 数据库 Schema v2
--- 适配：火山引擎 RDS PostgreSQL + 微信登录
+-- 适配：火山引擎 RDS PostgreSQL + Apple Sign In
 -- ============================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
--- 用户表（微信登录）
+-- 用户表（Apple Sign In + 开发登录）
 -- ============================================
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
