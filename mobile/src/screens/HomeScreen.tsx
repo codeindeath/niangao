@@ -4,6 +4,7 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
+  ScrollView,
   StyleSheet,
   ActivityIndicator,
   Dimensions,
@@ -178,9 +179,17 @@ export default function HomeScreen({navigation: _navigation}: any) {
           {isPlatform && <View style={s.platformTag}><Text style={s.platformTagText}>官</Text></View>}
         </View>
 
-        {/* Quote mark + content */}
-        <View style={s.contentArea}>
-          <Text style={s.quoteMark}>"</Text>
+        {/* Page counter */}
+        <Text style={s.counter}>{index + 1}/{experiences.length}{loadingMore ? '…' : ''}</Text>
+
+        {/* Scrollable content area */}
+        <ScrollView
+          style={s.scrollArea}
+          contentContainerStyle={s.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <Text style={s.quoteMark}>{'"'}</Text>
           <Text style={s.content}>{item.content}</Text>
           <View style={s.divider} />
 
@@ -220,7 +229,10 @@ export default function HomeScreen({navigation: _navigation}: any) {
               )}
             </>
           ) : null}
-        </View>
+
+          {/* Bottom spacer so content doesn't hide behind action bar */}
+          <View style={{height: 80}} />
+        </ScrollView>
 
         {/* Bottom actions */}
         <View style={s.bottomActions}>
@@ -295,14 +307,24 @@ const s = StyleSheet.create({
   cardPage: {
     height: SCREEN_HEIGHT,
     backgroundColor: '#faf8f5',
+  },
+
+  // Scrollable area
+  scrollArea: {
+    flex: 1,
+    marginTop: 130,
+    marginBottom: 100,
+  },
+  scrollContent: {
     paddingHorizontal: 32,
-    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Top
   topRow: {
     position: 'absolute', top: 60, left: 24,
     flexDirection: 'row', gap: 6,
+    zIndex: 1,
   },
   tag: {backgroundColor: '#eaf2e8', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12},
   tagText: {fontSize: 11, fontWeight: '600', color: '#4a7c59'},
@@ -313,7 +335,6 @@ const s = StyleSheet.create({
   platformTagText: {fontSize: 9, fontWeight: '800', color: '#fff'},
 
   // Content
-  contentArea: {alignItems: 'center'},
   quoteMark: {
     fontSize: 72, color: '#4a7c59', opacity: 0.12,
     fontFamily: 'Georgia', lineHeight: 72, marginBottom: -20,
