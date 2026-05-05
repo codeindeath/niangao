@@ -182,12 +182,14 @@ export default function HomeScreen({navigation: _navigation}: any) {
         {/* Page counter */}
         <Text style={s.counter}>{index + 1}/{experiences.length}{loadingMore ? '…' : ''}</Text>
 
-        {/* Scrollable content area */}
+        {/* Scrollable content area — only scrollable when interpretation is open */}
         <ScrollView
           style={s.scrollArea}
           contentContainerStyle={s.scrollContent}
           showsVerticalScrollIndicator={false}
           bounces={false}
+          scrollEnabled={openInterps.has(item.id)}
+          nestedScrollEnabled={true}
         >
           <Text style={s.quoteMark}>{'"'}</Text>
           <Text style={s.content}>{item.content}</Text>
@@ -271,13 +273,20 @@ export default function HomeScreen({navigation: _navigation}: any) {
         data={experiences}
         keyExtractor={item => item.id}
         renderItem={renderCard}
-        pagingEnabled
         showsVerticalScrollIndicator={false}
+        snapToInterval={SCREEN_HEIGHT}
         decelerationRate="fast"
+        disableIntervalMomentum
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={{itemVisiblePercentThreshold: 50}}
+        getItemLayout={(_, index) => ({
+          length: SCREEN_HEIGHT,
+          offset: SCREEN_HEIGHT * index,
+          index,
+        })}
+        removeClippedSubviews={false}
         ListEmptyComponent={
           <View style={s.cardPage}>
             <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
