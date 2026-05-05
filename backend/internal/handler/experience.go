@@ -22,14 +22,19 @@ func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.Experience
 	exp := r.Group("/experiences")
 	{
 		exp.GET("", h.List)
-		exp.GET("/my", middleware.RequireAuth(), h.MyExperiences)
-		exp.GET("/bookmarks", middleware.RequireAuth(), h.MyBookmarks)
 		exp.GET("/:id", h.Get)
 		exp.POST("", middleware.RequireAuth(), h.Create)
 		exp.PUT("/:id", middleware.RequireAuth(), h.Update)
 		exp.DELETE("/:id", middleware.RequireAuth(), h.Delete)
 		exp.POST("/:id/like", middleware.RequireAuth(), h.ToggleLike)
 		exp.POST("/:id/bookmark", middleware.RequireAuth(), h.ToggleBookmark)
+	}
+
+	// 个人维度 API（避免 /experiences/my 与 /:id 冲突）
+	me := r.Group("/me", middleware.RequireAuth())
+	{
+		me.GET("/experiences", h.MyExperiences)
+		me.GET("/bookmarks", h.MyBookmarks)
 	}
 }
 

@@ -84,13 +84,13 @@ export async function toggleBookmark(
 export async function fetchMyExperiences(
   page: number = 1,
 ): Promise<{data: Experience[]; total: number; page: number}> {
-  return apiGet(`/api/v1/experiences/my?page=${page}`);
+  return apiGet(`/api/v1/me/experiences?page=${page}`);
 }
 
 export async function fetchMyBookmarks(
   page: number = 1,
 ): Promise<{data: Experience[]; total: number; page: number}> {
-  return apiGet(`/api/v1/experiences/bookmarks?page=${page}`);
+  return apiGet(`/api/v1/me/bookmarks?page=${page}`);
 }
 
 // ============================================================
