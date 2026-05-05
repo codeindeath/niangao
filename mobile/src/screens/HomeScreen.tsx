@@ -53,10 +53,11 @@ const SUB_LABELS: Record<string, string> = {
 // ══════════════════════════════════════════
 // FlipCard — 3D 翻转卡片组件
 // ══════════════════════════════════════════
-function FlipCard({item, currentUserId, cardHeight, onLike, onBookmark, onDelete}: {
+function FlipCard({item, currentUserId, cardHeight, contentTop, onLike, onBookmark, onDelete}: {
   item: Experience;
   currentUserId: string | null;
   cardHeight: number;
+  contentTop: number; // 内容区起始位置（跳过顶部 tab bar 覆盖区）
   onLike: (id: string) => void;
   onBookmark: (id: string) => void;
   onDelete: (id: string) => void;
@@ -118,14 +119,14 @@ function FlipCard({item, currentUserId, cardHeight, onLike, onBookmark, onDelete
         pointerEvents={isFlipped ? 'none' : 'auto'}
       >
         {/* Top tags */}
-        <View style={s.topRow}>
+        <View style={[s.topRow, {top: contentTop}]}>
           <View style={s.tag}><Text style={s.tagText}>{domainLabel}</Text></View>
           {isPlatform && <View style={s.platformTag}><Text style={s.platformTagText}>官</Text></View>}
         </View>
 
         {/* Flip hint */}
         {item.interpretation ? (
-          <View style={s.flipHint}>
+          <View style={[s.flipHint, {top: contentTop + 2}]}>
             <Text style={s.flipHintText}>点击翻转 ↻</Text>
           </View>
         ) : null}
@@ -196,7 +197,7 @@ function FlipCard({item, currentUserId, cardHeight, onLike, onBookmark, onDelete
         pointerEvents={isFlipped ? 'auto' : 'none'}
       >
         {/* Back header */}
-        <View style={s.backHeader}>
+        <View style={[s.backHeader, {top: contentTop}]}>
           <Text style={s.backHeaderTitle}>经验解读</Text>
           <View style={s.backDomainTag}>
             <Text style={s.backDomainText}>{domainLabel}</Text>
@@ -226,8 +227,10 @@ function FlipCard({item, currentUserId, cardHeight, onLike, onBookmark, onDelete
 // ══════════════════════════════════════════
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  // card = screen - status bar - top tabs(44) - bottom tab(80) - safe margin(15)
-  const CARD_HEIGHT = SCREEN_HEIGHT - insets.top - TOP_TABS_HEIGHT - TAB_BAR_ESTIMATE - 15;
+  // card = screen - status bar - top tabs(44) - bottom tab(80) - margin(8)
+  const CARD_HEIGHT = SCREEN_HEIGHT - insets.top - TOP_TABS_HEIGHT - TAB_BAR_ESTIMATE - 8;
+  // 卡片内容区从 tab bar 下方 12px 开始
+  const CONTENT_TOP = insets.top + TOP_TABS_HEIGHT + 12;
 
   type TabName = 'recommend' | 'my' | 'bookmarks';
   const tabOrder: TabName[] = ['recommend', 'my', 'bookmarks'];
@@ -407,6 +410,7 @@ export default function HomeScreen() {
               item={item}
               currentUserId={currentUserId}
               cardHeight={CARD_HEIGHT}
+              contentTop={CONTENT_TOP}
               onLike={handleLike}
               onBookmark={handleBookmark}
               onDelete={handleDelete}
