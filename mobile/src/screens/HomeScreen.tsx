@@ -353,7 +353,7 @@ export default function HomeScreen() {
       <FlatList
         data={experiences}
         keyExtractor={item => item.id}
-        renderItem={({item, index}) => (
+        renderItem={({item}) => (
           <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5'}}>
             <FlipCard
               item={item}
@@ -363,10 +363,16 @@ export default function HomeScreen() {
               onBookmark={handleBookmark}
               onDelete={handleDelete}
             />
-            <Text style={s.pageNum}>{index + 1}/{experiences.length}</Text>
           </View>
         )}
-        pagingEnabled
+        getItemLayout={(_, index) => ({
+          length: CARD_HEIGHT,
+          offset: CARD_HEIGHT * index,
+          index,
+        })}
+        snapToInterval={CARD_HEIGHT}
+        snapToAlignment="start"
+        disableIntervalMomentum
         showsVerticalScrollIndicator={false}
         decelerationRate="fast"
         onEndReached={handleLoadMore}
@@ -531,9 +537,4 @@ const s = StyleSheet.create({
   },
   backHintText: {fontSize: 12, color: '#b5b0a8'},
 
-  // ═══ Page number (bottom of each page) ═══
-  pageNum: {
-    position: 'absolute', bottom: 12, right: 22,
-    fontSize: 12, color: '#d4d0c8', fontWeight: '500',
-  },
 });
