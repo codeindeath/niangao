@@ -128,7 +128,7 @@ func TestTokenExpiry(t *testing.T) {
 		t.Fatalf("ParseUnverified failed: %v", err)
 	}
 
-	claims, ok := parsed.(*Claims)
+	claims, ok := parsed.Claims.(*Claims)
 	if !ok {
 		t.Fatal("claims type assertion failed")
 	}
