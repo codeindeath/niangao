@@ -194,18 +194,18 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   if (loading) {
-    return <SafeAreaView style={s.container}><ActivityIndicator size="large" color="#4a7c59" style={{ marginTop: 200 }} /></SafeAreaView>;
+    return <View style={s.container}><ActivityIndicator size="large" color="#4a7c59" style={{ marginTop: 200 }} /></View>;
   }
   if (error && experiences.length === 0) {
     return (
-      <SafeAreaView style={s.container}>
+      <View style={s.container}>
         <View style={s.errorContainer}>
           <Text style={s.errorText}>{error}</Text>
           <TouchableOpacity style={s.retryButton} onPress={() => { setError(null); handleRefresh(); }}>
             <Text style={s.retryButtonText}>重试</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
