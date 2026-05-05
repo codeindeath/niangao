@@ -350,21 +350,26 @@ export default function HomeScreen() {
     ]);
   };
 
-  // ═══ 左右滑动手势切换标签 ═══
+  // ═══ 左右滑动手势 → 循环切换标签 ═══
+  // 左滑(dx<0): 推荐→我的→收藏→推荐
+  // 右滑(dx>0): 推荐→收藏→我的→推荐
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (e: GestureResponderEvent, gs: PanResponderGestureState) => {
-        // Only capture horizontal swipes (dx > dy and significant enough)
-        return Math.abs(gs.dx) > 20 && Math.abs(gs.dx) > Math.abs(gs.dy);
+        // 只捕获横向滑动
+        return Math.abs(gs.dx) > 30 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5;
       },
       onPanResponderRelease: (e: GestureResponderEvent, gs: PanResponderGestureState) => {
-        if (Math.abs(gs.dx) > 60 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5) {
+        if (Math.abs(gs.dx) > 60 && Math.abs(gs.dx) > Math.abs(gs.dy) * 2) {
           const idx = tabOrder.indexOf(activeTab);
-          if (gs.dx < 0 && idx < tabOrder.length - 1) {
-            handleTabChange(tabOrder[idx + 1]);
-          } else if (gs.dx > 0 && idx > 0) {
-            handleTabChange(tabOrder[idx - 1]);
+          const n = tabOrder.length;
+          if (gs.dx < 0) {
+            // 左滑 → 下一个 tab（循环）
+            handleTabChange(tabOrder[(idx + 1) % n]);
+          } else {
+            // 右滑 → 上一个 tab（循环）
+            handleTabChange(tabOrder[(idx - 1 + n) % n]);
           }
         }
       },
