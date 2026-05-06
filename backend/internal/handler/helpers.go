@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -39,4 +40,17 @@ func getAuthJTI(c *gin.Context) string {
 		return ""
 	}
 	return jti.(string)
+}
+
+// nilIfEmpty returns nil pointer if string is empty
+func nilIfEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// parseInt parses string to int, returns (0, false) on error
+func parseInt(s string) (int, error) {
+	return strconv.Atoi(s)
 }

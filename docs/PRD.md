@@ -1,6 +1,6 @@
 # 年糕 App 产品需求文档（PRD）
 
-> **版本**：v2.2 | **日期**：2026-05-05 | **状态**：全屏沉浸流 / 卡片翻转 / 称号 / 三标签 / 循环滑动 全部完成
+> **版本**：v2.4 | **日期**：2026-05-06 | **状态**：搜索修复 / 浏览去重 / 我的页 V5-A1 / 统计系统
 
 ---
 
@@ -62,10 +62,14 @@
 │   ├─ 点赞 / 收藏操作
 │   └─ 删除（仅作者可见，已入池经验软删除，其他硬删除）
 │
-├─ 👤 个人中心
-│   ├─ 用户头像 + 昵称
-│   ├─ Tab: 我的经验（含私密 🔒 + 审核中 ⏳ + 已拒绝 ❕）
-│   ├─ Tab: 我的收藏
+├─ 👤 个人中心 (V5-A1)
+│   ├─ 个人信息区：左头像右信息（昵称+称号），纯箭头 › 进入编辑
+│   ├─ 双区块统计切换：
+│   │   ├─ "我发布的" 标签：发布数 | 获点赞 | 获收藏
+│   │   └─ "我看过的" 标签：浏览数 | 我点赞 | 我收藏
+│   │   └─ 每个维度可下拉切换领域分布（top 5 子领域）
+│   ├─ 对话统计卡片：绿色方块「对话 N 次」+ 蓝色方块「消息 M 条」
+│   ├─ 服务列表：对话人格 / 经验包 / 设置
 │   ├─ 退出登录
 │   └─ 未登录 → "去登录"引导按钮
 │
@@ -76,8 +80,10 @@
 │   └─ 每日对话轮次限制（50 轮）
 │
 ├─ 🔍 搜索
-│   ├─ 关键词搜索经验
-│   └─ 分页加载
+│   ├─ 关键词搜索：匹配经验内容 + 创建者（creator_name / nickname）
+│   ├─ 不匹配 AI 解读（避免噪音结果）
+│   ├─ 结果以全屏卡片流展示（同首页交互）
+│   └─ 进入卡片流时自动记录浏览
 │
 └─ 🧠 推荐引擎（后端）
     ├─ 领域偏好计算（发布×2 + 收藏×1）
@@ -147,6 +153,10 @@
         进入平台经验池
         返回成功 + 评分
 ```
+
+> **发布后刷新**：发布成功后，前端通过 `triggerTabRefresh('my')` → `useFocusEffect` 机制自动标记"我的"Tab 需要刷新。用户返回首页切到"我的"时，自动重新加载列表，无需重新登录。
+
+> **校验规则**：后端 handler 层对 `content`（10-100 字）和 `interpretation`（≤300 字）使用 `len([]rune(s))` 进行字数计数，确保中文等多字节字符的计数准确。Gin struct tag 的 `binding:"max=N"` 按字节校验，已全部移除。
 
 ### 3.2 首页加载流程
 
@@ -716,8 +726,8 @@ practiced（bookmarks.practiced 变更）:
 |------|------|--------|------|
 | id | UUID PK | uuid_generate_v4() | — |
 | author_id | UUID FK | — | → users.id |
-| content | VARCHAR(100) | — | 经验内容 |
-| interpretation | TEXT | NULL | AI 解读，≤500 字 |
+| content | VARCHAR(100) | — | 经验内容，10-100 字（后端 rune 计数校验，非字节） |
+| interpretation | TEXT | NULL | AI 解读，≤300 字（AI 生成时硬截断） |
 | domain | ENUM domain_type | — | 一级领域 |
 | sub_domain | VARCHAR(50) | NULL | 二级领域 |
 | author_title | VARCHAR(20) | NULL | 作者称号（查询时 JOIN） |
@@ -748,11 +758,11 @@ practiced（bookmarks.practiced 变更）:
 | is_official | TRUE | FALSE |
 | 创作者 | `creator_name`（原内容作者） | `author_name`（发布用户昵称） |
 | 标签 | 绿色圆形「官」+ hover「这条经验是年糕app根据公开内容生产的」 | 无 |
-| 解读 | 必填（AI 生成，≤500 字） | 可选 |
+| 解读 | 必填（AI 生成，≤300 字，生成时硬截断） | 可选 |
 | 价值度 | 必填（0-10 综合分 + 简短理由） | AI 审核后自动生成 |
 | 删除 | 用户删除后从个人列表消失，平台池继续可见 | 已入池→软删除；其他→硬删除 |
 
-批量评分脚本：`backend/scripts/batch_score.py`，调用 AI Service 的 `/api/v1/review` + `/api/v1/chat/generate-interpretation`，解释文本在句子边界智能截断以符合 500 字约束。
+批量评分脚本：`backend/scripts/batch_score.py`，调用 AI Service 的 `/api/v1/review` + `/api/v1/chat/generate-interpretation`，解释文本在句子边界智能截断以符合 300 字约束（基于 rune 计数，非字节）。
 
 #### 12.2.2 名人经验种子（迁移 009）
 
@@ -826,7 +836,7 @@ if (e instanceof ApiError && e.status === 401) {
 | 层 | 包/模块 | 测试文件 | 测试数 | 状态 |
 |----|---------|---------|--------|------|
 | Go backend | handler, model, middleware | 3 | 56+ | ✅ 全部通过 |
-| Go backend | repository | 0 | 0 | 🟡 无测试（需 DB mock） |
+| Go backend | repository | 1 | 5 | ✅ 集成测试通过（需 -tags=integration） |
 | Python AI | tests/ | 1 | 14 | ✅ 全部通过 |
 | React Native | __tests__/ | 2 | 0 | 🔴 babel/jest 配置中（待修复） |
 
@@ -835,7 +845,6 @@ if (e instanceof ApiError && e.status === 401) {
 | 限制 | 影响 | 计划 |
 |------|------|------|
 | AI 服务直连 :8000 | 绕过 Nginx 统一入口 | 待改路由为 /ai/* 前缀 |
-| repository 包无测试 | 数据层无回归保障 | P2 |
 | 移动端测试框架未就绪 | babel/jest 配置不完整 | P1 |
 | 无 CI/CD | 手动部署 | P3 |
 | 硬编码 ECS IP | `mobile/src/services/config.ts` 用 `115.190.177.146` | 开发阶段可接受 |
@@ -855,6 +864,8 @@ if (e instanceof ApiError && e.status === 401) {
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v2.4 | 2026-05-06 | **我的页 V5-A1 + 搜索系统完整上线**：个人中心全面重构为双区块统计（发布/浏览维度 含领域分布）、对话统计、个人信息编辑。底部 Tab "搜索" → "朋友"（空态占位），首页顶部新增搜索图标。搜索从 `content OR interpretation` → `content OR creator_name OR nickname`，排除解读噪音。新建 SearchPage（搜索框+结果列表）、SearchCardScreen（卡片流浏览）、ProfileEditScreen。统计后端：`GET /api/v1/user/stats`（9 维统计查询）、`POST /api/v1/experiences/:id/view`（浏览记录）。新建 `user_views` 表（migration 010）。recordView 去重（模块级 Set）+ `console.warn` 错误可见化。repository 层新增 5 个集成测试。修复迁移编号冲突（两个 009 → 009+010）。GLM-Image 图像生成 API 可用。 |
+| v2.3 | 2026-05-06 | AI 解读 300 字硬截断 / rune 校验全链路对齐 / 发布自动刷新 / 批量打分脚本 rune 安全截断修复 |
 | v2.2 | 2026-05-05 | **沉浸式体验升级**：全屏卡片滑动（抖音式）、3D 卡片翻转（正面经验/背面解读）、顶部三标签（推荐/我的/收藏，方案A）、左右滑手势循环切标签（Touch 事件）、透明顶部 tab 栏、自定义用户称号（≤20 字符） |
 | v2.1 | 2026-05-05 | 创作者/价值度星级/平台经验/名人种子/无限滚动/经验删除 |
 | v2.0 | 2026-05-05 | **重大更新**：新增完整流程图（发布/首页/推荐/登录/点赞）、屏幕详细描述、完整 API 参考、数据模型、错误处理规范、触发器文档 |

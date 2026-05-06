@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
 import ChatScreen from '../screens/ChatScreen';
 import CreateScreen from '../screens/CreateScreen';
-import SearchScreen from '../screens/SearchScreen';
+import FriendsScreen from '../screens/FriendsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
@@ -15,7 +15,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
     home: '⌂',
     chat: '💬',
     create: '+',
-    search: '🔍',
+    search: '👥',
     profile: '👤',
   };
   return (
@@ -73,8 +73,8 @@ export default function BottomTabNavigator() {
       />
       <Tab.Screen
         name="search"
-        component={SearchScreen}
-        options={{ tabBarLabel: '搜索' }}
+        component={FriendsScreen}
+        options={{ tabBarLabel: '朋友' }}
       />
       <Tab.Screen
         name="profile"

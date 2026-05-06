@@ -7,6 +7,10 @@ import {StatusBar} from 'react-native';
 import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import DetailScreen from './src/screens/DetailScreen';
 import LoginScreen from './src/screens/LoginScreen';
+import SearchPage from './src/screens/SearchPage';
+import SearchCardScreen from './src/screens/SearchCardScreen';
+import ProfileEditScreen from './src/screens/ProfileEditScreen';
+import PlaceholderScreen from './src/screens/PlaceholderScreen';
 import {getToken, clearToken, API_BASE} from './src/services/config';
 import {isLoggedIn} from './src/services/auth';
 
@@ -67,6 +71,10 @@ export default function App() {
           <Stack.Navigator screenOptions={{headerShown: false}}>
             <Stack.Screen name="main" component={BottomTabNavigator} />
             <Stack.Screen name="detail" component={DetailScreen} />
+            <Stack.Screen name="searchPage" component={SearchPage} options={{animation: 'slide_from_right'}} />
+            <Stack.Screen name="searchCard" component={SearchCardScreen} options={{animation: 'slide_from_right'}} />
+            <Stack.Screen name="profileEdit" component={ProfileEditScreen} options={{animation: 'slide_from_right'}} />
+            <Stack.Screen name="placeholder" component={PlaceholderScreen} options={{animation: 'slide_from_right'}} />
             <Stack.Screen name="login" component={LoginScreen} />
           </Stack.Navigator>
         ) : (

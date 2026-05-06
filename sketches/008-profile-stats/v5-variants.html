@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V5改进版 - 3版变体</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  background: #1a1a1a;
+  display: flex; justify-content: center; align-items: flex-start;
+  min-height: 100vh; padding: 20px;
+}
+.container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+.phone {
+  width: 375px; height: 680px; background: #faf8f5;
+  border-radius: 40px; overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  display: flex; flex-direction: column;
+}
+.phone-label {
+  text-align: center; color: #aaa; font-size: 12px; margin-bottom: 6px;
+  font-weight: 600; letter-spacing: 0.5px;
+}
+.phone-wrapper { display: flex; flex-direction: column; align-items: center; }
+.status-bar {
+  height: 40px; background: #faf8f5;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 24px; font-size: 12px; font-weight: 600; color: #1a1a1a;
+}
+
+/* ═══ Common ═══ */
+.profile-row {
+  display: flex; align-items: center; padding: 20px 24px 16px;
+}
+.avatar {
+  width: 52px; height: 52px; border-radius: 26px;
+  background: #4a7c59; margin-right: 14px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; color: #fff;
+}
+.nickname { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+.edit-link { font-size: 12px; color: #4a7c59; margin-top: 2px; }
+.divider { height: 8px; background: #f5f5f5; }
+.list-item {
+  display: flex; align-items: center; padding: 14px 24px;
+  font-size: 15px; color: #2a2722;
+}
+.list-item-icon { margin-right: 12px; font-size: 16px; }
+.list-item-arrow { margin-left: auto; color: #c5bfb3; font-size: 16px; }
+.tab-bar {
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 6px 0 10px; background: rgba(250,248,245,0.93);
+  border-top: 0.5px solid #e8e4df; height: 74px;
+  margin-top: auto;
+}
+.tab-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; font-weight: 600; color: #9b9487; }
+.tab-item.active { color: #4a7c59; }
+.tab-icon { font-size: 18px; opacity: 0.5; }
+.tab-icon.active { opacity: 1; }
+.create-btn {
+  width: 44px; height: 44px; border-radius: 22px; background: #4a7c59;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 8px rgba(74,124,89,0.35);
+}
+.create-btn span { color: #fff; font-size: 22px; font-weight: 600; line-height: 26px; }
+
+/* ═══ V5-A: 三段式 — 数字条 + 粗柱图 + 气泡领域 ═══ */
+.stats-strip-a { display: flex; padding: 0 24px 14px; }
+.stat-cell-a {
+  flex: 1; text-align: center; padding: 12px 0;
+  position: relative;
+}
+.stat-cell-a:not(:last-child)::after {
+  content: ''; position: absolute; right: 0; top: 8px; bottom: 8px;
+  width: 1px; background: #e8e4dc;
+}
+.stat-num-a { font-size: 22px; font-weight: 800; color: #4a7c59; }
+.stat-label-a { font-size: 11px; color: #9b9487; margin-top: 4px; }
+
+.bars-section-a { padding: 0 24px 8px; }
+.bars-title-a { font-size: 11px; color: #b5b0a8; margin-bottom: 10px; font-weight: 500; }
+.bar-item-a { display: flex; align-items: center; margin-bottom: 7px; }
+.bar-label-a { font-size: 12px; color: #5c5548; width: 56px; text-align: right; margin-right: 10px; font-weight: 500; }
+.bar-track-a { flex: 1; height: 18px; background: #ece8df; border-radius: 9px; overflow: visible; position: relative; }
+.bar-fill-a { height: 18px; border-radius: 9px; position: relative; display: flex; align-items: center; }
+.bar-dot-a {
+  position: absolute; right: -2px;
+  width: 22px; height: 22px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.chat-row-a { display: flex; gap: 14px; padding: 4px 24px 10px; }
+.chat-item-a { font-size: 12px; color: #8b8274; }
+.chat-item-a b { color: #4a7c59; font-weight: 700; }
+
+/* ═══ V5-B: 卡片式 — 渐变数字卡 + 分段色条 + 领域气泡 ═══ */
+.cards-row-b { display: flex; gap: 8px; padding: 0 24px 14px; }
+.card-b {
+  flex: 1; border-radius: 14px; padding: 14px 10px 10px;
+  display: flex; flex-direction: column;
+}
+.card-b1 { background: linear-gradient(135deg, #eaf2e8, #d4e8d8); }
+.card-b2 { background: linear-gradient(135deg, #fef5e7, #fef0e0); }
+.card-b3 { background: linear-gradient(135deg, #fef0f0, #fce8e8); }
+.card-icon-b { font-size: 16px; margin-bottom: 6px; }
+.card-num-b { font-size: 24px; font-weight: 800; }
+.card-num-b1 { color: #4a7c59; }
+.card-num-b2 { color: #e8a850; }
+.card-num-b3 { color: #e85d5d; }
+.card-label-b { font-size: 10px; color: #8b8274; margin-top: 2px; }
+
+.domain-segments-b { padding: 0 24px 8px; }
+.seg-row-b { margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.seg-label-b { font-size: 12px; color: #5c5548; width: 56px; text-align: right; font-weight: 500; }
+.seg-bars-b { flex: 1; display: flex; height: 20px; border-radius: 10px; overflow: hidden; gap: 2px; }
+.seg-b { height: 20px; border-radius: 3px; position: relative; min-width: 2px; }
+.seg-tag-b {
+  position: absolute; right: 4px; top: -10px;
+  background: rgba(0,0,0,0.7); color: #fff; font-size: 9px;
+  padding: 1px 5px; border-radius: 6px; font-weight: 600;
+}
+
+.chat-pills-b { display: flex; gap: 8px; padding: 0 24px 10px; }
+.pill-b {
+  padding: 6px 14px; border-radius: 14px; font-size: 12px; font-weight: 500;
+}
+.pill-b1 { background: #eaf2e8; color: #4a7c59; }
+.pill-b2 { background: #e8f0fc; color: #5c7aa8; }
+
+/* ═══ V5-C: 精简式 — 一行统计 + 领域胶囊图 + 对话内联 ═══ */
+.stats-line-c {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 24px 12px;
+}
+.stat-block-c {
+  display: flex; align-items: baseline; gap: 3px;
+}
+.stat-block-c:not(:last-child)::after {
+  content: '·'; color: #d5cfc4; margin: 0 8px; font-size: 14px;
+}
+.stat-val-c { font-size: 17px; font-weight: 800; color: #4a7c59; }
+.stat-unit-c { font-size: 11px; color: #9b9487; }
+
+.domain-cloud-c { padding: 0 24px 10px; }
+.cloud-title-c { font-size: 11px; color: #b5b0a8; margin-bottom: 8px; font-weight: 500; }
+.cloud-c {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.domain-bubble-c {
+  padding: 8px 14px; border-radius: 20px;
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 56px;
+}
+.bubble-l1 { background: #eaf2e8; }
+.bubble-l2 { background: #fef5e7; }
+.bubble-l3 { background: #e8f0fc; }
+.bubble-l4 { background: #f0ece7; }
+.bubble-name-c { font-size: 12px; font-weight: 600; color: #2a2722; }
+.bubble-count-c { font-size: 16px; font-weight: 800; }
+.bubble-l1 .bubble-count-c { color: #4a7c59; }
+.bubble-l2 .bubble-count-c { color: #e8a850; }
+.bubble-l3 .bubble-count-c { color: #5c7aa8; }
+.bubble-l4 .bubble-count-c { color: #8b8274; }
+.bubble-sub-c { font-size: 10px; color: #9b9487; margin-top: 1px; }
+
+.chat-inline-c {
+  display: flex; gap: 12px; padding: 2px 24px 8px;
+  align-items: center;
+}
+.chat-dot-c { font-size: 12px; color: #8b8274; }
+.chat-dot-c span { font-weight: 700; color: #4a7c59; }
+
+.scroll { flex: 1; overflow-y: auto; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ═══ V5-A ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">V5-A · 三段式</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="scroll">
+      <div class="profile-row">
+        <div class="avatar">年</div>
+        <div><div class="nickname">年糕</div><div class="edit-link">编辑个人信息 ›</div></div>
+      </div>
+
+      <div class="stats-strip-a">
+        <div class="stat-cell-a"><div class="stat-num-a">12</div><div class="stat-label-a">发布经验</div></div>
+        <div class="stat-cell-a"><div class="stat-num-a">47</div><div class="stat-label-a">点赞</div></div>
+        <div class="stat-cell-a"><div class="stat-num-a">23</div><div class="stat-label-a">收藏</div></div>
+      </div>
+
+      <div class="bars-section-a">
+        <div class="bars-title-a">领域分布</div>
+        <div class="bar-item-a">
+          <span class="bar-label-a">思维模型</span>
+          <div class="bar-track-a">
+            <div class="bar-fill-a" style="width:100%; background:linear-gradient(90deg,#3d6a4b,#4a7c59)">
+              <div class="bar-dot-a" style="background:#3d6a4b">6</div>
+            </div>
+          </div>
+        </div>
+        <div class="bar-item-a">
+          <span class="bar-label-a">决策判断</span>
+          <div class="bar-track-a">
+            <div class="bar-fill-a" style="width:67%; background:linear-gradient(90deg,#6fa87c,#8bc49a)">
+              <div class="bar-dot-a" style="background:#6fa87c">4</div>
+            </div>
+          </div>
+        </div>
+        <div class="bar-item-a">
+          <span class="bar-label-a">情绪调节</span>
+          <div class="bar-track-a">
+            <div class="bar-fill-a" style="width:50%; background:linear-gradient(90deg,#e8a850,#f0be70)">
+              <div class="bar-dot-a" style="background:#e8a850">3</div>
+            </div>
+          </div>
+        </div>
+        <div class="bar-item-a">
+          <span class="bar-label-a">学习方法</span>
+          <div class="bar-track-a">
+            <div class="bar-fill-a" style="width:50%; background:linear-gradient(90deg,#5c7aa8,#80a0c8)">
+              <div class="bar-dot-a" style="background:#5c7aa8">3</div>
+            </div>
+          </div>
+        </div>
+        <div class="bar-item-a">
+          <span class="bar-label-a">亲密关系</span>
+          <div class="bar-track-a">
+            <div class="bar-fill-a" style="width:33%; background:linear-gradient(90deg,#e85d5d,#f08080)">
+              <div class="bar-dot-a" style="background:#e85d5d">2</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-row-a">
+        <span class="chat-item-a">💬 <b>8</b> 次对话</span>
+        <span class="chat-item-a">📝 <b>142</b> 条消息</span>
+      </div>
+
+      <div class="divider"></div>
+      <div class="list-item"><span class="list-item-icon">📦</span>经验包<span class="list-item-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item"><span class="list-item-icon">💬</span>对话人格<span class="list-item-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item"><span class="list-item-icon">⚙</span>设置<span class="list-item-arrow">›</span></div>
+      <div class="divider"></div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span>首页</div>
+      <div class="tab-item"><span class="tab-icon">💬</span>对话</div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span>朋友</div>
+      <div class="tab-item active"><span class="tab-icon active">👤</span><span style="color:#4a7c59">我的</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ V5-B ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">V5-B · 卡片式</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="scroll">
+      <div class="profile-row">
+        <div class="avatar">年</div>
+        <div><div class="nickname">年糕</div><div class="edit-link">编辑个人信息 ›</div></div>
+      </div>
+
+      <div class="cards-row-b">
+        <div class="card-b card-b1">
+          <span class="card-icon-b">📝</span>
+          <span class="card-num-b card-num-b1">12</span>
+          <span class="card-label-b">发布经验</span>
+        </div>
+        <div class="card-b card-b2">
+          <span class="card-icon-b">♥</span>
+          <span class="card-num-b card-num-b2">47</span>
+          <span class="card-label-b">获得点赞</span>
+        </div>
+        <div class="card-b card-b3">
+          <span class="card-icon-b">★</span>
+          <span class="card-num-b card-num-b3">23</span>
+          <span class="card-label-b">收藏经验</span>
+        </div>
+      </div>
+
+      <div class="domain-segments-b">
+        <div style="font-size:11px;color:#b5b0a8;margin-bottom:8px;font-weight:500">领域分布</div>
+        <div class="seg-row-b">
+          <span class="seg-label-b">认知升级</span>
+          <div class="seg-bars-b">
+            <div class="seg-b" style="flex:6;background:#4a7c59"><span class="seg-tag-b">6</span></div>
+            <div class="seg-b" style="flex:4;background:#6fa87c"><span class="seg-tag-b">4</span></div>
+            <div class="seg-b" style="flex:3;background:#a8d5b5"></div>
+          </div>
+        </div>
+        <div class="seg-row-b">
+          <span class="seg-label-b">生活智慧</span>
+          <div class="seg-bars-b">
+            <div class="seg-b" style="flex:3;background:#e8a850"><span class="seg-tag-b">3</span></div>
+            <div class="seg-b" style="flex:3;background:#f0c070"></div>
+            <div class="seg-b" style="flex:2;background:#fce0c0"></div>
+          </div>
+        </div>
+        <div class="seg-row-b">
+          <span class="seg-label-b">人际关系</span>
+          <div class="seg-bars-b">
+            <div class="seg-b" style="flex:2;background:#e85d5d"><span class="seg-tag-b">2</span></div>
+          </div>
+        </div>
+        <div class="seg-row-b">
+          <span class="seg-label-b">职场成长</span>
+          <div class="seg-bars-b">
+            <div class="seg-b" style="flex:2;background:#5c7aa8"><span class="seg-tag-b">2</span></div>
+            <div class="seg-b" style="flex:1;background:#8ab0d8"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-pills-b">
+        <span class="pill-b pill-b1">💬 8 次对话</span>
+        <span class="pill-b pill-b2">📝 142 条消息</span>
+      </div>
+
+      <div class="divider"></div>
+      <div class="list-item"><span class="list-item-icon">📦</span>经验包<span class="list-item-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item"><span class="list-item-icon">💬</span>对话人格<span class="list-item-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item"><span class="list-item-icon">⚙</span>设置<span class="list-item-arrow">›</span></div>
+      <div class="divider"></div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span>首页</div>
+      <div class="tab-item"><span class="tab-icon">💬</span>对话</div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span>朋友</div>
+      <div class="tab-item active"><span class="tab-icon active">👤</span><span style="color:#4a7c59">我的</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ V5-C ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">V5-C · 精简式</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="scroll">
+      <div class="profile-row">
+        <div class="avatar">年</div>
+        <div><div class="nickname">年糕</div><div class="edit-link">编辑个人信息 ›</div></div>
+      </div>
+
+      <div class="stats-line-c">
+        <div class="stat-block-c"><span class="stat-val-c">12</span><span class="stat-unit-c">条发布</span></div>
+        <div class="stat-block-c"><span class="stat-val-c">47</span><span class="stat-unit-c">次点赞</span></div>
+        <div class="stat-block-c"><span class="stat-val-c">23</span><span class="stat-unit-c">条收藏</span></div>
+      </div>
+
+      <div class="domain-cloud-c">
+        <div class="cloud-title-c">领域分布</div>
+        <div class="cloud-c">
+          <div class="domain-bubble-c bubble-l1">
+            <span class="bubble-name-c">思维模型</span>
+            <span class="bubble-count-c">6</span>
+            <span class="bubble-sub-c">认知升级</span>
+          </div>
+          <div class="domain-bubble-c bubble-l1">
+            <span class="bubble-name-c">决策判断</span>
+            <span class="bubble-count-c">4</span>
+            <span class="bubble-sub-c">认知升级</span>
+          </div>
+          <div class="domain-bubble-c bubble-l2">
+            <span class="bubble-name-c">情绪调节</span>
+            <span class="bubble-count-c">3</span>
+            <span class="bubble-sub-c">情感</span>
+          </div>
+          <div class="domain-bubble-c bubble-l3">
+            <span class="bubble-name-c">学习方法</span>
+            <span class="bubble-count-c">3</span>
+            <span class="bubble-sub-c">认知升级</span>
+          </div>
+          <div class="domain-bubble-c bubble-l4">
+            <span class="bubble-name-c">亲密关系</span>
+            <span class="bubble-count-c">2</span>
+            <span class="bubble-sub-c">人际关系</span>
+          </div>
+          <div class="domain-bubble-c bubble-l4">
+            <span class="bubble-name-c">职业规划</span>
+            <span class="bubble-count-c">2</span>
+            <span class="bubble-sub-c">职场成长</span>
+          </div>
+          <div class="domain-bubble-c bubble-l4">
+            <span class="bubble-name-c">副业创业</span>
+            <span class="bubble-count-c">1</span>
+            <span class="bubble-sub-c">职场成长</span>
+          </div>
+          <div class="domain-bubble-c bubble-l4">
+            <span class="bubble-name-c">理财规划</span>
+            <span class="bubble-count-c">1</span>
+            <span class="bubble-sub-c">生活智慧</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-inline-c">
+        <span class="chat-dot-c">💬 对话中 <span>8</span> 次</span>
+        <span class="chat-dot-c">📝 消息 <span>142</span> 条</span>
+      </div>
+
+      <div class="divider"></div>
+      <div class="list-item"><span class="list-item-icon">📦</span>经验包<span class="list-item-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item"><span class="list-item-icon">💬</span>对话人格<span class="list-item-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item"><span class="list-item-icon">⚙</span>设置<span class="list-item-arrow">›</span></div>
+      <div class="divider"></div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span>首页</div>
+      <div class="tab-item"><span class="tab-icon">💬</span>对话</div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span>朋友</div>
+      <div class="tab-item active"><span class="tab-icon active">👤</span><span style="color:#4a7c59">我的</span></div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

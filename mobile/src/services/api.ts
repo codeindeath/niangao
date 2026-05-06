@@ -214,3 +214,37 @@ export async function refreshToken(
 }
 
 export {ApiError} from './config';
+
+// ============================================================
+// 统计
+// ============================================================
+export interface DomainCount { domain: string; count: number; }
+export interface UserStats {
+  published: { count: number; liked_by_others: number; bookmarked_by_others: number };
+  published_dist: {
+    published: DomainCount[];
+    liked_by_others: DomainCount[] | null;
+    bookmarked_by_others: DomainCount[] | null;
+  };
+  interactions: { viewed: number; liked: number; bookmarked: number };
+  interactions_dist: {
+    viewed: DomainCount[] | null;
+    liked: DomainCount[] | null;
+    bookmarked: DomainCount[] | null;
+  };
+  chat: { conversations: number; messages: number };
+}
+
+export async function fetchUserStats(): Promise<UserStats> {
+  return apiGet('/api/v1/user/stats');
+}
+
+const _viewedIds = new Set<string>();
+
+export function recordView(experienceId: string): void {
+  if (_viewedIds.has(experienceId)) return;
+  _viewedIds.add(experienceId);
+  apiPost(`/api/v1/experiences/${experienceId}/view`, {}).catch((err: any) => {
+    console.warn('[recordView] fail:', experienceId.slice(0, 8), err?.message);
+  });
+}

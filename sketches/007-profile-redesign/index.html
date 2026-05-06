@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>【我的】页设计稿 - 3版变体</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  background: #1a1a1a; 
+  display: flex; 
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+.container { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+.phone {
+  width: 375px; height: 700px;
+  background: #f5f5f5;
+  border-radius: 40px; overflow: hidden;
+  position: relative; display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+.phone-label {
+  text-align: center; color: #999; font-size: 13px; margin-bottom: 8px; font-weight: 500;
+}
+.phone-wrapper { display: flex; flex-direction: column; align-items: center; }
+
+/* ═══ Shared: Status Bar ═══ */
+.status-bar {
+  height: 44px; background: #f5f5f5;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 24px; font-size: 12px; font-weight: 600; color: #1a1a1a;
+}
+
+/* ═══ Shared: Bottom Tab ═══ */
+.tab-bar {
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 6px 0 10px; background: rgba(250,248,245,0.93);
+  border-top: 0.5px solid #e8e4df; height: 80px;
+  position: absolute; bottom: 0; left: 0; right: 0;
+}
+.tab-item { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: #9b9487; }
+.tab-item.active { color: #4a7c59; }
+.tab-icon { font-size: 20px; opacity: 0.5; }
+.tab-icon.active { opacity: 1; }
+.create-btn {
+  width: 48px; height: 48px; border-radius: 24px; background: #4a7c59;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 8px rgba(74,124,89,0.35);
+}
+.create-btn span { color: #fff; font-size: 24px; font-weight: 600; line-height: 28px; }
+
+/* ═══ V1: Classic WeChat Style ═══ */
+.profile-v1 { background: #fff; padding: 36px 0 24px; display: flex; flex-direction: column; align-items: center; }
+.avatar-v1 { width: 72px; height: 72px; border-radius: 8px; background: linear-gradient(135deg, #4a7c59, #6fa87c); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+.avatar-v1-text { font-size: 30px; color: #fff; font-weight: 700; }
+.nickname-v1 { font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+.id-v1 { font-size: 13px; color: #9b9487; margin-bottom: 12px; }
+.edit-row-v1 { display: flex; gap: 16px; }
+.edit-btn-v1 { font-size: 13px; color: #4a7c59; font-weight: 500; text-decoration: none; }
+
+.section-v1 { margin-top: 8px; background: #fff; }
+.section-item-v1 {
+  display: flex; align-items: center; padding: 14px 16px;
+  border-bottom: 0.5px solid #f0ece7; cursor: pointer;
+}
+.section-item-v1:last-child { border-bottom: none; }
+.item-icon-v1 { width: 24px; height: 24px; border-radius: 4px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.item-icon-pkg { background: #fef5e7; color: #e8a850; }
+.item-icon-settings { background: #e8e4df; color: #5c5548; }
+.item-label-v1 { flex: 1; font-size: 15px; color: #2a2722; }
+.item-arrow-v1 { font-size: 16px; color: #c5bfb3; }
+
+.logout-v1 {
+  margin: 16px; padding: 14px; background: #fff; border-radius: 8px;
+  text-align: center; font-size: 15px; color: #c44; font-weight: 600; cursor: pointer;
+}
+
+/* ═══ V2: Modern Card Style ═══ */
+.scroll-v2 { flex: 1; padding: 12px 16px; overflow-y: auto; }
+.profile-card-v2 {
+  background: #fff; border-radius: 16px; padding: 28px 0 20px;
+  display: flex; flex-direction: column; align-items: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04); margin-bottom: 16px;
+}
+.avatar-v2 { width: 80px; height: 80px; border-radius: 40px; background: linear-gradient(135deg, #4a7c59, #6fa87c); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(74,124,89,0.2); }
+.avatar-v2-text { font-size: 32px; color: #fff; font-weight: 700; }
+.nickname-v2 { font-size: 20px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
+.bio-v2 { font-size: 13px; color: #9b9487; margin-bottom: 12px; }
+.edit-pill-v2 {
+  padding: 6px 20px; border-radius: 16px; background: #eaf2e8;
+  font-size: 13px; color: #4a7c59; font-weight: 600; cursor: pointer;
+}
+
+.section-card-v2 {
+  background: #fff; border-radius: 16px; overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04); margin-bottom: 12px;
+}
+.section-title-v2 { font-size: 12px; color: #9b9487; padding: 12px 16px 4px; font-weight: 600; }
+.item-v2 { display: flex; align-items: center; padding: 14px 16px; cursor: pointer; }
+.item-v2:last-child { padding-bottom: 16px; }
+.item-icon-wrap-v2 { width: 36px; height: 36px; border-radius: 10px; margin-right: 12px; display: flex; align-items: center; justify-content: center; }
+.icon-pkg-v2 { background: #fef5e7; }
+.icon-settings-v2 { background: #e8e4df; }
+.item-label-v2 { flex: 1; font-size: 15px; color: #2a2722; }
+.item-arrow-v2 { font-size: 16px; color: #c5bfb3; }
+.logout-v2 {
+  padding: 14px; background: #fff; border-radius: 16px; text-align: center;
+  font-size: 15px; color: #c44; font-weight: 600; cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+
+/* ═══ V3: Minimal List Style ═══ */
+.profile-v3 { background: #faf8f5; padding: 40px 24px 20px; display: flex; align-items: center; }
+.avatar-v3 { width: 68px; height: 68px; border-radius: 34px; background: linear-gradient(135deg, #4a7c59, #6fa87c); display: flex; align-items: center; justify-content: center; margin-right: 16px; flex-shrink: 0; }
+.avatar-v3-text { font-size: 28px; color: #fff; font-weight: 700; }
+.profile-info-v3 { flex: 1; }
+.nickname-v3 { font-size: 20px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
+.subtitle-v3 { font-size: 13px; color: #9b9487; }
+.edit-link-v3 { font-size: 14px; color: #4a7c59; font-weight: 500; margin-top: 6px; cursor: pointer; }
+
+.divider-v3 { height: 8px; background: #f5f5f5; }
+.list-item-v3 {
+  display: flex; align-items: center; padding: 16px 24px;
+  background: #faf8f5; border-bottom: 0.5px solid #f0ece7; cursor: pointer;
+}
+.list-icon-v3 { width: 22px; height: 22px; margin-right: 14px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.list-label-v3 { flex: 1; font-size: 16px; color: #2a2722; }
+.list-arrow-v3 { font-size: 16px; color: #c5bfb3; }
+.logout-v3 {
+  margin: 12px 24px; padding: 14px; text-align: center;
+  font-size: 16px; color: #c44; font-weight: 500; cursor: pointer;
+  background: #faf8f5; border-radius: 8px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ═══ V1: Classic WeChat ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">方案A · 微信经典</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div style="flex:1; overflow-y:auto; background:#f5f5f5">
+      <div class="profile-v1">
+        <div class="avatar-v1"><span class="avatar-v1-text">年</span></div>
+        <div class="nickname-v1">年糕</div>
+        <div class="id-v1">ID: niangao_user</div>
+        <div class="edit-row-v1">
+          <span class="edit-btn-v1">编辑个人信息 ›</span>
+        </div>
+      </div>
+
+      <div class="section-v1" style="margin-top:12px">
+        <div class="section-item-v1">
+          <div class="item-icon-v1 item-icon-pkg">📦</div>
+          <span class="item-label-v1">经验包</span>
+          <span class="item-arrow-v1">›</span>
+        </div>
+        <div class="section-item-v1">
+          <div class="item-icon-v1 item-icon-settings">⚙</div>
+          <span class="item-label-v1">设置</span>
+          <span class="item-arrow-v1">›</span>
+        </div>
+      </div>
+
+      <div class="logout-v1">退出登录</div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span><span>首页</span></div>
+      <div class="tab-item"><span class="tab-icon">💬</span><span>对话</span></div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span><span>朋友</span></div>
+      <div class="tab-item active"><span class="tab-icon active">👤</span><span style="color:#4a7c59">我的</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ V2: Modern Card ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">方案B · 现代卡片</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="scroll-v2">
+      <div class="profile-card-v2">
+        <div class="avatar-v2"><span class="avatar-v2-text">年</span></div>
+        <div class="nickname-v2">年糕</div>
+        <div class="bio-v2">专注个人成长</div>
+        <span class="edit-pill-v2">编辑资料</span>
+      </div>
+
+      <div class="section-card-v2">
+        <div class="section-title-v2">服务</div>
+        <div class="item-v2">
+          <div class="item-icon-wrap-v2 icon-pkg-v2"><span style="font-size:18px">📦</span></div>
+          <span class="item-label-v2">经验包</span>
+          <span class="item-arrow-v2">›</span>
+        </div>
+        <div class="item-v2" style="border-top:0.5px solid #f0ece7; padding-top:14px">
+          <div class="item-icon-wrap-v2 icon-settings-v2"><span style="font-size:18px">⚙</span></div>
+          <span class="item-label-v2">设置</span>
+          <span class="item-arrow-v2">›</span>
+        </div>
+      </div>
+
+      <div class="logout-v2">退出登录</div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span><span>首页</span></div>
+      <div class="tab-item"><span class="tab-icon">💬</span><span>对话</span></div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span><span>朋友</span></div>
+      <div class="tab-item active"><span class="tab-icon active">👤</span><span style="color:#4a7c59">我的</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ V3: Minimal List ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">方案C · 极简列表</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div style="flex:1; overflow-y:auto; background:#faf8f5">
+      <div class="profile-v3">
+        <div class="avatar-v3"><span class="avatar-v3-text">年</span></div>
+        <div class="profile-info-v3">
+          <div class="nickname-v3">年糕</div>
+          <div class="subtitle-v3">专注个人成长</div>
+          <div class="edit-link-v3">编辑个人信息 ›</div>
+        </div>
+      </div>
+
+      <div class="divider-v3"></div>
+      <div class="list-item-v3">
+        <div class="list-icon-v3">📦</div>
+        <span class="list-label-v3">经验包</span>
+        <span class="list-arrow-v3">›</span>
+      </div>
+      <div class="divider-v3"></div>
+      <div class="list-item-v3">
+        <div class="list-icon-v3">⚙</div>
+        <span class="list-label-v3">设置</span>
+        <span class="list-arrow-v3">›</span>
+      </div>
+      <div class="divider-v3"></div>
+
+      <div class="logout-v3">退出登录</div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span><span>首页</span></div>
+      <div class="tab-item"><span class="tab-icon">💬</span><span>对话</span></div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span><span>朋友</span></div>
+      <div class="tab-item active"><span class="tab-icon active">👤</span><span style="color:#4a7c59">我的</span></div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

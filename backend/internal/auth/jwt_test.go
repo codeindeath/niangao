@@ -13,7 +13,7 @@ func TestGenerateToken(t *testing.T) {
 	openID := "wx_openid_abc"
 	nickname := "测试用户"
 
-	token, err := GenerateToken(secret, userID, openID, nickname)
+	token, err := GenerateToken(secret, userID, openID, nickname, false)
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestParseToken(t *testing.T) {
 	openID := "wx_openid_xyz"
 	nickname := "微信用户"
 
-	token, err := GenerateToken(secret, userID, openID, nickname)
+	token, err := GenerateToken(secret, userID, openID, nickname, false)
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestParseTokenInvalidSecret(t *testing.T) {
 	secret := "test-secret-key-min-32-chars!!"
 	userID := "usr_789"
 
-	token, err := GenerateToken(secret, userID, "wx_abc", "test")
+	token, err := GenerateToken(secret, userID, "wx_abc", "test", false)
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestGenerateRefreshToken(t *testing.T) {
 
 func TestTokenExpiry(t *testing.T) {
 	secret := "test-secret-key-min-32-chars!!"
-	token, err := GenerateToken(secret, "user", "wx", "name")
+	token, err := GenerateToken(secret, "user", "wx", "name", false)
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestTokenExpiry(t *testing.T) {
 
 func TestSigningMethodIsHS256(t *testing.T) {
 	secret := "test-secret-key-min-32-chars!!"
-	token, err := GenerateToken(secret, "user", "wx", "name")
+	token, err := GenerateToken(secret, "user", "wx", "name", false)
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}

@@ -80,7 +80,20 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 
 	var req model.CreateExperienceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "请填写完整：经验内容（10-100字）、领域和子领域"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "请填写完整：领域和子领域"})
+		return
+	}
+
+	// Content validation with rune count (Chinese chars)
+	contentRunes := len([]rune(req.Content))
+	if contentRunes < 10 || contentRunes > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "经验内容需 10-100 字"})
+		return
+	}
+
+	// Interpretation validation with rune count
+	if req.Interpretation != "" && len([]rune(req.Interpretation)) > 300 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "经验解读不超过 300 字"})
 		return
 	}
 
@@ -233,7 +246,19 @@ func (h *ExperienceHandler) Update(c *gin.Context) {
 
 	var req model.CreateExperienceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "请填写完整：经验内容（10-100字）、领域和子领域"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "请填写完整：领域和子领域"})
+		return
+	}
+
+	contentRunes := len([]rune(req.Content))
+	if contentRunes < 10 || contentRunes > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "经验内容需 10-100 字"})
+		return
+	}
+
+	// Interpretation validation with rune count
+	if req.Interpretation != "" && len([]rune(req.Interpretation)) > 300 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "经验解读不超过 300 字"})
 		return
 	}
 

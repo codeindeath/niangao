@@ -87,7 +87,7 @@ func (h *AuthHandler) AppleLogin(c *gin.Context) {
 	}
 
 	// 4. 签发 JWT
-	token, err := auth.GenerateToken(h.jwtSecret, userID, claims.Subject, nickname)
+	token, err := auth.GenerateToken(h.jwtSecret, userID, claims.Subject, nickname, false)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成 token 失败"})
 		return
@@ -159,7 +159,7 @@ func (h *AuthHandler) DevLogin(c *gin.Context) {
 		return
 	}
 
-	token, err := auth.GenerateToken(h.jwtSecret, userID, devUserID, nickname)
+	token, err := auth.GenerateToken(h.jwtSecret, userID, devUserID, nickname, false)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成 token 失败"})
 		return
@@ -228,7 +228,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	}
 
 	// 签发新 JWT
-	token, err := auth.GenerateToken(h.jwtSecret, userID, appleUserID, nickname)
+	token, err := auth.GenerateToken(h.jwtSecret, userID, appleUserID, nickname, false)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成 token 失败"})
 		return

@@ -42,6 +42,7 @@ func main() {
 	likeRepo := repository.NewLikeRepo(db)
 	bookmarkRepo := repository.NewBookmarkRepo(db)
 	convRepo := repository.NewConversationRepo(db)
+	statsRepo := repository.NewStatsRepo(db)
 
 	// Dev mode flag
 	devMode := cfg.Env != "production"
@@ -69,6 +70,37 @@ func main() {
 		handler.RegisterConversationRoutes(v1, convRepo)
 		// 用户
 		handler.RegisterUserRoutes(v1, db)
+		// 统计
+		handler.RegisterStatsRoutes(v1, statsRepo)
+
+		// Admin routes (require admin permission)
+		admin := v1.Group("/admin", middleware.RequireAdmin(db))
+		{
+			// Dashboard
+			handler.RegisterAdminDashboardRoutes(admin, db)
+			// Review
+			handler.RegisterAdminReviewRoutes(admin, db)
+			// Content
+			handler.RegisterAdminContentRoutes(admin, expRepo, db)
+			// Platform
+			handler.RegisterAdminPlatformRoutes(admin, db, expRepo)
+			// Users
+			handler.RegisterAdminUserRoutes(admin, db)
+			// Domains
+			handler.RegisterAdminDomainRoutes(admin, db)
+		// Stats
+		handler.RegisterAdminStatsRoutes(admin, db)
+		// AI
+		handler.RegisterAdminAIRoutes(admin, db)
+		// Config
+			handler.RegisterAdminConfigRoutes(admin, db)
+			// Logs
+			handler.RegisterAdminLogRoutes(admin, db)
+			// Export
+			handler.RegisterAdminExportRoutes(admin, db)
+		}
+		// Admin auth (login - no RequireAdmin needed)
+		handler.RegisterAdminAuthRoutes(v1, db, cfg.JWTSecret, devMode)
 	}
 
 	// Server

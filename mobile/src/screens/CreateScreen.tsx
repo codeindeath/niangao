@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {createExperience, generateInterpretation, ApiError} from '../services/api';
+import {triggerTabRefresh} from './HomeScreen';
 
 const PRIMARY_DOMAINS: {key: string; label: string}[] = [
   {key: 'career', label: '职场成长'},
@@ -116,7 +117,10 @@ export default function CreateScreen({navigation}: any) {
         interpretation.trim() || undefined,
       );
       Alert.alert('发布成功', '你的经验已发布', [
-        {text: '好的', onPress: () => navigation.goBack()},
+        {text: '好的', onPress: () => {
+          triggerTabRefresh('my');
+          navigation.goBack();
+        }},
       ]);
     } catch (e: any) {
       if (e instanceof ApiError && e.status === 401) {
@@ -129,7 +133,13 @@ export default function CreateScreen({navigation}: any) {
     }
   };
 
-  const isPublishReady = content.trim() && domain && subDomain;
+  const getBottomHint = () => {
+    if (!content.trim()) return '请输入经验内容';
+    if (!domain) return '请选择经验领域';
+    if (!subDomain) return '请选择子领域';
+    return '内容就绪，可以发布';
+  };
+  const isPublishReady = !!(content.trim() && domain && subDomain);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -250,7 +260,7 @@ export default function CreateScreen({navigation}: any) {
       {/* Bottom bar */}
       <View style={styles.bottomBar}>
         <Text style={styles.bottomHint}>
-          {isPublishReady ? '内容就绪，可以发布' : '请填写经验和选择领域'}
+          {getBottomHint()}
         </Text>
         <TouchableOpacity
           style={[styles.submitButton, (!isPublishReady || submitting) && styles.submitButtonDisabled]}

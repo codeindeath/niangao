@@ -98,7 +98,7 @@ export default function DetailScreen({route, navigation}: any) {
   const isPlatform = exp.source_type === 'platform';
   const isRejected = exp.review_status === 'rejected';
   const displayName = exp.creator_name || exp.author_name || '匿名';
-  const domainLabel = SUB_DOMAIN_LABELS[exp.sub_domain] || DOMAIN_LABELS[exp.domain] || exp.domain;
+  const domainLabel = (exp.sub_domain && SUB_DOMAIN_LABELS[exp.sub_domain]) || DOMAIN_LABELS[exp.domain] || exp.domain;
   const showScore = exp.quality_score != null && exp.quality_score > 0;
   const stars = showScore ? Math.round(exp.quality_score! / 2) : 0;
 

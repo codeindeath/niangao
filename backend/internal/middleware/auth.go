@@ -44,6 +44,19 @@ func AuthMiddleware(jwtSecret string, db *pgxpool.Pool) gin.HandlerFunc {
 			}
 		}
 
+		// Check if user is disabled
+		if db != nil {
+			var deleted bool
+			err := db.QueryRow(c.Request.Context(),
+				`SELECT deleted_at IS NOT NULL FROM users WHERE id=$1`, claims.UserID,
+			).Scan(&deleted)
+			if err == nil && deleted {
+				// User disabled — don't set identity so RequireAuth will 401
+				c.Next()
+				return
+			}
+		}
+
 		c.Set("user_id", claims.UserID)
 		c.Set("open_id", claims.OpenID)
 		c.Set("nickname", claims.Nickname)

@@ -190,10 +190,10 @@ type Experience struct {
 }
 
 type CreateExperienceRequest struct {
-	Content        string    `json:"content" binding:"required,min=10,max=100"`
+	Content        string    `json:"content" binding:"required"`
 	Domain         Domain    `json:"domain" binding:"required"`
 	SubDomain      SubDomain `json:"sub_domain" binding:"required"`
-	Interpretation string    `json:"interpretation" binding:"max=500"`
+	Interpretation string    `json:"interpretation"`
 	IsPrivate      bool      `json:"is_private"`
 }
 

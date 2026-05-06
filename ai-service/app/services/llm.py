@@ -51,7 +51,7 @@ class LLMService:
 经验内容：{content}
 领域：{domain}
 
-按此格式输出（500字以内）：
+按此格式输出（300字以内）：
 - 背景：这条经验为什么重要
 - 如何执行：具体操作步骤
 - 适用场景：什么时候最有用
@@ -62,6 +62,11 @@ class LLMService:
             model=settings.deepseek_model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.5,
-            max_tokens=600,
+            max_tokens=400,  # ~280-300 Chinese chars + format overhead
         )
-        return response.choices[0].message.content
+        result = response.choices[0].message.content
+        # 硬截断：确保不超过 300 字
+        runes = list(result)
+        if len(runes) > 300:
+            result = ''.join(runes[:300])
+        return result

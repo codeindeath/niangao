@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年糕卡片顶部 UI 三方案对比</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+    background: #e8e4db;
+    display: flex; gap: 20px; padding: 40px;
+    justify-content: center; align-items: flex-start;
+    min-height: 100vh;
+  }
+  .mockup {
+    width: 300px;
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    background: #faf8f5;
+  }
+  .mockup-label {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #4a7c59;
+    padding: 12px 0 4px;
+    background: #faf8f5;
+    letter-spacing: 1px;
+  }
+  /* Status bar */
+  .status-bar {
+    height: 36px; background: #faf8f5;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 20px; font-size: 11px; color: #1a1a1a; font-weight: 600;
+  }
+  /* Top tabs */
+  .top-tabs {
+    height: 44px; display: flex; justify-content: space-around; align-items: center;
+    background: transparent; padding: 0 24px;
+  }
+  .tab { font-size: 14px; font-weight: 500; color: #b5b0a8; }
+  .tab.active { color: #1a1a1a; font-weight: 700; position: relative; }
+  .tab.active::after {
+    content: ''; position: absolute; bottom: -6px; left: 50%;
+    transform: translateX(-50%);
+    width: 20px; height: 3px; background: #4a7c59; border-radius: 2px;
+  }
+  /* Card */
+  .card {
+    margin: 0; height: 420px; background: #faf8f5;
+    position: relative; display: flex; flex-direction: column;
+  }
+  .card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 24px 8px;
+  }
+  .domain-tag {
+    background: #eaf2e8; padding: 4px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; color: #4a7c59;
+  }
+  .flip-hint {
+    font-size: 11px; color: #c4c0b8; font-weight: 500;
+  }
+  .card-body {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 0 32px 80px;
+  }
+  .quote-mark {
+    font-size: 60px; color: #4a7c59; opacity: 0.12;
+    font-family: Georgia, serif; line-height: 1; margin-bottom: -12px;
+  }
+  .content-text {
+    font-size: 22px; font-weight: 700; line-height: 1.5;
+    color: #1a1a1a; text-align: center;
+  }
+  .divider { width: 36px; height: 2px; background: #d4e0d6; margin: 18px 0; }
+  .author {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .avatar {
+    width: 28px; height: 28px; border-radius: 14px;
+    background: #eaf2e8; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #4a7c59;
+  }
+  .author-name { font-size: 13px; font-weight: 600; color: #4a4a4a; }
+  .bottom-bar {
+    position: absolute; bottom: 40px; left: 0; right: 0;
+    display: flex; justify-content: center; gap: 10px;
+  }
+  .btn {
+    padding: 6px 14px; border-radius: 16px; background: #fff;
+    border: 0.5px solid #f0ece7; font-size: 12px; color: #9a9a9a;
+    font-weight: 500; cursor: default;
+  }
+
+  /* ── 方案A: 标签融入内容流 ── */
+  .vA .card-body-flow {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 0 32px 80px;
+  }
+  .vA .meta-top {
+    display: flex; gap: 8px; margin-bottom: 16px;
+  }
+  .vA .quote-mark { margin-bottom: -12px; }
+
+  /* ── 方案B: 标签下沉底部 ── */
+  .vB .card-body { padding-bottom: 100px; }
+  .vB .bottom-meta {
+    position: absolute; bottom: 80px; left: 24px; right: 24px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  /* ── 方案C: 浮动胶囊 ── */
+  .vC .floating-capsule {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; align-items: center;
+    background: rgba(255,255,255,0.85); backdrop-filter: blur(8px);
+    padding: 5px 14px; border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    z-index: 5;
+  }
+  .vC .capsule-dot {
+    width: 6px; height: 6px; border-radius: 3px; background: #4a7c59;
+  }
+  .vC .capsule-label {
+    font-size: 11px; font-weight: 600; color: #4a7c59;
+  }
+  .vC .capsule-flip {
+    font-size: 10px; color: #c4c0b8;
+    border-left: 1px solid #e8e4db; padding-left: 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════ 方案A: 标签融入内容流 ═══════ -->
+<div class="mockup vA">
+  <div class="mockup-label">方案A · 融入内容流</div>
+  <div class="status-bar"><span>9:01</span><span>●●●●○</span></div>
+  <div class="top-tabs">
+    <span class="tab">推荐</span><span class="tab active">我的</span><span class="tab">收藏</span>
+  </div>
+  <div class="card">
+    <div class="card-body-flow">
+      <div class="meta-top">
+        <div class="domain-tag">职场成长</div>
+        <div class="domain-tag" style="background:#4a7c59;color:#fff">官</div>
+      </div>
+      <div class="flip-hint" style="margin-bottom:12px">点击翻转 ↻</div>
+      <div class="quote-mark">"</div>
+      <div class="content-text">遇到问题回到最基础的物理学原理去思考</div>
+      <div class="divider"></div>
+      <div class="author">
+        <div class="avatar">马</div>
+        <div class="author-name">马斯克</div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="btn">❤️ 128</div>
+      <div class="btn">🔖 收藏</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ 方案B: 标签下沉底部 ═══════ -->
+<div class="mockup vB">
+  <div class="mockup-label">方案B · 标签沉底</div>
+  <div class="status-bar"><span>9:01</span><span>●●●●○</span></div>
+  <div class="top-tabs">
+    <span class="tab">推荐</span><span class="tab active">我的</span><span class="tab">收藏</span>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div class="quote-mark">"</div>
+      <div class="content-text">遇到问题回到最基础的物理学原理去思考</div>
+      <div class="divider"></div>
+      <div class="author">
+        <div class="avatar">马</div>
+        <div class="author-name">马斯克</div>
+      </div>
+    </div>
+    <div class="bottom-meta">
+      <div class="domain-tag">职场成长</div>
+      <div class="flip-hint">点击翻转 ↻</div>
+    </div>
+    <div class="bottom-bar">
+      <div class="btn">❤️ 128</div>
+      <div class="btn">🔖 收藏</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ 方案C: 浮动胶囊 ═══════ -->
+<div class="mockup vC">
+  <div class="mockup-label">方案C · 浮动胶囊</div>
+  <div class="status-bar"><span>9:01</span><span>●●●●○</span></div>
+  <div class="top-tabs">
+    <span class="tab">推荐</span><span class="tab active">我的</span><span class="tab">收藏</span>
+  </div>
+  <div class="card">
+    <div class="floating-capsule">
+      <div class="capsule-dot"></div>
+      <span class="capsule-label">职场成长</span>
+      <span class="capsule-flip">翻转 ↻</span>
+    </div>
+    <div class="card-body">
+      <div class="quote-mark">"</div>
+      <div class="content-text">遇到问题回到最基础的物理学原理去思考</div>
+      <div class="divider"></div>
+      <div class="author">
+        <div class="avatar">马</div>
+        <div class="author-name">马斯克</div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="btn">❤️ 128</div>
+      <div class="btn">🔖 收藏</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

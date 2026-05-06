@@ -7,10 +7,10 @@ import {
   ActivityIndicator,
   Dimensions,
   Alert,
-  Animated,
   StyleSheet,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {
   fetchRecommendations,
   fetchExperiences,
@@ -22,6 +22,12 @@ import {
   deleteExperience,
 } from '../services/api';
 import {getToken, getUserInfo} from '../services/config';
+import FlipCard from '../components/ExperienceCard';
+import {recordView} from '../services/api';
+
+// Module-level tab refresh trigger (called from CreateScreen after publish)
+let _pendingTabRefresh: string | null = null;
+export function triggerTabRefresh(tab: string) { _pendingTabRefresh = tab; }
 
 // Tab bar height (React Navigation bottom tab + safe area ≈ 80px)
 const TAB_BAR_ESTIMATE = 80;
@@ -48,182 +54,11 @@ const SUB_LABELS: Record<string, string> = {
 };
 
 // ══════════════════════════════════════════
-// FlipCard — 3D 翻转卡片组件
-// ══════════════════════════════════════════
-function FlipCard({item, currentUserId, cardHeight, contentTop, onLike, onBookmark, onDelete}: {
-  item: Experience;
-  currentUserId: string | null;
-  cardHeight: number;
-  contentTop: number; // 内容区起始位置（跳过顶部 tab bar 覆盖区）
-  onLike: (id: string) => void;
-  onBookmark: (id: string) => void;
-  onDelete: (id: string) => void;
-}) {
-  const flipAnim = useRef(new Animated.Value(0)).current;
-  const [isFlipped, setIsFlipped] = useState(false);
-
-  const isPlatform = item.source_type === 'platform';
-  const domainLabel = SUB_LABELS[item.sub_domain] || DOMAIN_LABELS[item.domain] || item.domain;
-  const displayName = item.creator_name || item.author_name || '匿名';
-  const showScore = item.quality_score != null && item.quality_score > 0;
-  const stars = showScore ? Math.round(item.quality_score! / 2) : 0;
-
-  const handleFlip = () => {
-    if (!item.interpretation) return; // 没有解读不能翻
-    const toValue = isFlipped ? 0 : 1;
-    Animated.spring(flipAnim, {
-      toValue,
-      friction: 8,
-      tension: 60,
-      useNativeDriver: true,
-    }).start();
-    setIsFlipped(!isFlipped);
-  };
-
-  const frontInterpolate = flipAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '180deg'],
-  });
-  const backInterpolate = flipAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['180deg', '360deg'],
-  });
-
-  const frontOpacity = flipAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [1, 0, 0],
-  });
-  const backOpacity = flipAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0, 1],
-  });
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.95}
-      onPress={handleFlip}
-      style={[s.cardPage, {height: cardHeight}]}
-    >
-      {/* ═══ 正面 — 经验内容 ═══ */}
-      <Animated.View
-        style={[
-          s.face,
-          {
-            transform: [{perspective: 1000}, {rotateY: frontInterpolate}],
-            opacity: frontOpacity,
-          },
-        ]}
-        pointerEvents={isFlipped ? 'none' : 'auto'}
-      >
-        {/* Top tags */}
-        <View style={[s.topRow, {top: contentTop}]}>
-          <View style={s.tag}><Text style={s.tagText}>{domainLabel}</Text></View>
-          {isPlatform && <View style={s.platformTag}><Text style={s.platformTagText}>官</Text></View>}
-        </View>
-
-        {/* Flip hint */}
-        {item.interpretation ? (
-          <View style={[s.flipHint, {top: contentTop + 2}]}>
-            <Text style={s.flipHintText}>点击翻转 ↻</Text>
-          </View>
-        ) : null}
-
-        {/* Content */}
-        <View style={s.frontContent}>
-          <Text style={s.quoteMark}>"</Text>
-          <Text style={s.content}>{item.content}</Text>
-          <View style={s.divider} />
-
-          {/* Creator info */}
-          <View style={s.creatorRow}>
-            <View style={s.avatar}><Text style={s.avatarText}>{displayName.charAt(0)}</Text></View>
-            <View>
-              <Text style={s.creatorName}>{displayName}</Text>
-              {item.source_label ? <Text style={s.sourceLabel}>{item.source_label}</Text> : null}
-              {item.author_title ? <Text style={s.titleText}>{item.author_title}</Text> : null}
-            </View>
-          </View>
-
-          {/* Stars */}
-          {showScore && (
-            <View style={s.starRow}>
-              <Text style={s.stars}>{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</Text>
-              {item.score_reason ? <Text style={s.scoreText}>{item.score_reason}</Text> : null}
-            </View>
-          )}
-        </View>
-
-        {/* Bottom actions — always visible on front */}
-        <View style={s.bottomActions}>
-          <TouchableOpacity
-            style={[s.actionBtn, item.is_liked && s.actionLiked]}
-            onPress={(e) => { e.stopPropagation(); onLike(item.id); }}
-          >
-            <Text style={[s.actionText, item.is_liked && s.actionLikedText]}>
-              ♥ {item.like_count > 0 ? item.like_count : '点赞'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[s.actionBtn, item.is_bookmarked && s.actionSaved]}
-            onPress={(e) => { e.stopPropagation(); onBookmark(item.id); }}
-          >
-            <Text style={[s.actionText, item.is_bookmarked && s.actionSavedText]}>
-              ★ {item.is_bookmarked ? '已收藏' : '收藏'}
-            </Text>
-          </TouchableOpacity>
-          {currentUserId && item.author_id === currentUserId && (
-            <TouchableOpacity
-              style={s.deleteBtn}
-              onPress={(e) => { e.stopPropagation(); onDelete(item.id); }}
-            >
-              <Text style={s.deleteText}>删除</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </Animated.View>
-
-      {/* ═══ 背面 — 经验解读 ═══ */}
-      <Animated.View
-        style={[
-          s.face,
-          {
-            transform: [{perspective: 1000}, {rotateY: backInterpolate}],
-            opacity: backOpacity,
-          },
-        ]}
-        pointerEvents={isFlipped ? 'auto' : 'none'}
-      >
-        {/* Back header */}
-        <View style={[s.backHeader, {top: contentTop}]}>
-          <Text style={s.backHeaderTitle}>经验解读</Text>
-          <View style={s.backDomainTag}>
-            <Text style={s.backDomainText}>{domainLabel}</Text>
-          </View>
-        </View>
-
-        {/* Interpretation content */}
-        <View style={s.backContent}>
-          <Text style={s.backQuote}>“{item.content}”</Text>
-          <View style={s.backDivider} />
-          <Text style={s.interpText}>
-            {item.interpretation || '暂无解读'}
-          </Text>
-        </View>
-
-        {/* Back tap hint */}
-        <View style={s.backHint}>
-          <Text style={s.backHintText}>点击翻回正面 ↻</Text>
-        </View>
-      </Animated.View>
-    </TouchableOpacity>
-  );
-}
-
-// ══════════════════════════════════════════
 // HomeScreen
 // ══════════════════════════════════════════
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   // card = screen - status bar - top tabs(44) - bottom tab(80) - margin(8)
   const CARD_HEIGHT = SCREEN_HEIGHT - insets.top - TOP_TABS_HEIGHT - TAB_BAR_ESTIMATE - 8;
   // 卡片内容区从 tab bar 下方 12px 开始
@@ -232,28 +67,52 @@ export default function HomeScreen() {
   type TabName = 'recommend' | 'my' | 'bookmarks';
   const tabOrder: TabName[] = ['recommend', 'my', 'bookmarks'];
   const [activeTab, setActiveTab] = useState<TabName>('recommend');
-  const [experiences, setExperiences] = useState<Experience[]>([]);
+
+  type TabCache = { items: Experience[]; offset: number; hasMore: boolean; loaded: boolean };
+  const defaultCache = (): TabCache => ({ items: [], offset: 0, hasMore: true, loaded: false });
+  const [tabCaches, setTabCaches] = useState<Record<TabName, TabCache>>({
+    recommend: defaultCache(), my: defaultCache(), bookmarks: defaultCache(),
+  });
+
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPersonalized, setIsPersonalized] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
+  const [visibleCardId, setVisibleCardId] = useState<string | null>(null);
 
   const loadingMoreRef = useRef(false);
-  const hasMoreRef = useRef(true);
+  const tabScrollIndex = useRef<Record<TabName, number>>({ recommend: 0, my: 0, bookmarks: 0 });
+  const flatListRef = useRef<FlatList>(null);
   const tokenRef = useRef<string | null>(null);
-  const offsetRef = useRef(0);
+
+  // Derived
+  const experiences = tabCaches[activeTab].items;
+  const hasMore = tabCaches[activeTab].hasMore;
 
   useEffect(() => {
     getToken().then(t => { tokenRef.current = t; });
     getUserInfo().then(u => setCurrentUserId(u?.id || null));
   }, []);
 
+  // When screen gains focus, check if a tab needs refresh (e.g. after publishing)
+  useFocusEffect(
+    useCallback(() => {
+      if (_pendingTabRefresh) {
+        const tab = _pendingTabRefresh as TabName;
+        _pendingTabRefresh = null;
+        setTabCaches(prev => ({
+          ...prev,
+          [tab]: { items: [], offset: 0, hasMore: true, loaded: false },
+        }));
+      }
+    }, [])
+  );
+
   const loadPage = useCallback(async (offset: number, append: boolean, tab: TabName) => {
     let result;
     if (!tokenRef.current || tab !== 'recommend') {
-      // 我的 / 收藏 — always use paginated API
       if (tab === 'bookmarks') {
         result = await fetchMyBookmarks(Math.floor(offset / PAGE_SIZE) + 1);
       } else if (tab === 'my') {
@@ -267,22 +126,22 @@ export default function HomeScreen() {
       setIsPersonalized(true);
     }
     const data = Array.isArray(result?.data) ? result.data : [];
-    if (data.length < PAGE_SIZE) {
-      hasMoreRef.current = false;
-      setHasMore(false);
-    }
-    if (append) {
-      setExperiences(prev => {
-        const ids = new Set(prev.map(e => e.id));
-        return [...prev, ...data.filter((e: Experience) => !ids.has(e.id))];
-      });
-    } else {
-      hasMoreRef.current = true;
-      setHasMore(true);
-      offsetRef.current = 0;
-      setExperiences(data);
-    }
-    offsetRef.current += data.length;
+    const noMore = data.length < PAGE_SIZE;
+
+    setTabCaches(prev => {
+      const cache = prev[tab];
+      let items: Experience[];
+      if (append) {
+        const ids = new Set(cache.items.map(e => e.id));
+        items = [...cache.items, ...data.filter((e: Experience) => !ids.has(e.id))];
+      } else {
+        items = data;
+      }
+      return {
+        ...prev,
+        [tab]: { items, offset: offset + data.length, hasMore: !noMore, loaded: true },
+      };
+    });
     return data.length;
   }, []);
 
@@ -295,41 +154,75 @@ export default function HomeScreen() {
   useEffect(() => { loadInitial('recommend'); }, []);
 
   const handleLoadMore = useCallback(async () => {
-    if (loadingMoreRef.current || !hasMoreRef.current || offsetRef.current === 0) return;
+    const cache = tabCaches[activeTab];
+    if (loadingMoreRef.current || !cache.hasMore) return;
     loadingMoreRef.current = true;
     setLoadingMore(true);
-    try { await loadPage(offsetRef.current, true, activeTab); }
+    try { await loadPage(cache.offset, true, activeTab); }
     catch (e) { console.error(e); }
     finally { loadingMoreRef.current = false; setLoadingMore(false); }
-  }, [loadPage, activeTab]);
+  }, [loadPage, activeTab, tabCaches]);
 
   const handleTabChange = (tab: TabName) => {
     if (tab === activeTab) return;
+    // Save current scroll index
+    tabScrollIndex.current[activeTab] = tabScrollIndex.current[activeTab] || 0;
     setActiveTab(tab);
-    setExperiences([]);
-    setHasMore(true);
-    hasMoreRef.current = true;
-    offsetRef.current = 0;
-    setLoading(true);
     setError(null);
-    loadPage(0, false, tab).catch(e => { console.error(e); setError('加载失败'); }).finally(() => setLoading(false));
+    const cache = tabCaches[tab];
+    if (cache.loaded) {
+      // Restore cached data + scroll position
+      setTimeout(() => {
+        const idx = tabScrollIndex.current[tab] || 0;
+        if (idx > 0 && flatListRef.current) {
+          flatListRef.current.scrollToIndex({ index: idx, animated: false, viewPosition: 0 });
+        }
+      }, 50);
+    } else {
+      setLoading(true);
+      loadPage(0, false, tab).catch(e => { console.error(e); setError('加载失败'); }).finally(() => setLoading(false));
+    }
   };
 
   const handleLike = async (id: string) => {
-    setExperiences(prev => prev.map(e =>
-      e.id === id ? {...e, is_liked: !e.is_liked, like_count: e.is_liked ? e.like_count - 1 : e.like_count + 1} : e
-    ));
+    setTabCaches(prev => ({
+      ...prev,
+      [activeTab]: {
+        ...prev[activeTab],
+        items: prev[activeTab].items.map(e =>
+          e.id === id ? {...e, is_liked: !e.is_liked, like_count: e.is_liked ? e.like_count - 1 : e.like_count + 1} : e
+        ),
+      },
+    }));
     try { await toggleLike(id); } catch {
-      setExperiences(prev => prev.map(e =>
-        e.id === id ? {...e, is_liked: !e.is_liked, like_count: e.is_liked ? e.like_count - 1 : e.like_count + 1} : e
-      ));
+      setTabCaches(prev => ({
+        ...prev,
+        [activeTab]: {
+          ...prev[activeTab],
+          items: prev[activeTab].items.map(e =>
+            e.id === id ? {...e, is_liked: !e.is_liked, like_count: e.is_liked ? e.like_count - 1 : e.like_count + 1} : e
+          ),
+        },
+      }));
     }
   };
 
   const handleBookmark = async (id: string) => {
-    setExperiences(prev => prev.map(e => e.id === id ? {...e, is_bookmarked: !e.is_bookmarked} : e));
+    setTabCaches(prev => ({
+      ...prev,
+      [activeTab]: {
+        ...prev[activeTab],
+        items: prev[activeTab].items.map(e => e.id === id ? {...e, is_bookmarked: !e.is_bookmarked} : e),
+      },
+    }));
     try { await toggleBookmark(id); } catch {
-      setExperiences(prev => prev.map(e => e.id === id ? {...e, is_bookmarked: !e.is_bookmarked} : e));
+      setTabCaches(prev => ({
+        ...prev,
+        [activeTab]: {
+          ...prev[activeTab],
+          items: prev[activeTab].items.map(e => e.id === id ? {...e, is_bookmarked: !e.is_bookmarked} : e),
+        },
+      }));
     }
   };
 
@@ -339,13 +232,38 @@ export default function HomeScreen() {
       {text: '删除', style: 'destructive', onPress: async () => {
         try {
           await deleteExperience(id);
-          setExperiences(prev => prev.filter(e => e.id !== id));
+          setTabCaches(prev => ({
+            ...prev,
+            [activeTab]: {
+              ...prev[activeTab],
+              items: prev[activeTab].items.filter(e => e.id !== id),
+            },
+          }));
         } catch (e: any) {
           Alert.alert('删除失败', e?.message || '请稍后再试');
         }
       }},
     ]);
   };
+
+  const handleFlipChange = useCallback((id: string, isFlipped: boolean) => {
+    setFlippedCards(prev => {
+      const next = new Set(prev);
+      if (isFlipped) next.add(id); else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const viewabilityConfig = useRef({itemVisiblePercentThreshold: 50}).current;
+
+  const onViewableItemsChanged = useRef(({viewableItems}: any) => {
+    if (viewableItems.length > 0) {
+      const item = viewableItems[0];
+      setVisibleCardId(item.item.id);
+      tabScrollIndex.current[activeTab] = item.index;
+      recordView(item.item.id);
+    }
+  }).current;
 
   // ═══ 左右滑动切标签（Touch 事件，不干扰 FlatList/卡片） ═══
   // 左滑(dx<0): 推荐→我的→收藏→推荐（循环）
@@ -396,23 +314,29 @@ export default function HomeScreen() {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* ═══ 方案A 顶部三标签（透明背景） ═══ */}
+      {/* ═══ 方案A 顶部三标签 + 搜索图标 ═══ */}
       <View style={[s.tabBar, {top: insets.top}]}>
-        {tabOrder.map(tab => (
-          <TouchableOpacity key={tab} onPress={() => handleTabChange(tab)} style={s.tabItem}>
-            <Text style={[s.tabLabel, activeTab === tab && s.tabLabelActive]}>
-              {tab === 'recommend' ? '推荐' : tab === 'my' ? '我的' : '收藏'}
-            </Text>
-            {activeTab === tab && <View style={s.tabUnderline} />}
-          </TouchableOpacity>
-        ))}
+        <View style={s.tabBarInner}>
+          {tabOrder.map(tab => (
+            <TouchableOpacity key={tab} onPress={() => handleTabChange(tab)} style={s.tabItem}>
+              <Text style={[s.tabLabel, activeTab === tab && s.tabLabelActive]}>
+                {tab === 'recommend' ? '推荐' : tab === 'my' ? '我的' : '收藏'}
+              </Text>
+              {activeTab === tab && <View style={s.tabUnderline} />}
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TouchableOpacity onPress={() => navigation.navigate('searchPage')} style={s.searchIconBtn}>
+          <Text style={s.searchIconText}>🔍</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
+        ref={flatListRef}
         data={experiences}
         keyExtractor={item => item.id}
         renderItem={({item}) => (
-          <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5'}}>
+          <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5', overflow: 'visible'}}>
             <FlipCard
               item={item}
               currentUserId={currentUserId}
@@ -421,6 +345,8 @@ export default function HomeScreen() {
               onLike={handleLike}
               onBookmark={handleBookmark}
               onDelete={handleDelete}
+              onFlipChange={handleFlipChange}
+              showActions
             />
           </View>
         )}
@@ -436,6 +362,16 @@ export default function HomeScreen() {
         decelerationRate="fast"
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        onScrollToIndexFailed={(info) => {
+          // Retry after layout settles
+          setTimeout(() => {
+            if (flatListRef.current && info.index < experiences.length) {
+              flatListRef.current.scrollToIndex({ index: info.index, animated: false, viewPosition: 0 });
+            }
+          }, 200);
+        }}
         ListEmptyComponent={
           <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5', justifyContent: 'center', alignItems: 'center'}}>
             <Text style={{fontSize:15,color:'#9a9a9a'}}>
@@ -458,6 +394,16 @@ export default function HomeScreen() {
           ) : null
         }
       />
+      {/* ═══ Flip hint: screen-level overlay, bottom:0 touches tab bar ═══ */}
+      {(() => {
+        const vExp = visibleCardId ? experiences.find(e => e.id === visibleCardId) : null;
+        if (!vExp?.interpretation) return null;
+        return (
+          <View style={{position: 'absolute', bottom: 4, right: 16, zIndex: 20}} pointerEvents="none">
+            <Text style={s.flipHintText}>{flippedCards.has(visibleCardId!) ? '点击回正面' : '点击卡片看解读'}</Text>
+          </View>
+        );
+      })()}
     </View>
   );
 }
@@ -465,13 +411,22 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
   container: {flex: 1, backgroundColor: '#faf8f5'},
 
-  // ═══ 方案A 顶部三标签 ═══
+  // ═══ 方案A 顶部三标签 + 搜索 ═══
   tabBar: {
     position: 'absolute', left: 0, right: 0, zIndex: 10,
-    flexDirection: 'row', justifyContent: 'space-around',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 24, paddingTop: 8, paddingBottom: 6,
     backgroundColor: 'transparent',
   },
+  tabBarInner: {
+    flexDirection: 'row', justifyContent: 'space-around', flex: 1,
+  },
+  searchIconBtn: {
+    width: 36, height: 36,
+    justifyContent: 'center', alignItems: 'center',
+    marginLeft: 4,
+  },
+  searchIconText: {fontSize: 18},
   tabItem: { alignItems: 'center', paddingHorizontal: 8 },
   tabLabel: { fontSize: 15, fontWeight: '500', color: '#b5b0a8' },
   tabLabelActive: { color: '#1a1a1a', fontWeight: '700' },
@@ -480,6 +435,7 @@ const s = StyleSheet.create({
   // ═══ Card page (full screen) ═══
   cardPage: {
     backgroundColor: '#faf8f5',
+    overflow: 'visible',
   },
   face: {
     ...StyleSheet.absoluteFillObject,
@@ -487,32 +443,40 @@ const s = StyleSheet.create({
     backfaceVisibility: 'hidden' as const,
   },
 
-  // ═══ Top row (fixed) ═══
-  topRow: {
-    position: 'absolute', top: 60, left: 24,
-    flexDirection: 'row', gap: 6, zIndex: 2,
+  // ═══ Floating capsule — domain + sub-domain + flip hint ═══
+  capsuleWrapper: {
+    position: 'absolute', left: 0, right: 0,
+    alignItems: 'center', zIndex: 3,
   },
-  tag: {backgroundColor: '#eaf2e8', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12},
-  tagText: {fontSize: 11, fontWeight: '600', color: '#4a7c59'},
-  platformTag: {
-    backgroundColor: '#4a7c59', width: 18, height: 18, borderRadius: 9,
-    justifyContent: 'center', alignItems: 'center',
+  floatingCapsule: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    shadowColor: '#000', shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
   },
-  platformTagText: {fontSize: 9, fontWeight: '800', color: '#fff'},
-
-  // ═══ Flip hint ═══
-  flipHint: {
-    position: 'absolute', top: 62, right: 70, zIndex: 2,
+  capsuleDot: {
+    width: 5, height: 5, borderRadius: 3, backgroundColor: '#4a7c59',
+    marginRight: 2,
   },
-  flipHintText: {fontSize: 11, color: '#c4c0b8', fontWeight: '500'},
+  capsuleDomain: {fontSize: 11, fontWeight: '700', color: '#4a7c59'},
+  capsuleSep: {fontSize: 11, color: '#b5b0a8', marginHorizontal: 1},
+  capsuleSub: {fontSize: 11, fontWeight: '500', color: '#6b8a72'},
+  capsuleBadge: {
+    backgroundColor: '#4a7c59', width: 15, height: 15, borderRadius: 8,
+    justifyContent: 'center', alignItems: 'center', marginLeft: 2,
+  },
+  capsuleBadgeText: {fontSize: 8, fontWeight: '800', color: '#fff'},
+  capsuleDivider: {width: 1, height: 12, backgroundColor: '#e8e4db'},
+  capsuleSource: {fontSize: 10, color: '#8a8a7a', fontWeight: '500'},
 
   // ═══ Front — content area ═══
   frontContent: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
-    paddingBottom: 120,
+    paddingBottom: 100,
   },
   quoteMark: {
     fontSize: 72, color: '#4a7c59', opacity: 0.12,
@@ -542,7 +506,7 @@ const s = StyleSheet.create({
 
   // ═══ Bottom actions (fixed) ═══
   bottomActions: {
-    position: 'absolute', bottom: 50,
+    position: 'absolute', bottom: 28,
     left: 0, right: 0,
     flexDirection: 'row', justifyContent: 'center', gap: 12,
     zIndex: 2,
@@ -564,43 +528,41 @@ const s = StyleSheet.create({
   },
   deleteText: {fontSize: 13, color: '#e85d5d', fontWeight: '500'},
 
-  // ═══ Back face — interpretation ═══
-  backHeader: {
-    position: 'absolute', top: 60, left: 24, right: 24,
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-  },
-  backHeaderTitle: {
-    fontSize: 15, fontWeight: '700', color: '#4a7c59',
-  },
-  backDomainTag: {
-    backgroundColor: '#eaf2e8', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10,
-  },
-  backDomainText: {fontSize: 11, fontWeight: '600', color: '#4a7c59'},
+  // ═══ Flip hint (bottom right) ═══
+  flipHintText: {fontSize: 10, color: '#c4c0b8', fontWeight: '400'},
 
-  backContent: {
-    flex: 1,
-    justifyContent: 'center',
+  // ═══ Back face — interpretation ═══
+  capsuleFlowWrapper: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  backQuoteArea: {
     paddingHorizontal: 32,
-    paddingBottom: 80,
+    alignItems: 'center',
   },
-  backQuote: {
-    fontSize: 17, fontWeight: '600', color: '#4a4a4a',
-    lineHeight: 28, textAlign: 'center', fontStyle: 'italic',
-    marginBottom: 20,
+  backQuoteSmall: {
+    fontSize: 14, fontWeight: '500', color: '#8a8a8a',
+    lineHeight: 22, textAlign: 'center', fontStyle: 'italic',
   },
+
   backDivider: {
     width: 40, height: 2, backgroundColor: '#d4e0d6',
-    alignSelf: 'center', marginBottom: 20,
+    alignSelf: 'center', marginVertical: 16,
   },
+
+  backInterpArea: {
+    flex: 1,
+    paddingHorizontal: 32,
+    paddingBottom: 24,
+  },
+  backInterpTitle: {
+    fontSize: 17, fontWeight: '700', color: '#4a7c59',
+    textAlign: 'center', marginBottom: 16,
+  },
+
   interpText: {
     fontSize: 15, lineHeight: 26, color: '#3d3d3d',
     textAlign: 'left',
   },
-
-  backHint: {
-    position: 'absolute', bottom: 40, left: 0, right: 0,
-    alignItems: 'center',
-  },
-  backHintText: {fontSize: 12, color: '#b5b0a8'},
 
 });

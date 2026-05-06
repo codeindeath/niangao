@@ -187,16 +187,16 @@ func (r *ExperienceRepo) List(ctx context.Context, query model.ExperienceListQue
 		idx++
 	}
 	if query.Search != "" {
-		conditions = append(conditions, fmt.Sprintf("(e.content ILIKE $%d OR e.interpretation ILIKE $%d)", idx, idx+1))
-		args = append(args, "%"+query.Search+"%", "%"+query.Search+"%")
-		idx += 2
+		conditions = append(conditions, fmt.Sprintf("(e.content ILIKE $%d OR e.creator_name ILIKE $%d OR u.nickname ILIKE $%d)", idx, idx+1, idx+2))
+		args = append(args, "%"+query.Search+"%", "%"+query.Search+"%", "%"+query.Search+"%")
+		idx += 3
 	}
 
 	whereClause := strings.Join(conditions, " AND ")
 
 	// Count
 	var total int
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM experiences e WHERE %s", whereClause)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM experiences e LEFT JOIN users u ON u.id = e.author_id WHERE %s", whereClause)
 	if err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count: %w", err)
 	}

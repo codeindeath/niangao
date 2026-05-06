@@ -28,6 +28,13 @@ vendor/
 
 # Build
 mobile/ios/build/
+
+# Admin
+admin/node_modules/
+admin/dist/
+
+# Hermes agent
+.hermes/
 mobile/android/build/
 mobile/.expo/
 dist/

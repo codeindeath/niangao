@@ -16,11 +16,12 @@ type Claims struct {
 	UserID   string `json:"user_id"`
 	OpenID   string `json:"open_id"`
 	Nickname string `json:"nickname"`
+	IsAdmin  bool   `json:"is_admin"`
 	jwt.RegisteredClaims
 }
 
 // GenerateToken 签发 JWT（7 天有效），含唯一 jti
-func GenerateToken(secret string, userID, openID, nickname string) (string, error) {
+func GenerateToken(secret string, userID, openID, nickname string, isAdmin bool) (string, error) {
 	jti, err := generateJTI()
 	if err != nil {
 		return "", err
@@ -29,6 +30,7 @@ func GenerateToken(secret string, userID, openID, nickname string) (string, erro
 		UserID:   userID,
 		OpenID:   openID,
 		Nickname: nickname,
+		IsAdmin:  isAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        jti,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),

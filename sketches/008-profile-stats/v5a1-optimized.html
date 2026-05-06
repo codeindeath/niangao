@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的页设计稿 v2</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  background: #1a1a1a;
+  display: flex; justify-content: center; align-items: flex-start;
+  min-height: 100vh; padding: 20px;
+}
+.container { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+.phone {
+  width: 375px; height: 780px; background: #faf8f5;
+  border-radius: 40px; overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  display: flex; flex-direction: column;
+}
+.phone-label {
+  text-align: center; color: #ccc; font-size: 12px; margin-bottom: 6px;
+  font-weight: 600; letter-spacing: 0.5px;
+}
+.phone-wrapper { display: flex; flex-direction: column; align-items: center; }
+.status-bar {
+  height: 40px; background: #faf8f5;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 24px; font-size: 12px; font-weight: 600; color: #1a1a1a;
+}
+.scroll { flex: 1; overflow-y: auto; }
+
+/* ═══ Profile header ═══ */
+.profile-row {
+  display: flex; align-items: center; padding: 20px 24px 16px;
+  cursor: pointer;
+}
+.avatar {
+  width: 52px; height: 52px; border-radius: 26px;
+  background: #4a7c59; margin-right: 14px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; color: #fff;
+}
+.profile-info { flex: 1; }
+.nickname { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+.title-text { font-size: 13px; color: #9b9487; margin-top: 2px; }
+.arrow-plain { font-size: 22px; color: #c5bfb3; margin-left: 8px; }
+
+/* ═══ Stat Block ═══ */
+.stat-block { padding: 0 24px 14px; }
+
+/* Inline stats: V5-A1 style — big numbers + small labels */
+.stats-inline {
+  display: flex; margin-bottom: 14px;
+}
+.stat-cell {
+  flex: 1; text-align: center; padding: 8px 0; position: relative;
+}
+.stat-cell:not(:last-child)::after {
+  content: ''; position: absolute; right: 0; top: 6px; bottom: 6px;
+  width: 1px; background: #e8e4dc;
+}
+.stat-cell-label { font-size: 11px; color: #9b9487; margin-bottom: 4px; }
+.stat-cell-num { font-size: 22px; font-weight: 800; color: #4a7c59; }
+
+/* Domain header row: title + toggle buttons */
+.domain-header {
+  display: flex; align-items: center; margin-bottom: 10px;
+}
+.domain-label { font-size: 11px; color: #b5b0a8; font-weight: 500; margin-right: 10px; }
+.tab-toggle {
+  display: flex; gap: 0;
+  background: #ece8df; border-radius: 7px; padding: 2px;
+}
+.tab-btn {
+  padding: 3px 9px; border-radius: 6px; font-size: 10px;
+  font-weight: 500; color: #8b8274; cursor: pointer; transition: 0.15s;
+}
+.tab-btn.active {
+  background: #fff; color: #4a7c59; font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+/* ═══ Domain bars ═══ */
+.bar-item { display: flex; align-items: center; margin-bottom: 7px; }
+.bar-label { font-size: 12px; color: #5c5548; width: 56px; text-align: right; margin-right: 10px; font-weight: 500; }
+.bar-track { flex: 1; height: 18px; background: #ece8df; border-radius: 9px; overflow: visible; position: relative; }
+.bar-fill { height: 18px; border-radius: 9px; position: relative; display: flex; align-items: center; }
+.bar-dot {
+  position: absolute; right: -2px;
+  width: 22px; height: 22px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.block-divider { height: 8px; background: #f5f5f5; margin: 0 -24px; }
+
+/* ═══ Chat ═══ */
+.chat-section { padding: 0 24px 14px; }
+.chat-title { font-size: 11px; color: #b5b0a8; font-weight: 500; margin-bottom: 10px; }
+.chat-cards { display: flex; gap: 8px; }
+.chat-card {
+  flex: 1; border-radius: 12px; padding: 14px 12px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.cc1 { background: linear-gradient(135deg, #eaf2e8 0%, #dce8dc 100%); }
+.cc2 { background: linear-gradient(135deg, #e8f0fc 0%, #dce4f4 100%); }
+.chat-card-num { font-size: 24px; font-weight: 800; }
+.cc1 .chat-card-num { color: #3d6a4b; }
+.cc2 .chat-card-num { color: #4a6fa5; }
+.chat-card-unit { font-size: 11px; color: #8b8274; margin-top: 2px; }
+
+/* ═══ Divider ═══ */
+.divider { height: 8px; background: #f5f5f5; }
+.list-item {
+  display: flex; align-items: center; padding: 14px 24px;
+  font-size: 15px; color: #2a2722;
+}
+.list-item-icon { margin-right: 12px; font-size: 16px; }
+.list-item-arrow { margin-left: auto; color: #c5bfb3; font-size: 16px; }
+
+.tab-bar {
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 6px 0 10px; background: rgba(250,248,245,0.93);
+  border-top: 0.5px solid #e8e4df; height: 74px;
+  margin-top: auto;
+}
+.tab-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; font-weight: 600; color: #9b9487; }
+.tab-item.active { color: #4a7c59; }
+.tab-icon { font-size: 18px; opacity: 0.5; }
+.tab-icon.active { opacity: 1; }
+.create-btn {
+  width: 44px; height: 44px; border-radius: 22px; background: #4a7c59;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 8px rgba(74,124,89,0.35);
+}
+.create-btn span { color: #fff; font-size: 22px; font-weight: 600; line-height: 26px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="phone-wrapper">
+  <div class="phone-label">我的页 · 优化版</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="scroll">
+
+      <!-- ═══ Header: nick + title + plain arrow ═══ -->
+      <div class="profile-row">
+        <div class="avatar">年</div>
+        <div class="profile-info">
+          <div class="nickname">年糕</div>
+          <div class="title-text">终身学习者</div>
+        </div>
+        <span class="arrow-plain">›</span>
+      </div>
+
+      <!-- ═══ Block 1 ═══ -->
+      <div class="stat-block">
+        <div class="stats-inline">
+          <div class="stat-cell"><div class="stat-cell-label">我发布的</div><div class="stat-cell-num">12</div></div>
+          <div class="stat-cell"><div class="stat-cell-label">获点赞</div><div class="stat-cell-num">47</div></div>
+          <div class="stat-cell"><div class="stat-cell-label">获收藏</div><div class="stat-cell-num">23</div></div>
+        </div>
+        <div class="domain-header">
+          <span class="domain-label">领域分布</span>
+          <div class="tab-toggle">
+            <span class="tab-btn active">发布</span>
+            <span class="tab-btn">获赞</span>
+            <span class="tab-btn">被收藏</span>
+          </div>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">思维模型</span>
+          <div class="bar-track"><div class="bar-fill" style="width:100%;background:linear-gradient(90deg,#3d6a4b,#4a7c59)"><div class="bar-dot" style="background:#3d6a4b">5</div></div></div>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">决策判断</span>
+          <div class="bar-track"><div class="bar-fill" style="width:60%;background:linear-gradient(90deg,#6fa87c,#8bc49a)"><div class="bar-dot" style="background:#6fa87c">3</div></div></div>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">情绪调节</span>
+          <div class="bar-track"><div class="bar-fill" style="width:40%;background:linear-gradient(90deg,#e8a850,#f0be70)"><div class="bar-dot" style="background:#e8a850">2</div></div></div>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">学习方法</span>
+          <div class="bar-track"><div class="bar-fill" style="width:40%;background:linear-gradient(90deg,#5c7aa8,#80a0c8)"><div class="bar-dot" style="background:#5c7aa8">2</div></div></div>
+        </div>
+      </div>
+
+      <div class="block-divider"></div>
+
+      <!-- ═══ Block 2 ═══ -->
+      <div class="stat-block" style="padding-top:14px">
+        <div class="stats-inline">
+          <div class="stat-cell"><div class="stat-cell-label">我看过的</div><div class="stat-cell-num">89</div></div>
+          <div class="stat-cell"><div class="stat-cell-label">我点赞</div><div class="stat-cell-num">47</div></div>
+          <div class="stat-cell"><div class="stat-cell-label">我收藏</div><div class="stat-cell-num">23</div></div>
+        </div>
+        <div class="domain-header">
+          <span class="domain-label">领域分布</span>
+          <div class="tab-toggle">
+            <span class="tab-btn active">看过</span>
+            <span class="tab-btn">点赞</span>
+            <span class="tab-btn">收藏</span>
+          </div>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">思维模型</span>
+          <div class="bar-track"><div class="bar-fill" style="width:100%;background:linear-gradient(90deg,#3d6a4b,#4a7c59)"><div class="bar-dot" style="background:#3d6a4b">18</div></div></div>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">决策判断</span>
+          <div class="bar-track"><div class="bar-fill" style="width:83%;background:linear-gradient(90deg,#6fa87c,#8bc49a)"><div class="bar-dot" style="background:#6fa87c">15</div></div></div>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">情绪调节</span>
+          <div class="bar-track"><div class="bar-fill" style="width:67%;background:linear-gradient(90deg,#e8a850,#f0be70)"><div class="bar-dot" style="background:#e8a850">12</div></div></div>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">学习方法</span>
+          <div class="bar-track"><div class="bar-fill" style="width:56%;background:linear-gradient(90deg,#5c7aa8,#80a0c8)"><div class="bar-dot" style="background:#5c7aa8">10</div></div></div>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">亲密关系</span>
+          <div class="bar-track"><div class="bar-fill" style="width:44%;background:linear-gradient(90deg,#e85d5d,#f08080)"><div class="bar-dot" style="background:#e85d5d">8</div></div></div>
+        </div>
+      </div>
+
+      <div class="block-divider"></div>
+
+      <!-- ═══ Chat ═══ -->
+      <div class="chat-section" style="padding-top:14px">
+        <div class="chat-title">对话总数</div>
+        <div class="chat-cards">
+          <div class="chat-card cc1">
+            <span class="chat-card-num">8</span>
+            <span class="chat-card-unit">次对话</span>
+          </div>
+          <div class="chat-card cc2">
+            <span class="chat-card-num">142</span>
+            <span class="chat-card-unit">条消息</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="list-item"><span class="list-item-icon">📦</span>经验包<span class="list-item-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item"><span class="list-item-icon">💬</span>对话人格<span class="list-item-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item"><span class="list-item-icon">⚙</span>设置<span class="list-item-arrow">›</span></div>
+      <div class="divider"></div>
+
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span>首页</div>
+      <div class="tab-item"><span class="tab-icon">💬</span>对话</div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span>朋友</div>
+      <div class="tab-item active"><span class="tab-icon active">👤</span><span style="color:#4a7c59">我的</span></div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>搜索功能设计稿（基于当前真实实现）</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  background: #1a1a1a; 
+  display: flex; 
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+.container {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.phone {
+  width: 375px;
+  height: 750px;
+  background: #faf8f5;
+  border-radius: 40px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+.phone-label {
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.phone-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ═══ Status Bar ═══ */
+.status-bar {
+  height: 44px;
+  background: #faf8f5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* ═══ Top Tabs (exactly like real HomeScreen) ═══ */
+.top-tabs {
+  position: absolute;
+  left: 0; right: 0;
+  z-index: 10;
+  flex-direction: row;
+  justify-content: space-around;
+  padding: 8px 24px 6px;
+  background: transparent;
+  display: flex;
+}
+/* We use paddingTop to position below status bar */
+.top-tabs-wrap {
+  position: relative;
+  height: 44px;
+  margin-top: 0;
+}
+
+.top-tab-item {
+  align-items: center;
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+.top-tab-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: #b5b0a8;
+}
+.top-tab-label.active {
+  color: #1a1a1a;
+  font-weight: 700;
+}
+.top-tab-underline {
+  width: 20px;
+  height: 3px;
+  background: #4a7c59;
+  border-radius: 2px;
+  margin-top: 4px;
+}
+
+/* Search icon next to tabs */
+.top-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.search-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 8px;
+}
+.search-icon svg {
+  width: 20px;
+  height: 20px;
+  color: #5c5548;
+}
+
+/* ═══ Card (exactly like real FlipCard front) ═══ */
+.home-card {
+  margin: 0 16px;
+  background: #faf8f5;
+  border-radius: 16px;
+  padding: 0 20px 80px;
+  position: relative;
+}
+.home-card .capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.88);
+  padding: 5px 12px;
+  border-radius: 14px;
+  font-size: 11px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  align-self: center;
+}
+.home-card .capsule-dot {
+  width: 5px; height: 5px;
+  background: #4a7c59;
+  border-radius: 3px;
+  margin-right: 2px;
+}
+.home-card .capsule-sep {
+  color: #b5b0a8;
+  margin: 0 1px;
+  font-size: 11px;
+}
+.home-card .capsule-divider {
+  width: 1px; height: 12px;
+  background: #e8e4db;
+}
+.home-card .capsule-badge {
+  background: #4a7c59;
+  width: 15px; height: 15px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+}
+.home-card .capsule-badge-text {
+  font-size: 8px;
+  font-weight: 800;
+  color: #fff;
+}
+.home-card .quote {
+  font-size: 72px;
+  color: #4a7c59;
+  opacity: 0.12;
+  font-family: Georgia, serif;
+  line-height: 72px;
+  text-align: center;
+  margin-bottom: -20px;
+}
+.home-card .content {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-align: center;
+  line-height: 40px;
+  margin-bottom: 24px;
+}
+.home-card .divider {
+  width: 40px;
+  height: 2px;
+  background: #d4e0d6;
+  margin: 0 auto 24px;
+}
+.home-card .creator-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.home-card .avatar {
+  width: 32px; height: 32px;
+  border-radius: 16px;
+  background: #eaf2e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4a7c59;
+}
+.home-card .creator-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a4a4a;
+}
+.home-card .stars {
+  font-size: 16px;
+  color: #e8a850;
+  letter-spacing: 2px;
+  text-align: center;
+  margin-top: 8px;
+}
+.home-card .actions {
+  position: absolute;
+  bottom: 28px;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.home-card .action-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: #fff;
+  border: 0.5px solid #f0ece7;
+  font-size: 13px;
+  color: #9a9a9a;
+  font-weight: 500;
+}
+
+/* ═══ Bottom Tab Bar (exactly like real) ═══ */
+.tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 6px 0 10px;
+  background: rgba(250,248,245,0.93);
+  border-top: 0.5px solid #e8e4df;
+  height: 80px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+.tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab-icon {
+  font-size: 20px;
+  opacity: 0.5;
+}
+.tab-icon.active { opacity: 1; }
+.tab-label { opacity: 0.5; }
+.tab-label.active { color: #4a7c59; opacity: 1; }
+.create-btn {
+  width: 48px; height: 48px;
+  border-radius: 24px;
+  background: #4a7c59;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(74,124,89,0.35);
+}
+.create-btn span {
+  color: #fff;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+/* ═══ Friends Empty ═══ */
+.friends-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.friends-empty p {
+  color: #b5b0a8;
+  font-size: 16px;
+}
+
+/* ═══ Search Page ═══ */
+.search-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px 8px 8px;
+  background: #faf8f5;
+  border-bottom: 1px solid #e8e4dc;
+  gap: 8px;
+}
+.search-back {
+  width: 36px; height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.search-back svg {
+  width: 20px; height: 20px;
+  color: #5c5548;
+}
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #ece8df;
+  border-radius: 10px;
+  padding: 0 12px;
+  height: 36px;
+}
+.search-input-wrap input {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: 15px;
+  color: #2a2722;
+  outline: none;
+}
+.search-input-wrap input::placeholder {
+  color: #b5b0a8;
+}
+.search-submit-btn {
+  padding: 0 16px;
+  height: 36px;
+  background: #4a7c59;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Search results */
+.search-results {
+  flex: 1;
+  overflow-y: auto;
+}
+.search-result-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  gap: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0ece7;
+}
+.result-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: #eaf2e8;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #4a7c59;
+}
+.result-info {
+  flex: 1;
+  min-width: 0;
+}
+.result-content {
+  font-size: 15px;
+  color: #2a2722;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.result-meta {
+  font-size: 12px;
+  color: #9b9487;
+  margin-top: 3px;
+}
+.result-arrow {
+  color: #c5bfb3;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+mark {
+  background: #fff3b0;
+  color: #2a2722;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* ═══ Search Card View ═══ */
+.card-view-top {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #faf8f5;
+  border-bottom: 1px solid #e8e4dc;
+  gap: 8px;
+  z-index: 10;
+}
+.card-view-back {
+  width: 36px; height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.card-view-back svg {
+  width: 20px; height: 20px;
+  color: #5c5548;
+}
+.card-view-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2a2722;
+}
+.card-view-count {
+  font-size: 12px;
+  color: #9b9487;
+}
+.card-view-body {
+  flex: 1;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+}
+.swipe-hint {
+  text-align: center;
+  color: #b5b0a8;
+  font-size: 11px;
+  padding: 10px 0;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ═══ Screen 1: HomeScreen (top tabs + search icon) ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">① 首页 — 顶栏右侧新增搜索图标</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+
+    <!-- Top tabs + search icon -->
+    <div class="top-tabs" style="top:44px">
+      <div class="top-tabs-row">
+        <div style="display:flex; gap:24px; flex:1; justify-content:space-around">
+          <div class="top-tab-item"><span class="top-tab-label active">推荐</span><div class="top-tab-underline"></div></div>
+          <div class="top-tab-item"><span class="top-tab-label">我的</span></div>
+          <div class="top-tab-item"><span class="top-tab-label">收藏</span></div>
+        </div>
+        <div class="search-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card (content area) -->
+    <div style="padding-top:88px; flex:1; overflow:hidden">
+      <div class="home-card" style="padding-top:16px">
+        <div style="text-align:center; margin-bottom:16px">
+          <span class="capsule">
+            <span class="capsule-dot"></span>
+            <span style="font-size:11px;font-weight:700;color:#4a7c59">思维模型</span>
+            <span class="capsule-sep">·</span>
+            <span style="font-size:11px;font-weight:500;color:#6b8a72">决策</span>
+            <span class="capsule-divider"></span>
+            <span style="font-size:10px;color:#8a8a7a">来自年糕</span>
+            <span class="capsule-badge"><span class="capsule-badge-text">官</span></span>
+          </span>
+        </div>
+        <div class="quote">"</div>
+        <div class="content">遇到难题先把问题写下来，50%的焦虑在书写过程中就消解了。</div>
+        <div class="divider"></div>
+        <div class="creator-row">
+          <div class="avatar">芒</div>
+          <div>
+            <div class="creator-name">查理·芒格</div>
+          </div>
+        </div>
+        <div class="stars">★★★★☆</div>
+        <div class="actions">
+          <span class="action-btn">♥ 42</span>
+          <span class="action-btn">★ 收藏</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Tab Bar (only changed "搜索"→"朋友") -->
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon active">⌂</span><span class="tab-label active" style="color:#4a7c59">首页</span></div>
+      <div class="tab-item"><span class="tab-icon">💬</span><span class="tab-label" style="opacity:0.5">对话</span></div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span><span class="tab-label" style="opacity:0.5">朋友</span></div>
+      <div class="tab-item"><span class="tab-icon">👤</span><span class="tab-label" style="opacity:0.5">我的</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Screen 2: Friends Empty ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">② 朋友页 — 空状态</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="friends-empty">
+      <p>晚点做~</p>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span><span class="tab-label" style="opacity:0.5">首页</span></div>
+      <div class="tab-item"><span class="tab-icon">💬</span><span class="tab-label" style="opacity:0.5">对话</span></div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon active">👥</span><span class="tab-label active" style="color:#4a7c59">朋友</span></div>
+      <div class="tab-item"><span class="tab-icon">👤</span><span class="tab-label" style="opacity:0.5">我的</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Screen 3: Search Page ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">③ 搜索页 — 输入"焦虑"后展示结果</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="search-header">
+      <div class="search-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15,18 9,12 15,6"/></svg>
+      </div>
+      <div class="search-input-wrap">
+        <input type="text" placeholder="输入你想找的经验、创作者..." value="焦虑">
+      </div>
+      <button class="search-submit-btn">搜索</button>
+    </div>
+    <div class="search-results">
+      <div class="search-result-item">
+        <div class="result-avatar">芒</div>
+        <div class="result-info">
+          <div class="result-content">遇到难题先把问题写下来，50%的<mark>焦虑</mark>在书写过程中就消解了。</div>
+          <div class="result-meta">查理·芒格 · 思维模型</div>
+        </div>
+        <div class="result-arrow">›</div>
+      </div>
+      <div class="search-result-item">
+        <div class="result-avatar">卡</div>
+        <div class="result-info">
+          <div class="result-content"><mark>焦虑</mark>的本质是对不确定性的恐惧。</div>
+          <div class="result-meta">卡尔·荣格 · 心理学</div>
+        </div>
+        <div class="result-arrow">›</div>
+      </div>
+      <div class="search-result-item">
+        <div class="result-avatar">用</div>
+        <div class="result-info">
+          <div class="result-content">当我感到<mark>焦虑</mark>时，我会问自己：三年后这事还重要吗？</div>
+          <div class="result-meta">用户原创 · 情绪管理</div>
+        </div>
+        <div class="result-arrow">›</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Screen 4: Search Card View ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">④ 搜索结果 → 全屏卡片流</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="card-view-top">
+      <div class="card-view-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15,18 9,12 15,6"/></svg>
+      </div>
+      <span class="card-view-title">搜索结果</span>
+      <span class="card-view-count">· 3条</span>
+    </div>
+    <div class="card-view-body">
+      <div class="home-card" style="padding-top:16px">
+        <div style="text-align:center; margin-bottom:16px">
+          <span class="capsule">
+            <span class="capsule-dot"></span>
+            <span style="font-size:11px;font-weight:700;color:#4a7c59">思维模型</span>
+            <span class="capsule-sep">·</span>
+            <span style="font-size:11px;font-weight:500;color:#6b8a72">决策</span>
+            <span class="capsule-divider"></span>
+            <span style="font-size:10px;color:#8a8a7a">来自年糕</span>
+            <span class="capsule-badge"><span class="capsule-badge-text">官</span></span>
+          </span>
+        </div>
+        <div class="quote">"</div>
+        <div class="content">遇到难题先把问题写下来，50%的<mark>焦虑</mark>在书写过程中就消解了。</div>
+        <div class="divider"></div>
+        <div class="creator-row">
+          <div class="avatar">芒</div>
+          <div class="creator-name">查理·芒格</div>
+        </div>
+        <div class="stars">★★★★☆</div>
+        <div class="actions">
+          <span class="action-btn">♥ 42</span>
+          <span class="action-btn">★ 收藏</span>
+        </div>
+      </div>
+      <div class="swipe-hint">↑↓ 上下滑动切换卡片 · 第 1/3 条</div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

@@ -59,23 +59,25 @@ async def process_one(row):
             print(f"  [{eid[:8]}] interp error: {e}")
             interp = ""
 
-    # Truncate to 500 chars for DB constraint (conservative: target 490 + safety margin)
+    # Truncate to 300 chars (card display limit: 15 lines)
     if interp:
-        max_chars = 490
-        if len(interp) > max_chars:
+        max_chars = 300
+        runes = list(interp)
+        if len(runes) > max_chars:
             # Find a safe cut point at a sentence boundary
-            cut = interp[:max_chars].rstrip()
+            cut = ''.join(runes[:max_chars]).rstrip()
             # Try to cut at last period or newline
-            for sep in ['。', '\\n\\n', '\\n', '.', '！', '？']:
+            for sep in ['。', '\n\n', '\n', '.', '！', '？']:
                 idx = cut.rfind(sep)
                 if idx > max_chars * 0.7:
                     interp = cut[:idx+1]
                     break
             else:
                 interp = cut
-        # Final safety: hard truncate if still too long
-        if len(interp) > 500:
-            interp = interp[:495]
+        # Final safety: hard truncate if still too long (rune-based)
+        runes = list(interp)
+        if len(runes) > 500:
+            interp = ''.join(runes[:495])
 
     return (eid, overall, reason, interp)
 

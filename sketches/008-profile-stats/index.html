@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的页统计设计稿 - 5版</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  background: #1a1a1a;
+  display: flex; justify-content: center; align-items: flex-start;
+  min-height: 100vh; padding: 20px;
+}
+.container { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+.phone {
+  width: 375px; height: 680px; background: #faf8f5;
+  border-radius: 40px; overflow: hidden; position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+.phone-label {
+  text-align: center; color: #aaa; font-size: 12px; margin-bottom: 6px; font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.phone-wrapper { display: flex; flex-direction: column; align-items: center; }
+.status-bar {
+  height: 40px; background: #faf8f5;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 24px; font-size: 12px; font-weight: 600; color: #1a1a1a;
+}
+
+/* Profile header common */
+.profile-row {
+  display: flex; align-items: center; padding: 20px 24px 16px;
+}
+.avatar {
+  width: 52px; height: 52px; border-radius: 26px;
+  background: #4a7c59; margin-right: 14px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; color: #fff;
+}
+.nickname { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+
+/* ═══ V1: Cards + Tag Cloud ═══ */
+.stats-row-v1 { display: flex; gap: 10px; padding: 0 24px 14px; }
+.stat-card-v1 {
+  flex: 1; background: #fff; border-radius: 12px; padding: 12px 10px;
+  text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.stat-num-v1 { font-size: 22px; font-weight: 800; color: #4a7c59; }
+.stat-label-v1 { font-size: 11px; color: #9b9487; margin-top: 2px; }
+.tag-section-v1 { padding: 0 24px; }
+.tag-title-v1 { font-size: 11px; color: #b5b0a8; margin-bottom: 8px; font-weight: 500; }
+.tag-cloud-v1 { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-v1 {
+  padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 500;
+}
+.tag-hot { background: #fef0f0; color: #e85d5d; font-weight: 700; }
+.tag-warm { background: #fef5e7; color: #e8a850; font-weight: 600; }
+.tag-normal { background: #eaf2e8; color: #4a7c59; }
+.tag-light { background: #f0ece7; color: #8b8274; }
+.chat-stats-v1 { display: flex; gap: 8px; padding: 0 24px; margin-top: 10px; }
+.chat-item-v1 { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #8b8274; }
+.chat-num-v1 { font-weight: 700; color: #4a7c59; }
+
+/* ═══ V2: Progress Rings ═══ */
+.rings-row-v2 { display: flex; justify-content: space-around; padding: 0 24px 14px; }
+.ring-item-v2 { align-items: center; display: flex; flex-direction: column; }
+.ring-v2 {
+  width: 64px; height: 64px; border-radius: 32px; position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.ring-inner-v2 {
+  width: 50px; height: 50px; border-radius: 25px; background: #faf8f5;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+}
+.ring-num-v2 { font-size: 16px; font-weight: 800; color: #4a7c59; line-height: 18px; }
+.ring-label-v2 { font-size: 10px; color: #9b9487; margin-top: 6px; font-weight: 500; }
+.ring-v2-a { background: conic-gradient(#4a7c59 0% 40%, #e8e4dc 40% 100%); }
+.ring-v2-b { background: conic-gradient(#e8a850 0% 55%, #e8e4dc 55% 100%); }
+.ring-v2-c { background: conic-gradient(#6fa87c 0% 30%, #e8e4dc 30% 100%); }
+.domain-bars-v2 { padding: 0 24px; }
+.bar-row-v2 { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.bar-label-v2 { font-size: 11px; color: #8b8274; width: 52px; text-align: right; }
+.bar-track-v2 { flex: 1; height: 8px; background: #e8e4dc; border-radius: 4px; overflow: hidden; }
+.bar-fill-v2 { height: 8px; border-radius: 4px; }
+.bar-count-v2 { font-size: 11px; color: #b5b0a8; width: 24px; }
+
+/* ═══ V3: Bubble Chart ═══ */
+.bubbles-v3 { padding: 8px 24px 14px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; min-height: 100px; }
+.bubble-v3 {
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.bubble-lg { width: 72px; height: 72px; background: #4a7c59; font-size: 13px; }
+.bubble-md { width: 56px; height: 56px; background: #6fa87c; font-size: 11px; }
+.bubble-sm { width: 42px; height: 42px; background: #a8d5b5; font-size: 10px; }
+.bubble-xs { width: 32px; height: 32px; background: #c8e6d0; font-size: 9px; }
+.bubble-count-v3 { display: block; font-size: 8px; font-weight: 500; opacity: 0.7; }
+.stats-inline-v3 { display: flex; gap: 16px; padding: 0 24px 10px; }
+.stat-inline-v3 { font-size: 12px; color: #8b8274; }
+.stat-inline-v3 span { font-weight: 700; color: #4a7c59; }
+
+/* ═══ V4: Achievement Badges ═══ */
+.badges-v4 { padding: 0 24px 12px; }
+.badge-row-v4 { display: flex; gap: 10px; margin-bottom: 8px; }
+.badge-v4 {
+  flex: 1; background: #fff; border-radius: 14px; padding: 10px;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.badge-icon-v4 {
+  width: 36px; height: 36px; border-radius: 18px; display: flex;
+  align-items: center; justify-content: center; font-size: 18px;
+}
+.badge-icon-create { background: #eaf2e8; }
+.badge-icon-like { background: #fef0f0; }
+.badge-icon-save { background: #fef5e7; }
+.badge-icon-chat { background: #e8f0fc; }
+.badge-num-v4 { font-size: 16px; font-weight: 800; color: #1a1a1a; }
+.badge-label-v4 { font-size: 10px; color: #9b9487; }
+.domain-eggs-v4 { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 24px; }
+.egg-v4 {
+  padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+}
+.egg-1 { background: #fef0f0; color: #e85d5d; }
+.egg-2 { background: #fef5e7; color: #e8a850; }
+.egg-3 { background: #eaf2e8; color: #4a7c59; }
+.egg-4 { background: #f0ece7; color: #8b8274; }
+.egg-5 { background: #e8f0fc; color: #5c7aa8; }
+
+/* ═══ V5: Mini Radar + Timeline ═══ */
+.radar-row-v5 { padding: 0 24px 14px; }
+.radar-title-v5 { font-size: 11px; color: #b5b0a8; margin-bottom: 8px; }
+.radar-bars-v5 { }
+.radar-item-v5 { display: flex; align-items: center; margin-bottom: 6px; gap: 8px; }
+.radar-label-v5 { font-size: 11px; color: #8b8274; width: 44px; text-align: right; font-weight: 500; }
+.radar-bar-v5 { flex: 1; height: 16px; background: #e8e4dc; border-radius: 8px; overflow: hidden; position: relative; }
+.radar-fill-v5 { height: 16px; border-radius: 8px; position: relative; }
+.radar-dot-v5 {
+  position: absolute; right: -8px; top: -4px;
+  width: 24px; height: 24px; border-radius: 12px; display: flex;
+  align-items: center; justify-content: center; font-size: 9px;
+  font-weight: 700; color: #fff;
+}
+.stats-strip-v5 { display: flex; gap: 0; padding: 0 24px 10px; }
+.stat-strip-v5 {
+  flex: 1; text-align: center; padding: 10px 0;
+  border-right: 1px solid #e8e4dc;
+}
+.stat-strip-v5:last-child { border-right: none; }
+.strip-num-v5 { font-size: 20px; font-weight: 800; color: #4a7c59; }
+.strip-label-v5 { font-size: 10px; color: #9b9487; margin-top: 2px; }
+.domain-pills-v5 { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 24px; }
+.pill-v5 {
+  padding: 3px 10px; border-radius: 10px; font-size: 10px; font-weight: 600;
+  color: #fff;
+}
+
+/* Divider */
+.divider { height: 8px; background: #f5f5f5; }
+.list-item { display: flex; align-items: center; padding: 14px 24px; font-size: 14px; color: #2a2722; }
+.list-arrow { margin-left: auto; color: #c5bfb3; font-size: 16px; }
+
+.tab-bar {
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 6px 0 10px; background: rgba(250,248,245,0.93);
+  border-top: 0.5px solid #e8e4df; height: 74px;
+  position: absolute; bottom: 0; left: 0; right: 0;
+}
+.tab-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; font-weight: 600; color: #9b9487; }
+.tab-item.active { color: #4a7c59; }
+.tab-icon { font-size: 18px; opacity: 0.5; }
+.tab-icon.active { opacity: 1; }
+.create-btn {
+  width: 44px; height: 44px; border-radius: 22px; background: #4a7c59;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 8px rgba(74,124,89,0.35);
+}
+.create-btn span { color: #fff; font-size: 22px; font-weight: 600; line-height: 26px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ═══ V1: Number Cards + Tag Cloud ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">V1 · 数字卡片 + 标签云</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div style="flex:1; overflow-y:auto">
+      <div class="profile-row">
+        <div class="avatar">年</div>
+        <div><div class="nickname">年糕</div><div style="font-size:12px;color:#4a7c59">编辑个人信息 ›</div></div>
+      </div>
+
+      <div class="stats-row-v1">
+        <div class="stat-card-v1"><div class="stat-num-v1">12</div><div class="stat-label-v1">发布经验</div></div>
+        <div class="stat-card-v1"><div class="stat-num-v1">47</div><div class="stat-label-v1">点赞</div></div>
+        <div class="stat-card-v1"><div class="stat-num-v1">23</div><div class="stat-label-v1">收藏</div></div>
+      </div>
+
+      <div class="tag-section-v1">
+        <div class="tag-title-v1">你的经验领域分布</div>
+        <div class="tag-cloud-v1">
+          <span class="tag-v1 tag-hot">思维模型 6</span>
+          <span class="tag-v1 tag-warm">决策判断 4</span>
+          <span class="tag-v1 tag-normal">情绪调节 3</span>
+          <span class="tag-v1 tag-normal">学习方法 3</span>
+          <span class="tag-v1 tag-normal">亲密关系 2</span>
+          <span class="tag-v1 tag-light">职业规划 2</span>
+          <span class="tag-v1 tag-light">副业创业 1</span>
+          <span class="tag-v1 tag-light">理财规划 1</span>
+        </div>
+      </div>
+
+      <div class="chat-stats-v1">
+        <div class="chat-item-v1">💬 <span class="chat-num-v1">8</span> 次对话</div>
+        <div class="chat-item-v1">📝 <span class="chat-num-v1">142</span> 条消息</div>
+      </div>
+
+      <div class="divider" style="margin-top:14px"></div>
+      <div class="list-item">📦 经验包<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item">💬 对话人格<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item">⚙ 设置<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span>首页</div>
+      <div class="tab-item"><span class="tab-icon">💬</span>对话</div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span>朋友</div>
+      <div class="tab-item active"><span class="tab-icon active">👤</span><span style="color:#4a7c59">我的</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ V2: Progress Rings + Bar Chart ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">V2 · 环形进度 + 领域柱状</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div style="flex:1; overflow-y:auto">
+      <div class="profile-row">
+        <div class="avatar">年</div>
+        <div><div class="nickname">年糕</div><div style="font-size:12px;color:#4a7c59">编辑个人信息 ›</div></div>
+      </div>
+
+      <div class="rings-row-v2">
+        <div class="ring-item-v2">
+          <div class="ring-v2 ring-v2-a"><div class="ring-inner-v2"><div class="ring-num-v2">12</div></div></div>
+          <div class="ring-label-v2">发布经验</div>
+        </div>
+        <div class="ring-item-v2">
+          <div class="ring-v2 ring-v2-b"><div class="ring-inner-v2"><div class="ring-num-v2">47</div></div></div>
+          <div class="ring-label-v2">点赞</div>
+        </div>
+        <div class="ring-item-v2">
+          <div class="ring-v2 ring-v2-c"><div class="ring-inner-v2"><div class="ring-num-v2">23</div></div></div>
+          <div class="ring-label-v2">收藏</div>
+        </div>
+      </div>
+
+      <div class="domain-bars-v2">
+        <div style="font-size:11px;color:#b5b0a8;margin-bottom:8px">领域分布</div>
+        <div class="bar-row-v2"><span class="bar-label-v2">思维模型</span><div class="bar-track-v2"><div class="bar-fill-v2" style="width:100%;background:#e85d5d"></div></div><span class="bar-count-v2">6</span></div>
+        <div class="bar-row-v2"><span class="bar-label-v2">决策判断</span><div class="bar-track-v2"><div class="bar-fill-v2" style="width:67%;background:#e8a850"></div></div><span class="bar-count-v2">4</span></div>
+        <div class="bar-row-v2"><span class="bar-label-v2">情绪调节</span><div class="bar-track-v2"><div class="bar-fill-v2" style="width:50%;background:#6fa87c"></div></div><span class="bar-count-v2">3</span></div>
+        <div class="bar-row-v2"><span class="bar-label-v2">学习方法</span><div class="bar-track-v2"><div class="bar-fill-v2" style="width:50%;background:#6fa87c"></div></div><span class="bar-count-v2">3</span></div>
+        <div class="bar-row-v2"><span class="bar-label-v2">亲密关系</span><div class="bar-track-v2"><div class="bar-fill-v2" style="width:33%;background:#a8d5b5"></div></div><span class="bar-count-v2">2</span></div>
+      </div>
+
+      <div style="display:flex;gap:12px;padding:8px 24px 0">
+        <span style="font-size:12px;color:#8b8274">💬 <b style="color:#4a7c59">8</b> 次对话</span>
+        <span style="font-size:12px;color:#8b8274">📝 <b style="color:#4a7c59">142</b> 条消息</span>
+      </div>
+
+      <div class="divider" style="margin-top:14px"></div>
+      <div class="list-item">📦 经验包<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item">💬 对话人格<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item">⚙ 设置<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span>首页</div>
+      <div class="tab-item"><span class="tab-icon">💬</span>对话</div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span>朋友</div>
+      <div class="tab-item active"><span class="tab-icon active">👤</span><span style="color:#4a7c59">我的</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ V3: Bubble Chart ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">V3 · 气泡领域图</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div style="flex:1; overflow-y:auto">
+      <div class="profile-row">
+        <div class="avatar">年</div>
+        <div><div class="nickname">年糕</div><div style="font-size:12px;color:#4a7c59">编辑个人信息 ›</div></div>
+      </div>
+
+      <div class="stats-inline-v3">
+        <div class="stat-inline-v3">📝 <span>12</span> 发布</div>
+        <div class="stat-inline-v3">♥ <span>47</span> 点赞</div>
+        <div class="stat-inline-v3">★ <span>23</span> 收藏</div>
+      </div>
+
+      <div style="font-size:11px;color:#b5b0a8;padding:0 24px 4px;font-weight:500">你的知识星图</div>
+      <div class="bubbles-v3">
+        <div class="bubble-v3 bubble-lg">思维<br/>模型<span class="bubble-count-v3">6条</span></div>
+        <div class="bubble-v3 bubble-md">决策<span class="bubble-count-v3">4</span></div>
+        <div class="bubble-v3 bubble-md">情绪<span class="bubble-count-v3">3</span></div>
+        <div class="bubble-v3 bubble-sm">学习<span class="bubble-count-v3">3</span></div>
+        <div class="bubble-v3 bubble-sm">亲密<span class="bubble-count-v3">2</span></div>
+        <div class="bubble-v3 bubble-xs">职业<span class="bubble-count-v3">2</span></div>
+        <div class="bubble-v3 bubble-xs">理财<span class="bubble-count-v3">1</span></div>
+        <div class="bubble-v3 bubble-xs">副业<span class="bubble-count-v3">1</span></div>
+      </div>
+
+      <div style="display:flex;gap:12px;padding:0 24px 8px">
+        <span style="font-size:12px;color:#8b8274">💬 <b style="color:#4a7c59">8</b> 次对话</span>
+        <span style="font-size:12px;color:#8b8274">📝 <b style="color:#4a7c59">142</b> 条消息</span>
+      </div>
+
+      <div class="divider"></div>
+      <div class="list-item">📦 经验包<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item">💬 对话人格<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item">⚙ 设置<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span>首页</div>
+      <div class="tab-item"><span class="tab-icon">💬</span>对话</div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span>朋友</div>
+      <div class="tab-item active"><span class="tab-icon active">👤</span><span style="color:#4a7c59">我的</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ V4: Achievement Badges ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">V4 · 成就徽章</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div style="flex:1; overflow-y:auto">
+      <div class="profile-row">
+        <div class="avatar">年</div>
+        <div><div class="nickname">年糕</div><div style="font-size:12px;color:#4a7c59">编辑个人信息 ›</div></div>
+      </div>
+
+      <div class="badges-v4">
+        <div class="badge-row-v4">
+          <div class="badge-v4">
+            <div class="badge-icon-v4 badge-icon-create">📝</div>
+            <div>
+              <div class="badge-num-v4">12</div>
+              <div class="badge-label-v4">发布经验</div>
+            </div>
+          </div>
+          <div class="badge-v4">
+            <div class="badge-icon-v4 badge-icon-like">♥</div>
+            <div>
+              <div class="badge-num-v4">47</div>
+              <div class="badge-label-v4">点赞</div>
+            </div>
+          </div>
+        </div>
+        <div class="badge-row-v4">
+          <div class="badge-v4">
+            <div class="badge-icon-v4 badge-icon-save">★</div>
+            <div>
+              <div class="badge-num-v4">23</div>
+              <div class="badge-label-v4">收藏</div>
+            </div>
+          </div>
+          <div class="badge-v4">
+            <div class="badge-icon-v4 badge-icon-chat">💬</div>
+            <div>
+              <div class="badge-num-v4">8/142</div>
+              <div class="badge-label-v4">对话/消息</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;color:#b5b0a8;padding:0 24px 6px;font-weight:500">兴趣领域</div>
+      <div class="domain-eggs-v4">
+        <span class="egg-v4 egg-1">思维模型 6</span>
+        <span class="egg-v4 egg-2">决策判断 4</span>
+        <span class="egg-v4 egg-3">情绪调节 3</span>
+        <span class="egg-v4 egg-3">学习方法 3</span>
+        <span class="egg-v4 egg-4">亲密关系 2</span>
+        <span class="egg-v4 egg-5">职业规划 2</span>
+        <span class="egg-v4 egg-4">副业创业 1</span>
+        <span class="egg-v4 egg-4">理财规划 1</span>
+      </div>
+
+      <div class="divider" style="margin-top:14px"></div>
+      <div class="list-item">📦 经验包<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item">💬 对话人格<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item">⚙ 设置<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span>首页</div>
+      <div class="tab-item"><span class="tab-icon">💬</span>对话</div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span>朋友</div>
+      <div class="tab-item active"><span class="tab-icon active">👤</span><span style="color:#4a7c59">我的</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ V5: Horizontal Bars + Pill Tags ═══ -->
+<div class="phone-wrapper">
+  <div class="phone-label">V5 · 粗柱进度条 + 胶囊标签</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div style="flex:1; overflow-y:auto">
+      <div class="profile-row">
+        <div class="avatar">年</div>
+        <div><div class="nickname">年糕</div><div style="font-size:12px;color:#4a7c59">编辑个人信息 ›</div></div>
+      </div>
+
+      <div class="stats-strip-v5">
+        <div class="stat-strip-v5"><div class="strip-num-v5">12</div><div class="strip-label-v5">发布经验</div></div>
+        <div class="stat-strip-v5"><div class="strip-num-v5">47</div><div class="strip-label-v5">点赞</div></div>
+        <div class="stat-strip-v5"><div class="strip-num-v5">23</div><div class="strip-label-v5">收藏</div></div>
+      </div>
+
+      <div style="display:flex;gap:12px;padding:0 24px 10px">
+        <span style="font-size:12px;color:#8b8274">💬 <b style="color:#4a7c59">8</b> 次对话</span>
+        <span style="font-size:12px;color:#8b8274">📝 <b style="color:#4a7c59">142</b> 条消息</span>
+      </div>
+
+      <div class="radar-bars-v5" style="padding:0 24px">
+        <div class="radar-title-v5">领域分布</div>
+        <div class="radar-item-v5">
+          <span class="radar-label-v5">思维模型</span>
+          <div class="radar-bar-v5"><div class="radar-fill-v5" style="width:100%;background:linear-gradient(90deg,#4a7c59,#6fa87c)"><div class="radar-dot-v5" style="background:#4a7c59">6</div></div></div>
+        </div>
+        <div class="radar-item-v5">
+          <span class="radar-label-v5">决策判断</span>
+          <div class="radar-bar-v5"><div class="radar-fill-v5" style="width:67%;background:linear-gradient(90deg,#6fa87c,#a8d5b5)"><div class="radar-dot-v5" style="background:#6fa87c">4</div></div></div>
+        </div>
+        <div class="radar-item-v5">
+          <span class="radar-label-v5">情绪调节</span>
+          <div class="radar-bar-v5"><div class="radar-fill-v5" style="width:50%;background:linear-gradient(90deg,#e8a850,#f0c070)"><div class="radar-dot-v5" style="background:#e8a850">3</div></div></div>
+        </div>
+        <div class="radar-item-v5">
+          <span class="radar-label-v5">学习方法</span>
+          <div class="radar-bar-v5"><div class="radar-fill-v5" style="width:50%;background:linear-gradient(90deg,#5c7aa8,#8ab0d8)"><div class="radar-dot-v5" style="background:#5c7aa8">3</div></div></div>
+        </div>
+        <div class="radar-item-v5">
+          <span class="radar-label-v5">亲密关系</span>
+          <div class="radar-bar-v5"><div class="radar-fill-v5" style="width:33%;background:linear-gradient(90deg,#e85d5d,#f09090)"><div class="radar-dot-v5" style="background:#e85d5d">2</div></div></div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin-top:14px"></div>
+      <div class="list-item">📦 经验包<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item">💬 对话人格<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+      <div class="list-item">⚙ 设置<span class="list-arrow">›</span></div>
+      <div class="divider"></div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item"><span class="tab-icon">⌂</span>首页</div>
+      <div class="tab-item"><span class="tab-icon">💬</span>对话</div>
+      <div class="create-btn"><span>+</span></div>
+      <div class="tab-item"><span class="tab-icon">👥</span>朋友</div>
+      <div class="tab-item active"><span class="tab-icon active">👤</span><span style="color:#4a7c59">我的</span></div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
