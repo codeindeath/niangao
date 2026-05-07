@@ -45,6 +45,7 @@ func getDashboard(c *gin.Context, db *pgxpool.Pool) {
 	db.QueryRow(ctx, `SELECT COUNT(*) FROM admin_logs WHERE action_type='review_approve' AND created_at >= CURRENT_DATE`).Scan(&d.TodayApproved)
 	db.QueryRow(ctx, `SELECT COUNT(*) FROM admin_logs WHERE action_type='review_reject' AND created_at >= CURRENT_DATE`).Scan(&d.TodayRejected)
 
+
 	// Yesterday's counts
 	var yesterdayNewUsers, yesterdayNewExps int64
 	db.QueryRow(ctx, `SELECT COUNT(*) FROM users WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE`).Scan(&yesterdayNewUsers)
@@ -80,6 +81,12 @@ func getDashboard(c *gin.Context, db *pgxpool.Pool) {
 		reviewPreview = []reviewPreviewItem{}
 	}
 
+	// Platform production stats
+	var platformTotal, platformToday, platformUnscored int64
+	db.QueryRow(ctx, `SELECT COUNT(*) FROM experiences WHERE source_type='platform' AND status='published' AND deleted_at IS NULL`).Scan(&platformTotal)
+	db.QueryRow(ctx, `SELECT COUNT(*) FROM experiences WHERE source_type='platform' AND created_at >= CURRENT_DATE`).Scan(&platformToday)
+	db.QueryRow(ctx, `SELECT COUNT(*) FROM experiences WHERE source_type='platform' AND quality_score IS NULL AND deleted_at IS NULL`).Scan(&platformUnscored)
+
 	c.JSON(http.StatusOK, gin.H{
 		"total_users":        d.TotalUsers,
 		"total_experiences":  d.TotalExperiences,
@@ -92,6 +99,9 @@ func getDashboard(c *gin.Context, db *pgxpool.Pool) {
 		"today_rejected":     d.TodayRejected,
 		"yesterday_new_users": yesterdayNewUsers,
 		"yesterday_new_exps":  yesterdayNewExps,
+		"platform_total":      platformTotal,
+		"platform_today":      platformToday,
+		"platform_unscored":   platformUnscored,
 		"review_preview":     reviewPreview,
 	})
 }
