@@ -12,10 +12,10 @@ class TestSystemPrompt:
     def test_prompt_contains_humanistic_principles(self):
         """Prompt 必须包含人本主义核心原则"""
         prompt = build_chat_system_prompt([])
-        assert "先理解" in prompt
-        assert "引导" in prompt
-        assert "简洁温暖" in prompt
-        assert "避免奉承" in prompt or "不要强行" in prompt
+        assert "反映感受" in prompt
+        assert "留在困难里" in prompt
+        assert "开放式问题" in prompt
+        assert "你不是来给方案的" in prompt
 
     def test_prompt_handles_empty_experiences(self):
         """用户没有收藏经验时，不应报错"""

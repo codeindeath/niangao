@@ -35,9 +35,9 @@ class InterpretationRequest(BaseModel):
 async def send_message(req: ChatRequest):
     """由 Go 后端调用。接收完整上下文（历史 + 收藏经验），返回 AI 回复。"""
     try:
-        # 构建系统提示词（基于收藏经验）
+        # 构建系统提示词（收藏经验 + 对话历史）
         bookmarks_dict = [b.model_dump() for b in req.bookmarked_experiences]
-        system_prompt = build_chat_system_prompt(bookmarks_dict)
+        system_prompt = build_chat_system_prompt(bookmarks_dict, req.history)
 
         # 组装消息
         messages = build_chat_messages(system_prompt, req.history, req.message)
