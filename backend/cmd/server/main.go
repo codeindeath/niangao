@@ -14,6 +14,7 @@ import (
 	"github.com/niangao/backend/internal/config"
 	"github.com/niangao/backend/internal/handler"
 	"github.com/niangao/backend/internal/middleware"
+	"github.com/niangao/backend/internal/model"
 	"github.com/niangao/backend/internal/repository"
 )
 
@@ -33,9 +34,11 @@ func main() {
 	defer db.Close()
 	log.Println("Database connected")
 
-	// Run migrations (manual)
-	// Migrations are run via: psql $DATABASE_URL -f migrations/005_auth_tokens.sql
-	_ = "migrations"
+	// Init domain catalog (dynamic 10×10 system)
+	if err := model.InitDomainCatalog(context.Background(), db); err != nil {
+		log.Printf("WARNING: domain catalog init failed: %v (using defaults)", err)
+	}
+	log.Println("Domain catalog loaded")
 
 	// Repositories
 	expRepo := repository.NewExperienceRepo(db)

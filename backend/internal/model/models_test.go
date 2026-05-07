@@ -6,51 +6,31 @@ import (
 	"unicode/utf8"
 )
 
-func TestIsValidDomain(t *testing.T) {
-	tests := []struct {
-		name   string
-		domain Domain
-		valid  bool
-	}{
-		{"career is valid", DomainCareer, true},
-		{"relationship is valid", DomainRelationship, true},
-		{"cognition is valid", DomainCognition, true},
-		{"life is valid", DomainLife, true},
-		{"emotion is valid", DomainEmotion, true},
-		{"empty is invalid", "", false},
-		{"unknown is invalid", "sports", false},
-		{"case sensitive - uppercase invalid", "CAREER", false},
+func TestDomainTypes(t *testing.T) {
+	// Domain and SubDomain are type aliases for string
+	var d Domain = "career"
+	var s SubDomain = "career-planning"
+	if string(d) != "career" {
+		t.Error("Domain type alias broken")
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := IsValidDomain(tt.domain)
-			if got != tt.valid {
-				t.Errorf("IsValidDomain(%q) = %v, want %v", tt.domain, got, tt.valid)
-			}
-		})
+	if string(s) != "career-planning" {
+		t.Error("SubDomain type alias broken")
 	}
 }
 
-func TestValidDomainsMapping(t *testing.T) {
-	expected := map[Domain]string{
-		DomainCareer:       "职场成长",
-		DomainRelationship: "人际关系",
-		DomainCognition:    "认知升级",
-		DomainLife:         "生活智慧",
-		DomainEmotion:      "情感",
+func TestDomainCatalogNilSafety(t *testing.T) {
+	// Without DB init, catalog is nil — all checks return false gracefully
+	if IsValidDomain("career") {
+		t.Error("IsValidDomain should return false when catalog is nil")
 	}
-
-	if len(ValidDomains) != len(expected) {
-		t.Errorf("ValidDomains has %d entries, want %d", len(ValidDomains), len(expected))
+	if IsValidSubDomain("career-planning") {
+		t.Error("IsValidSubDomain should return false when catalog is nil")
 	}
-
-	for k, v := range expected {
-		if got, ok := ValidDomains[k]; !ok {
-			t.Errorf("missing domain %s in ValidDomains", k)
-		} else if got != v {
-			t.Errorf("ValidDomains[%s] = %q, want %q", k, got, v)
-		}
+	if SubDomainBelongsToParent("career", "career-planning") {
+		t.Error("SubDomainBelongsToParent should return false when catalog is nil")
+	}
+	if d := DomainDisplay("career"); d != "career" {
+		t.Errorf("DomainDisplay should return input when catalog is nil, got %q", d)
 	}
 }
 
@@ -65,66 +45,52 @@ func TestCreateExperienceRequestValidation(t *testing.T) {
 		{
 			name:    "valid experience",
 			content: "接到任务先确认 deadline",
-			domain:  DomainCareer,
+			domain:  "career",
 			valid:   true,
 		},
 		{
 			name:    "content too long (over 100 chars)",
 			content: strings.Repeat("a", 101),
-			domain:  DomainCareer,
+			domain:  "career",
 			valid:   false,
 			errMsg:  "exceeds 100",
 		},
 		{
 			name:    "content exactly 100 chars",
 			content: strings.Repeat("a", 100),
-			domain:  DomainLife,
+			domain:  "life-philosophy",
 			valid:   true,
 		},
 		{
 			name:    "empty content",
 			content: "",
-			domain:  DomainCareer,
+			domain:  "career",
 			valid:   false,
 			errMsg:  "required",
 		},
 		{
-			name:    "invalid domain",
-			content: "valid content",
-			domain:  "invalid",
-			valid:   false,
-			errMsg:  "domain",
-		},
-		{
 			name:    "chinese content",
 			content: "把重要的决定放到早上做，意志力是有限资源",
-			domain:  DomainCognition,
+			domain:  "cognition",
 			valid:   true,
 		},
 	}
 
 	for _, tt := range tests {
-	t.Run(tt.name, func(t *testing.T) {
-		req := CreateExperienceRequest{
-			Content: tt.content,
-			Domain:  tt.domain,
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			req := CreateExperienceRequest{
+				Content: tt.content,
+				Domain:  tt.domain,
+			}
 
-		// Verify content length (characters, not bytes)
-		charLen := utf8.RuneCountInString(req.Content)
-		if tt.valid {
-			if charLen > 100 {
-				t.Errorf("content char length %d exceeds 100", charLen)
-				}
-				if !IsValidDomain(req.Domain) {
-					t.Errorf("domain %s should be valid", req.Domain)
+			charLen := utf8.RuneCountInString(req.Content)
+			if tt.valid {
+				if charLen > 100 {
+					t.Errorf("content char length %d exceeds 100", charLen)
 				}
 			} else {
-				if len(req.Content) > 100 && tt.errMsg == "" {
+				if tt.errMsg == "exceeds 100" && charLen <= 100 {
 					t.Error("content should be flagged as too long")
-				}
-				if !IsValidDomain(req.Domain) && req.Domain != "" && tt.errMsg == "" {
-					t.Error("domain should be flagged as invalid")
 				}
 			}
 		})
@@ -211,8 +177,6 @@ func TestMessageRoleValues(t *testing.T) {
 
 func TestExperienceListQueryDefaults(t *testing.T) {
 	q := ExperienceListQuery{}
-
-	// Default values should be sensible
 	if q.Page != 0 {
 		t.Log("page defaults to 0, handler should treat 0 as 1")
 	}
