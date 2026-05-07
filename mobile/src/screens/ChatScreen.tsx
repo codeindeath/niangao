@@ -17,7 +17,6 @@ interface MessageBubble {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  references?: string[];
 }
 
 export default function ChatScreen() {
@@ -38,9 +37,6 @@ export default function ChatScreen() {
             id: m.id,
             role: m.role,
             content: m.content,
-            references: m.referenced_experience_ids?.length
-              ? m.referenced_experience_ids
-              : undefined,
           }),
         );
         setMessages(msgs);
@@ -85,9 +81,6 @@ export default function ChatScreen() {
             ? {
                 ...m,
                 content: result.reply,
-                references: result.referenced_experience_ids?.length
-                  ? result.referenced_experience_ids
-                  : undefined,
               }
             : m,
         ),
@@ -136,13 +129,6 @@ export default function ChatScreen() {
               color="#4a7c59"
               style={{marginTop: 4}}
             />
-          )}
-          {item.references && item.references.length > 0 && (
-            <View style={styles.referenceBar}>
-              <Text style={styles.referenceText}>
-                引用了你收藏的 {item.references.length} 条经验
-              </Text>
-            </View>
           )}
         </View>
         {isUser && (
@@ -314,16 +300,6 @@ const styles = StyleSheet.create({
   },
   bubbleTextUser: {
     color: '#ffffff',
-  },
-  referenceBar: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 0.5,
-    borderTopColor: '#e8e4df',
-  },
-  referenceText: {
-    fontSize: 11,
-    color: '#9a9a9a',
   },
   inputBar: {
     flexDirection: 'row',
