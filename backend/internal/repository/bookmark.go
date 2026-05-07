@@ -79,3 +79,39 @@ func (r *BookmarkRepo) MarkPracticed(ctx context.Context, userID, experienceID s
 	)
 	return err
 }
+
+// BookmarkedExperience is a lightweight experience struct for chat context.
+type BookmarkedExperience struct {
+	ID      string `json:"id"`
+	Content string `json:"content"`
+	Domain  string `json:"domain"`
+}
+
+// ListBookmarkedExperiences returns all bookmarked experiences with content for AI context.
+func (r *BookmarkRepo) ListBookmarkedExperiences(ctx context.Context, userID string) ([]BookmarkedExperience, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT e.id, e.content, e.domain::text
+		 FROM bookmarks b
+		 JOIN experiences e ON e.id = b.experience_id
+		 WHERE b.user_id=$1 AND e.deleted_at IS NULL
+		 ORDER BY b.created_at DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var exps []BookmarkedExperience
+	for rows.Next() {
+		var exp BookmarkedExperience
+		if err := rows.Scan(&exp.ID, &exp.Content, &exp.Domain); err != nil {
+			return nil, err
+		}
+		exps = append(exps, exp)
+	}
+	if exps == nil {
+		exps = make([]BookmarkedExperience, 0)
+	}
+	return exps, nil
+}

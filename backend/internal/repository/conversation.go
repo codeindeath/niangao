@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/niangao/backend/internal/model"
 )
@@ -125,4 +126,69 @@ func (r *ConversationRepo) ListByUser(ctx context.Context, userID string) ([]mod
 	}
 
 	return convs, nil
+}
+
+// GetOrCreateByUser returns the user's most recent conversation, creating one if none exists.
+func (r *ConversationRepo) GetOrCreateByUser(ctx context.Context, userID string) (*model.Conversation, error) {
+	// Try to find existing
+	c := &model.Conversation{}
+	err := r.db.QueryRow(ctx,
+		`SELECT id, user_id, title, created_at, updated_at
+		 FROM conversations WHERE user_id=$1
+		 ORDER BY updated_at DESC LIMIT 1`,
+		userID,
+	).Scan(&c.ID, &c.UserID, &c.Title, &c.CreatedAt, &c.UpdatedAt)
+
+	if err == nil {
+		return c, nil
+	}
+	if err != pgx.ErrNoRows {
+		return nil, fmt.Errorf("get conversation: %w", err)
+	}
+
+	// Create new
+	return r.Create(ctx, userID)
+}
+
+// GetMessagesSince returns messages created after the given time.
+func (r *ConversationRepo) GetMessagesSince(ctx context.Context, convID string, since time.Duration) ([]model.Message, error) {
+	cutoff := time.Now().Add(-since)
+	rows, err := r.db.Query(ctx,
+		`SELECT id, conversation_id, role, content, referenced_experience_ids, created_at
+		 FROM messages WHERE conversation_id=$1 AND created_at >= $2
+		 ORDER BY created_at ASC`,
+		convID, cutoff,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []model.Message
+	for rows.Next() {
+		var m model.Message
+		err := rows.Scan(&m.ID, &m.ConversationID, &m.Role, &m.Content,
+			&m.ReferencedExperienceIDs, &m.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		messages = append(messages, m)
+	}
+	if messages == nil {
+		messages = make([]model.Message, 0)
+	}
+	return messages, nil
+}
+
+// CountTodayMessages counts user+assistant message pairs today for rate limiting.
+func (r *ConversationRepo) CountTodayMessages(ctx context.Context, convID string) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx,
+		`SELECT COUNT(*) FROM messages
+		 WHERE conversation_id=$1
+		   AND role='user'
+		   AND created_at::date = CURRENT_DATE`,
+		convID,
+	).Scan(&count)
+	return count, err
 }

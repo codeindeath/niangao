@@ -159,18 +159,29 @@ export async function fetchRecommendations(
 }
 
 // ============================================================
-// AI 对话 API (Python :8000)
+// AI 对话 API (Go 后端编排，不再直连 Python)
 // ============================================================
 
-export async function sendMessage(
+export interface ChatMessageItem {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  referenced_experience_ids?: string[];
+  created_at: string;
+}
+
+export async function initChat(): Promise<{conversation_id: string; messages: ChatMessageItem[]}> {
+  return apiGet('/api/v1/chat');
+}
+
+export async function sendChatMessage(
+  conversationId: string,
   message: string,
-  userId: string,
-  history: ChatMessage[] = [],
-): Promise<{reply: string; referenced_experience_ids: string[]}> {
-  return aiPost('/api/v1/chat/send', {
+): Promise<{reply: string; referenced_experience_ids: string[]; message_id: string}> {
+  return apiPost('/api/v1/chat/send', {
+    conversation_id: conversationId,
     message,
-    user_id: userId,
-    history,
   });
 }
 

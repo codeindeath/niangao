@@ -66,8 +66,8 @@ func main() {
 
 		// 经验
 		handler.RegisterExperienceRoutes(v1, expRepo, likeRepo, bookmarkRepo)
-		// 对话（需认证）
-		handler.RegisterConversationRoutes(v1, convRepo)
+		// 对话（新版：Go 编排 + 消息落库）
+		handler.RegisterChatRoutes(v1, convRepo, bookmarkRepo, cfg.AIServiceURL)
 		// 用户
 		handler.RegisterUserRoutes(v1, db)
 		// 统计

@@ -1,25 +1,29 @@
-"""对话 API"""
+"""对话 API — 由 Go 后端编排调用"""
 import logging
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from sse_starlette.sse import EventSourceResponse
 
 from app.core.config import settings
-from app.core.prompts import build_system_prompt, build_chat_messages
+from app.core.prompts import build_chat_system_prompt, build_chat_messages
 import app.services.llm as llm_module
-import app.services.retriever as retriever_module
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+class BookmarkedExp(BaseModel):
+    id: str
+    content: str
+    domain: str
+
+
 class ChatRequest(BaseModel):
     message: str
-    conversation_id: Optional[str] = None
-    history: List[Dict] = []
     user_id: str
+    history: List[Dict] = []
+    bookmarked_experiences: List[BookmarkedExp] = []
 
 
 class InterpretationRequest(BaseModel):
@@ -29,49 +33,26 @@ class InterpretationRequest(BaseModel):
 
 @router.post("/send")
 async def send_message(req: ChatRequest):
+    """由 Go 后端调用。接收完整上下文（历史 + 收藏经验），返回 AI 回复。"""
     try:
-        # 关键词检索用户经验
-        experiences = await retriever_module.search_experiences(
-            query_text=req.message,
-            user_id=req.user_id,
-            limit=settings.max_context_experiences,
-        )
+        # 构建系统提示词（基于收藏经验）
+        bookmarks_dict = [b.model_dump() for b in req.bookmarked_experiences]
+        system_prompt = build_chat_system_prompt(bookmarks_dict)
 
-        system_prompt = build_system_prompt(experiences)
+        # 组装消息
         messages = build_chat_messages(system_prompt, req.history, req.message)
         response = await llm_module.llm_service.chat(messages, stream=False)
 
+        # 引用哪些经验由 LLM 决定——我们不在代码层硬匹配
         return {
             "reply": response,
-            "referenced_experience_ids": [e.get("id") for e in experiences],
+            "referenced_experience_ids": [
+                b.id for b in req.bookmarked_experiences
+            ],
         }
     except Exception as e:
         logger.error(f"Chat error: {e}")
         raise HTTPException(status_code=500, detail="对话服务暂时不可用")
-
-
-@router.post("/stream")
-async def stream_message(req: ChatRequest):
-    async def event_generator():
-        try:
-            experiences = await retriever_module.search_experiences(
-                query_text=req.message,
-                user_id=req.user_id,
-                limit=settings.max_context_experiences,
-            )
-
-            system_prompt = build_system_prompt(experiences)
-            messages = build_chat_messages(system_prompt, req.history, req.message)
-
-            full = ""
-            async for token in await llm_module.llm_service.chat(messages, stream=True):
-                full += token
-                yield {"data": token}
-            yield {"event": "references", "data": str([e.get("id") for e in experiences])}
-        except Exception as e:
-            yield {"event": "error", "data": str(e)}
-
-    return EventSourceResponse(event_generator())
 
 
 @router.post("/generate-interpretation")

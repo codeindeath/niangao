@@ -11,8 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {sendMessage, ChatMessage} from '../services/api';
-import {getUserInfo} from '../services/config';
+import {initChat, sendChatMessage, ChatMessageItem} from '../services/api';
 
 interface MessageBubble {
   id: string;
@@ -22,34 +21,47 @@ interface MessageBubble {
 }
 
 export default function ChatScreen() {
-  const [userId, setUserId] = useState<string>('');
-  const [messages, setMessages] = useState<MessageBubble[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content: '你好呀，我是年糕。有什么想聊聊的？不管是工作上的困惑、人际关系，还是想梳理一下最近的想法，我都在这里陪你。',
-    },
-  ]);
+  const [conversationId, setConversationId] = useState<string>('');
+  const [messages, setMessages] = useState<MessageBubble[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const flatListRef = useRef<FlatList>(null);
 
-  // 加载用户信息获取 ID
+  // 初始化：加载历史消息 + 自动打招呼
   useEffect(() => {
-    getUserInfo().then(user => {
-      if (user?.id) setUserId(user.id);
-    });
+    initChat()
+      .then(data => {
+        setConversationId(data.conversation_id);
+        const msgs: MessageBubble[] = (data.messages || []).map(
+          (m: ChatMessageItem) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            references: m.referenced_experience_ids?.length
+              ? m.referenced_experience_ids
+              : undefined,
+          }),
+        );
+        setMessages(msgs);
+      })
+      .catch(err => {
+        console.warn('[chat] init failed:', err?.message);
+        // Fallback: show welcome if history load fails
+        setMessages([
+          {
+            id: 'welcome',
+            role: 'assistant',
+            content: '嗨，我是年糕。想聊什么都可以，随便说说。',
+          },
+        ]);
+      })
+      .finally(() => setInitialLoading(false));
   }, []);
-
-  // 构建历史消息（最近 10 轮）
-  const buildHistory = useCallback((): ChatMessage[] => {
-    const recent = messages.filter(m => m.role !== 'system').slice(-20);
-    return recent.map(m => ({role: m.role as 'user' | 'assistant', content: m.content}));
-  }, [messages]);
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || loading) return;
+    if (!text || loading || !conversationId) return;
     setInput('');
 
     const userMsg: MessageBubble = {
@@ -60,13 +72,12 @@ export default function ChatScreen() {
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
 
-    // 添加占位气泡
+    // 占位气泡
     const aiId = (Date.now() + 1).toString();
     setMessages(prev => [...prev, {id: aiId, role: 'assistant', content: ''}]);
 
     try {
-      const history = buildHistory();
-      const result = await sendMessage(text, userId, history);
+      const result = await sendChatMessage(conversationId, text);
 
       setMessages(prev =>
         prev.map(m =>
@@ -82,22 +93,18 @@ export default function ChatScreen() {
         ),
       );
     } catch (e: any) {
+      let errMsg = '抱歉，对话服务暂时不可用，请稍后再试。';
+      if (e?.status === 429) {
+        errMsg = '今日对话已达上限（100轮），明天再来聊吧。';
+      }
       setMessages(prev =>
         prev.map(m =>
-          m.id === aiId ? {...m, content: '抱歉，对话服务暂时不可用，请稍后再试。'} : m,
+          m.id === aiId ? {...m, content: errMsg} : m,
         ),
       );
     } finally {
       setLoading(false);
     }
-  };
-
-  const domainLabels: Record<string, string> = {
-    career: '职场',
-    relationship: '人际',
-    cognition: '认知',
-    life: '生活',
-    emotion: '情感',
   };
 
   const renderMessage = ({item}: {item: MessageBubble}) => {
@@ -106,33 +113,65 @@ export default function ChatScreen() {
 
     return (
       <View style={[styles.bubbleRow, isUser && styles.bubbleRowUser]}>
-        {!isUser && <View style={styles.aiAvatar}><Text style={styles.aiAvatarText}>糕</Text></View>}
-        <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAi]}>
-          <Text style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>
+        {!isUser && (
+          <View style={styles.aiAvatar}>
+            <Text style={styles.aiAvatarText}>糕</Text>
+          </View>
+        )}
+        <View
+          style={[
+            styles.bubble,
+            isUser ? styles.bubbleUser : styles.bubbleAi,
+          ]}>
+          <Text
+            style={[
+              styles.bubbleText,
+              isUser && styles.bubbleTextUser,
+            ]}>
             {item.content || '…'}
           </Text>
           {!isUser && loading && item.content === '' && (
-            <ActivityIndicator size="small" color="#4a7c59" style={{marginTop: 4}} />
+            <ActivityIndicator
+              size="small"
+              color="#4a7c59"
+              style={{marginTop: 4}}
+            />
           )}
           {item.references && item.references.length > 0 && (
             <View style={styles.referenceBar}>
               <Text style={styles.referenceText}>
-                📎 引用了 {item.references.length} 条经验
+                引用了你收藏的 {item.references.length} 条经验
               </Text>
             </View>
           )}
         </View>
-        {isUser && <View style={styles.userAvatar}><Text style={styles.userAvatarText}>我</Text></View>}
+        {isUser && (
+          <View style={styles.userAvatar}>
+            <Text style={styles.userAvatarText}>我</Text>
+          </View>
+        )}
       </View>
     );
   };
+
+  if (initialLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>让你的经验陪伴你</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#4a7c59" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>年糕对话</Text>
-        <Text style={styles.headerSub}>AI 成长伙伴</Text>
+        <Text style={styles.headerTitle}>让你的经验陪伴你</Text>
       </View>
 
       {/* Messages */}
@@ -142,7 +181,9 @@ export default function ChatScreen() {
         keyExtractor={item => item.id}
         renderItem={renderMessage}
         contentContainerStyle={styles.messageList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({animated: true})}
+        onContentSizeChange={() =>
+          flatListRef.current?.scrollToEnd({animated: true})
+        }
         showsVerticalScrollIndicator={false}
       />
 
@@ -164,7 +205,10 @@ export default function ChatScreen() {
             onSubmitEditing={handleSend}
           />
           <TouchableOpacity
-            style={[styles.sendButton, (!input.trim() || loading) && styles.sendButtonDisabled]}
+            style={[
+              styles.sendButton,
+              (!input.trim() || loading) && styles.sendButtonDisabled,
+            ]}
             onPress={handleSend}
             disabled={!input.trim() || loading}>
             <Text style={styles.sendButtonText}>发送</Text>
@@ -180,6 +224,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#faf8f5',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
     paddingHorizontal: 18,
     paddingVertical: 12,
@@ -191,11 +240,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: '#1a1a1a',
-  },
-  headerSub: {
-    fontSize: 12,
-    color: '#9a9a9a',
-    marginTop: 2,
   },
   messageList: {
     paddingHorizontal: 14,
