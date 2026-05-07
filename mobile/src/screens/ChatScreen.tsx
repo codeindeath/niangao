@@ -158,7 +158,8 @@ export default function ChatScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>让你的经验陪伴你</Text>
+          <Text style={styles.headerTitle}>和年糕对话</Text>
+          <Text style={styles.headerSub}>让经验陪伴你</Text>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#4a7c59" />
@@ -171,7 +172,8 @@ export default function ChatScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>让你的经验陪伴你</Text>
+        <Text style={styles.headerTitle}>和年糕对话</Text>
+        <Text style={styles.headerSub}>让经验陪伴你</Text>
       </View>
 
       {/* Messages */}
@@ -240,6 +242,11 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: '#1a1a1a',
+  },
+  headerSub: {
+    fontSize: 12,
+    color: '#9a9a9a',
+    marginTop: 2,
   },
   messageList: {
     paddingHorizontal: 14,
