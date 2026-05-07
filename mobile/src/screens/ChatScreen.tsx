@@ -158,8 +158,8 @@ export default function ChatScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>和年糕对话</Text>
-          <Text style={styles.headerSub}>让经验陪伴你</Text>
+          <Text style={styles.headerTitle}>随便聊聊</Text>
+          <Text style={styles.headerSub}>收藏的经验我都记着</Text>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#4a7c59" />
@@ -172,8 +172,8 @@ export default function ChatScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>和年糕对话</Text>
-        <Text style={styles.headerSub}>让经验陪伴你</Text>
+        <Text style={styles.headerTitle}>随便聊聊</Text>
+        <Text style={styles.headerSub}>收藏的经验我都记着</Text>
       </View>
 
       {/* Messages */}
