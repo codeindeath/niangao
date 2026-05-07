@@ -172,6 +172,24 @@ CELEBRITY_SOURCES = [
             "用户的需求永远是第一位的，而不是你自己的想法。",
         ],
     },
+    # dankoe (Dan Koe)
+    {
+        "label": "Dan Koe",
+        "type": "celebrity",
+        "texts": [
+            "Your life is your greatest work of art. Treat it as a canvas, not a to-do list.",
+            "Don't find your passion — solve a problem you care about. Passion follows purpose, not the other way around.",
+            "The goal is not to retire early, but to never have to retire from something you genuinely love doing.",
+            "If you don't build your own dream, someone else will hire you to build theirs.",
+            "Most people overestimate what they can accomplish in one year and underestimate what they can accomplish in ten.",
+            "Writing is thinking. If you can't write it clearly, you don't understand it.",
+            "The future of work is solopreneurship — one person, infinite leverage, zero permission.",
+            "The biggest risk is not taking any risk. In a world that changes quickly, the only strategy guaranteed to fail is not taking risks.",
+            "Education is not the filling of a pail, but the lighting of a fire. Self-education is the only education.",
+            "Your attention is the most valuable currency you own. Guard it like your life depends on it — because it does.",
+            "The freedom to choose your own problems is the ultimate form of wealth.",
+        ],
+    },
 ]
 
 
