@@ -10,6 +10,10 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/content')) return '📝 内容管理';
   if (pathname.startsWith('/users')) return '👥 用户管理';
   if (pathname.startsWith('/platform')) return '📋 平台内容';
+  if (pathname.startsWith('/domains')) return '🏷️ 领域管理';
+  if (pathname.startsWith('/config')) return '⚙️ 系统配置';
+  if (pathname.startsWith('/logs')) return '📋 操作日志';
+  if (pathname.startsWith('/stats')) return '📊 数据统计';
   return '管理后台';
 }
 
@@ -63,6 +67,30 @@ export default function Layout({ children }: { children: ReactNode }) {
             className={({ isActive }) => isActive ? 'active' : ''}
           >
             <span className="icon">📋</span> 平台内容
+          </NavLink>
+          <NavLink
+            to="/domains"
+            className={({ isActive }) => isActive ? 'active' : ''}
+          >
+            <span className="icon">🏷️</span> 领域管理
+          </NavLink>
+          <NavLink
+            to="/stats"
+            className={({ isActive }) => isActive ? 'active' : ''}
+          >
+            <span className="icon">📊</span> 数据统计
+          </NavLink>
+          <NavLink
+            to="/config"
+            className={({ isActive }) => isActive ? 'active' : ''}
+          >
+            <span className="icon">⚙️</span> 系统配置
+          </NavLink>
+          <NavLink
+            to="/logs"
+            className={({ isActive }) => isActive ? 'active' : ''}
+          >
+            <span className="icon">📋</span> 操作日志
           </NavLink>
           <NavLink
             to="/users"

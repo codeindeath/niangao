@@ -162,6 +162,10 @@ export async function unpublishExperience(id: string) {
   return apiPost(`/api/v1/admin/experiences/${id}/unpublish`);
 }
 
+export async function restoreExperience(id: string) {
+  return apiPost(`/api/v1/admin/experiences/${id}/restore`);
+}
+
 export async function hardDeleteExperience(id: string) {
   return apiPost(`/api/v1/admin/experiences/${id}/hard-delete`);
 }

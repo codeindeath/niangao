@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import type React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -73,10 +73,18 @@ export default function UserManagement() {
   const handleToggle = async (user: AdminUser) => {
     const newEnabled = !user.is_active;
     const action = newEnabled ? '启用' : '禁用';
-    if (!window.confirm(`确认${action}用户「${user.nickname}」？`)) return;
+    let reason = '';
+    if (newEnabled) {
+      if (!window.confirm(`确认${action}用户「${user.nickname}」？`)) return;
+    } else {
+      const input = window.prompt(`确认禁用「${user.nickname}」？请输入理由（≤200字）：`);
+      if (input === null) return;
+      if (input.length > 200) { alert('理由不能超过200字'); return; }
+      reason = input;
+    }
     setToggling(true);
     try {
-      await toggleUserEnabled(user.id, newEnabled);
+      await toggleUserEnabled(user.id, newEnabled, reason);
       await load();
     } catch {
       alert('操作失败');
@@ -88,10 +96,22 @@ export default function UserManagement() {
   const totalPages = data ? Math.ceil(data.total / data.page_size) : 0;
 
   const [searchInput, setSearchInput] = useState(currentSearch);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const doSearch = () => {
     updateParams({ search: searchInput });
   };
+
+  // 搜索防抖 300ms
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      updateParams({ search: searchInput });
+    }, 300);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchInput]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') doSearch();
@@ -140,6 +160,16 @@ export default function UserManagement() {
               className="btn btn-green btn-sm"
               onClick={async () => {
                 if (!window.confirm('批量启用所有可见用户？')) return;
+                const adminStr = localStorage.getItem('admin_user');
+                if (adminStr) {
+                  try {
+                    const admin = JSON.parse(adminStr);
+                    if (admin.id && data.data.some(u => u.id === admin.id)) {
+                      alert('不能批量操作自己的账号');
+                      return;
+                    }
+                  } catch { /* ignore parse error */ }
+                }
                 try {
                   await batchUpdateUserStatus(data.data.map(u => u.id), true);
                   await load();
@@ -152,6 +182,16 @@ export default function UserManagement() {
               className="btn btn-red btn-sm"
               onClick={async () => {
                 if (!window.confirm('批量禁用所有可见用户？')) return;
+                const adminStr = localStorage.getItem('admin_user');
+                if (adminStr) {
+                  try {
+                    const admin = JSON.parse(adminStr);
+                    if (admin.id && data.data.some(u => u.id === admin.id)) {
+                      alert('不能批量操作自己的账号');
+                      return;
+                    }
+                  } catch { /* ignore parse error */ }
+                }
                 try {
                   await batchUpdateUserStatus(data.data.map(u => u.id), false);
                   await load();
@@ -186,7 +226,14 @@ export default function UserManagement() {
               <tbody>
                 {data.data.map((user) => (
                   <tr key={user.id}>
-                    <td style={{ fontWeight: 600 }}>{user.nickname}</td>
+                    <td style={{ fontWeight: 600 }}>
+                      {user.nickname}
+                      {user.auth_provider === 'apple' && (
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 400 }}>
+                          🍎 {user.id.slice(0, 8)}****{user.id.slice(-4)}
+                        </div>
+                      )}
+                    </td>
                     <td>{providerBadge(user.auth_provider)}</td>
                     <td>
                       {user.is_active ? (

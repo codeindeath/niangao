@@ -76,15 +76,14 @@ export default function DashboardPage() {
 
   return (
     <>
-      {/* Stats Grid */}
+      {/* Stats Grid — 8 cards, 4x2 */}
       <div className="stats-grid">
         <div className="stat-card green">
           <div className="label">总用户数</div>
           <div className="value">{dashboard.total_users.toLocaleString()}</div>
           <div className="sub">
-            ↑ {dashboard.today_new_users} 今日新增
             {userVsYesterday !== null && (
-              <span style={{ color: userVsYesterday >= 0 ? 'var(--green)' : 'var(--red)', marginLeft: 6 }}>
+              <span style={{ color: userVsYesterday >= 0 ? 'var(--green)' : 'var(--red)' }}>
                 {userVsYesterday >= 0 ? '↑' : '↓'} vs昨日 {Math.abs(userVsYesterday)}
               </span>
             )}
@@ -94,34 +93,55 @@ export default function DashboardPage() {
           <div className="label">总经验数</div>
           <div className="value">{dashboard.total_experiences.toLocaleString()}</div>
           <div className="sub">
-            ↑ {dashboard.today_new_exps} 今日新增
             {expVsYesterday !== null && (
-              <span style={{ color: expVsYesterday >= 0 ? 'var(--green)' : 'var(--red)', marginLeft: 6 }}>
+              <span style={{ color: expVsYesterday >= 0 ? 'var(--green)' : 'var(--red)' }}>
                 {expVsYesterday >= 0 ? '↑' : '↓'} vs昨日 {Math.abs(expVsYesterday)}
               </span>
             )}
           </div>
         </div>
+        <div className="stat-card green">
+          <div className="label">今日新增用户</div>
+          <div className="value">{dashboard.today_new_users.toLocaleString()}</div>
+          <div className="sub">新注册</div>
+        </div>
+        <div className="stat-card">
+          <div className="label">今日新增经验</div>
+          <div className="value">{dashboard.today_new_exps.toLocaleString()}</div>
+          <div className="sub">新发布</div>
+        </div>
         <div className="stat-card">
           <div className="label">今日活跃用户</div>
           <div className="value">{dashboard.today_active_users.toLocaleString()}</div>
-          <div className="sub">DAU</div>
+          <div className="sub">有互动行为的用户</div>
         </div>
         <div className="stat-card">
           <div className="label">今日 AI 对话</div>
           <div className="value">{dashboard.today_ai_chats.toLocaleString()}</div>
           <div className="sub">AI 互动次数</div>
         </div>
-        <div className="stat-card red">
+        <div className="stat-card red" onClick={() => navigate('/reviews')} style={{ cursor: 'pointer' }}>
           <div className="label">待审核</div>
           <div className="value">{dashboard.pending_reviews}</div>
-          <div className="sub">⏱ 待处理</div>
+          <div className="sub">⏱ 待处理 → 去审核</div>
         </div>
         <div className="stat-card green">
           <div className="label">今日审核通过</div>
           <div className="value">{dashboard.today_approved}</div>
           <div className="sub">通过率 {approvalRate}%</div>
+          {dashboard.today_rejected > 0 && (
+            <div className="sub" style={{ color: 'var(--red)' }}>拒绝 {dashboard.today_rejected} 条</div>
+          )}
         </div>
+      </div>
+
+      {/* Quick Entry */}
+      <div className="card" style={{ marginBottom: 20, display: 'flex', gap: 12, alignItems: 'center', padding: '14px 20px' }}>
+        <span style={{ fontWeight: 600, fontSize: 14, marginRight: 8 }}>快捷入口</span>
+        <button className="btn btn-green btn-sm" onClick={() => navigate('/reviews')}>📋 审核队列</button>
+        <button className="btn btn-outline btn-sm" onClick={() => navigate('/users')}>👥 用户列表</button>
+        <button className="btn btn-outline btn-sm" onClick={() => navigate('/platform')}>📦 新建平台经验</button>
+        <button className="btn btn-outline btn-sm" onClick={() => navigate('/config')}>⚙️ 系统配置</button>
       </div>
 
       {/* Row: Chart + AI Status */}

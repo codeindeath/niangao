@@ -105,6 +105,8 @@ export default function PlatformContent() {
   };
 
   const [batchAILoading, setBatchAILoading] = useState(false);
+  const [csvPreview, setCsvPreview] = useState<string | null>(null);
+  const [aiProgress, setAIProgress] = useState({ current: 0, total: 0 });
 
   const handleBatchAI = async () => {
     if (!data?.data?.length) {
@@ -118,6 +120,7 @@ export default function PlatformContent() {
     }
     if (!window.confirm(`将为 ${unscored.length} 条未评分的平台经验执行 AI 打分，继续？`)) return;
     setBatchAILoading(true);
+    setAIProgress({ current: 0, total: unscored.length });
     try {
       const result = await batchAIScore(unscored.map((e) => e.id));
       alert(`完成！成功 ${result.success} 条，失败 ${result.failed} 条`);
@@ -126,7 +129,40 @@ export default function PlatformContent() {
       alert('批量 AI 打分失败');
     } finally {
       setBatchAILoading(false);
+      setAIProgress({ current: 0, total: 0 });
     }
+  };
+
+
+  // CSV file upload with preview
+  const handleCSVUpload = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv";
+    input.onchange = (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string;
+        if (!text?.includes(",")) { alert("不是有效的CSV文件"); return; }
+        setCsvPreview(text);
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
+  const confirmCSVImport = async () => {
+    if (!csvPreview) return;
+    const rows = csvPreview.trim().split("\n").filter((r: string) => r.trim());
+    if (!window.confirm(`确认导入 ${rows.length - 1} 条数据？`)) return;
+    try {
+      const r = await importCSVPlatformExperiences(csvPreview);
+      alert(`导入完成！插入 ${r.inserted ?? r.total ?? "?"} 条`);
+      setCsvPreview(null);
+      await load();
+    } catch { alert("导入失败"); }
   };
 
   const totalPages = data ? Math.ceil(data.total / data.page_size) : 0;
@@ -177,16 +213,11 @@ export default function PlatformContent() {
         </button>
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline btn-sm" onClick={async () => {
-            const csv = prompt('粘贴 CSV 内容（列：content,domain,sub_domain,creator_name,source_label,score_reason）：');
-            if (!csv) return;
-            try { const r = await importCSVPlatformExperiences(csv); alert(`导入完成：${JSON.stringify(r)}`); await load(); }
-            catch { alert('导入失败'); }
-          }}>
+          <button className="btn btn-outline btn-sm" onClick={handleCSVUpload}>
             📥 CSV导入
           </button>
           <button className="btn btn-outline btn-sm" onClick={handleBatchAI} disabled={batchAILoading}>
-            {batchAILoading ? '⏳ AI分析中...' : '🤖 批量 AI'}
+            {batchAILoading ? `⏳ AI 评分中 ${aiProgress.total > 0 ? `${aiProgress.total} 条` : '...'}` : '🤖 批量 AI'}
           </button>
           <button className="btn btn-green btn-sm" onClick={openCreate}>
             ＋ 新建
@@ -316,6 +347,44 @@ export default function PlatformContent() {
           </>
         )}
       </div>
+      {/* CSV Preview Modal */}
+      {csvPreview && (() => {
+        const lines = csvPreview.trim().split("\n").filter((r: string) => r.trim());
+        const headers = lines[0]?.split(",") || [];
+        const rows = lines.slice(1);
+        return (
+        <div className="modal-overlay" onClick={() => setCsvPreview(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 700, maxHeight: "80vh", overflow: "auto" }}>
+            <h3>CSV 导入预览</h3>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 12 }}>共 {rows.length} 条数据</p>
+            <div style={{ maxHeight: 300, overflow: "auto", marginBottom: 16 }}>
+            <table style={{ fontSize: 11 }}>
+              <thead><tr>
+                {headers.map((h: string, i: number) => <th key={i}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {rows.slice(0, 10).map((row: string, i: number) => {
+                  const cells = row.split(",");
+                  return (
+                  <tr key={i}>
+                    {cells.map((cell: string, j: number) => (
+                      <td key={j} style={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", background: !cell.trim() ? "var(--red-light)" : undefined }}>
+                        {cell || <span style={{ color: "var(--red)" }}>空</span>}
+                      </td>
+                    ))}
+                  </tr>);
+                })}
+              </tbody>
+            </table>
+            </div>
+            {rows.length > 10 && <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 16 }}>... 还有 {rows.length - 10} 行未展示</p>}
+            <div className="modal-actions">
+              <button className="btn btn-outline" onClick={() => setCsvPreview(null)}>取消</button>
+              <button className="btn btn-green" onClick={confirmCSVImport}>确认导入 {rows.length} 条</button>
+            </div>
+          </div>
+        </div>);
+      })()}
 
       {/* Create Modal */}
       {creating && (
@@ -445,5 +514,7 @@ export default function PlatformContent() {
         </div>
       )}
     </div>
+
+
   );
 }

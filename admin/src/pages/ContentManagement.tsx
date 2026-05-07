@@ -3,7 +3,7 @@ import type React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   fetchExperiences, updateExperience, deleteExperience,
-  unpublishExperience, hardDeleteExperience, updateReviewStatus, exportExperiencesCSV,
+  unpublishExperience, hardDeleteExperience, updateReviewStatus, restoreExperience, exportExperiencesCSV,
 } from '../api/endpoints';
 import type { Experience, PaginatedData } from '../api/endpoints';
 import { DOMAIN_LABELS } from '../api/endpoints';
@@ -108,9 +108,19 @@ export default function ContentManagement() {
   };
 
   const handleHardDelete = async (id: string) => {
-    if (!window.confirm('⚠️ 确认永久删除？此操作不可恢复！')) return;
+    const confirm = window.prompt('⚠️ 此操作不可恢复！请输入「永久删除」确认：');
+    if (confirm !== '永久删除') {
+      alert('输入不匹配，操作已取消');
+      return;
+    }
     try { await hardDeleteExperience(id); await load(); }
     catch { alert('永久删除失败（可能已入池无法硬删）'); }
+  };
+
+  const handleRestore = async (id: string) => {
+    if (!window.confirm('确认恢复该内容？')) return;
+    try { await restoreExperience(id); await load(); }
+    catch { alert('恢复失败'); }
   };
 
   const handleReviewStatusChange = async (id: string, status: string) => {
@@ -225,7 +235,14 @@ export default function ContentManagement() {
                     <td>
                       <div className="btn-group">
                         <button className="btn btn-outline btn-sm" onClick={() => openEdit(item)}>✏️ 编辑</button>
-                        <button className="btn btn-red btn-sm" onClick={() => handleDelete(item.id)}>🗑 删除</button>
+                        {item.review_status === 'deleted' || item.status === 'deleted' ? (
+                          <>
+                            <button className="btn btn-green btn-sm" onClick={() => handleRestore(item.id)}>🔄 恢复</button>
+                            <button className="btn btn-red btn-sm" onClick={() => handleHardDelete(item.id)}>💀 永久删除</button>
+                          </>
+                        ) : (
+                          <button className="btn btn-red btn-sm" onClick={() => handleDelete(item.id)}>🗑 删除</button>
+                        )}
                       </div>
                     </td>
                   </tr>
