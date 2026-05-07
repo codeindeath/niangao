@@ -11,18 +11,13 @@ import (
 	"github.com/niangao/backend/internal/model"
 )
 
-// domainIcons maps top-level domain names to icons.
-var domainIcons = map[string]string{
-	"career":          "briefcase",
-	"business":        "chart",
-	"cognition":       "brain",
-	"relationship":    "heart",
-	"self-mastery":    "target",
-	"wealth":          "dollar",
-	"wellness":        "activity",
-	"learning":        "book",
-	"life-philosophy": "compass",
-	"creativity":      "palette",
+// domainIcons maps each top-level domain to an icon identifier.
+var domainIcons = map[model.Domain]string{
+	model.DomainCareer:       "briefcase",
+	model.DomainRelationship: "heart",
+	model.DomainCognition:    "brain",
+	model.DomainLife:         "home",
+	model.DomainEmotion:      "smile",
 }
 
 // domainHierarchyItem represents a top-level domain with its sub-domains
@@ -74,31 +69,34 @@ func RegisterAdminDomainRoutes(admin *gin.RouterGroup, db *pgxpool.Pool) {
 // ============================================================
 
 func getDomainHierarchy(c *gin.Context) {
-	cat := model.GetCatalog()
-	if cat == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "领域目录未初始化"})
-		return
-	}
-
 	var domains []domainHierarchyItem
-	for _, p := range cat.Parents() {
-		icon := domainIcons[p.Name]
+
+	for _, d := range model.DomainSortOrder {
+		displayName := model.ValidDomains[d]
+		if displayName == "" {
+			displayName = string(d)
+		}
+		icon := domainIcons[d]
 		if icon == "" {
 			icon = "default"
 		}
 
-		subs := cat.SubDomains(p.Name)
+		subs := model.SubDomainsByParent[d]
 		subItems := make([]domainSubItem, 0, len(subs))
 		for _, s := range subs {
+			subDisplay := model.ValidSubDomains[s]
+			if subDisplay == "" {
+				subDisplay = string(s)
+			}
 			subItems = append(subItems, domainSubItem{
-				Name:        s.Name,
-				DisplayName: s.DisplayName,
+				Name:        string(s),
+				DisplayName: subDisplay,
 			})
 		}
 
 		domains = append(domains, domainHierarchyItem{
-			Name:        p.Name,
-			DisplayName: p.DisplayName,
+			Name:        string(d),
+			DisplayName: displayName,
 			Parent:      nil,
 			Icon:        icon,
 			SubDomains:  subItems,

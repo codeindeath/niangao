@@ -108,8 +108,14 @@ type UserStatusUpdate struct {
 // Admin Domain
 // ============================================================
 
-// DomainSortOrder defines the display order of top-level domains (loaded from DB).
-var DomainSortOrder = []Domain{} // Populated at runtime from DomainCatalog
+// DomainSortOrder defines the display order of top-level domains.
+var DomainSortOrder = []Domain{
+	DomainCareer,
+	DomainRelationship,
+	DomainCognition,
+	DomainLife,
+	DomainEmotion,
+}
 
 type DomainItem struct {
 	Name        string `json:"name"`

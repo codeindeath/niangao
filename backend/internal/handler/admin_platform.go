@@ -21,8 +21,6 @@ func RegisterAdminPlatformRoutes(admin *gin.RouterGroup, db *pgxpool.Pool, expRe
 		platform.POST("/:id/publish", func(c *gin.Context) { togglePublishPlatformExperience(c, db) })
 		platform.POST("/:id/rescore", func(c *gin.Context) { rescorePlatformExperience(c, db) })
 		platform.POST("/import-csv", func(c *gin.Context) { importCSVPlatformExperiences(c, db) })
-		// Pipeline routes (extract + review + save)
-		RegisterAdminPlatformPipelineRoutes(admin, db)
 	}
 }
 

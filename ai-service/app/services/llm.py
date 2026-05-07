@@ -22,13 +22,13 @@ class LLMService:
     async def close(self):
         await self.client.close()
 
-    async def chat(self, messages: List[Dict], stream: bool = False, temperature: float = 0.7):
+    async def chat(self, messages: List[Dict], stream: bool = False):
         if stream:
             return self._chat_stream(messages)
         response = await self.client.chat.completions.create(
             model=settings.deepseek_model,
             messages=messages,
-            temperature=temperature,
+            temperature=0.7,
             max_tokens=1024,
         )
         return response.choices[0].message.content
