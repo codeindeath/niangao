@@ -54,6 +54,23 @@ export default function FlipCard({
   const showScore = item.quality_score != null && item.quality_score > 0;
   const stars = showScore ? Math.round(item.quality_score! / 2) : 0;
 
+  // 估算原文是否会导致底部按钮被挤出可视区
+  const shouldShowOriginal = (() => {
+    if (!item.original_text) return false;
+    const contentLen = item.content?.length || 0;
+    const originalLen = item.original_text.length;
+    // 正文：26px字号 40px行高，~12中文字符/行
+    const contentLines = Math.max(1, Math.ceil(contentLen / 12));
+    const contentHeight = contentLines * 40;
+    // 原文：13px字号 20px行高，~35英文字符/行
+    const originalLines = Math.max(1, Math.ceil(originalLen / 35));
+    const originalHeight = originalLines * 20 + 30; // +label padding
+    // 固定占用：胶囊区(contentTop+68) + 分隔线(26) + 作者(36) + 星级(~28) + 底部(100)
+    const fixedHeight = contentTop + 68 + 26 + 36 + (showScore ? 28 : 0) + 100;
+    const available = cardHeight - fixedHeight - contentHeight;
+    return originalHeight <= available;
+  })();
+
   const handleFlip = () => {
     if (!item.interpretation) return;
     const toValue = isFlipped ? 0 : 1;
@@ -120,41 +137,13 @@ export default function FlipCard({
                 {item.score_reason ? <Text style={styles.scoreText}>{item.score_reason}</Text> : null}
               </View>
             )}
-            {item.original_text ? (
+            {shouldShowOriginal ? (
               <View style={styles.originalCard}>
                 <Text style={styles.originalLabel}>📖 原文</Text>
                 <Text style={styles.originalText}>{item.original_text}</Text>
               </View>
             ) : null}
           </View>
-          {showActions && (
-            <View style={styles.bottomActions}>
-              <TouchableOpacity
-                style={[styles.actionBtn, item.is_liked && styles.actionLiked]}
-                onPress={(e) => { e.stopPropagation(); onLike?.(item.id); }}
-              >
-                <Text style={[styles.actionText, item.is_liked && styles.actionLikedText]}>
-                  ♥ {item.like_count > 0 ? item.like_count : '点赞'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, item.is_bookmarked && styles.actionSaved]}
-                onPress={(e) => { e.stopPropagation(); onBookmark?.(item.id); }}
-              >
-                <Text style={[styles.actionText, item.is_bookmarked && styles.actionSavedText]}>
-                  ★ {item.is_bookmarked ? '已收藏' : '收藏'}
-                </Text>
-              </TouchableOpacity>
-              {currentUserId && item.author_id === currentUserId && (
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={(e) => { e.stopPropagation(); onDelete?.(item.id); }}
-                >
-                  <Text style={styles.deleteText}>删除</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
         </Animated.View>
 
         {/* ═══ 背面 ═══ */}
@@ -193,6 +182,34 @@ export default function FlipCard({
           )}
         </Animated.View>
       </TouchableOpacity>
+      {showActions && (
+        <View style={styles.bottomActions}>
+          <TouchableOpacity
+            style={[styles.actionBtn, item.is_liked && styles.actionLiked]}
+            onPress={(e) => { e.stopPropagation(); onLike?.(item.id); }}
+          >
+            <Text style={[styles.actionText, item.is_liked && styles.actionLikedText]}>
+              ♥ {item.like_count > 0 ? item.like_count : '点赞'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, item.is_bookmarked && styles.actionSaved]}
+            onPress={(e) => { e.stopPropagation(); onBookmark?.(item.id); }}
+          >
+            <Text style={[styles.actionText, item.is_bookmarked && styles.actionSavedText]}>
+              ★ {item.is_bookmarked ? '已收藏' : '收藏'}
+            </Text>
+          </TouchableOpacity>
+          {currentUserId && item.author_id === currentUserId && (
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={(e) => { e.stopPropagation(); onDelete?.(item.id); }}
+            >
+              <Text style={styles.deleteText}>删除</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -247,7 +264,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic', textAlign: 'center',
     fontFamily: 'Georgia',
   },
-  bottomActions: {position: 'absolute', bottom: 28, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 12, zIndex: 2},
+  bottomActions: {position: 'absolute', bottom: -32, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 12, zIndex: 2},
   actionBtn: {paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#fff', borderWidth: 0.5, borderColor: '#f0ece7'},
   actionText: {fontSize: 13, color: '#9a9a9a', fontWeight: '500'},
   actionLiked: {borderColor: '#fce8e8', backgroundColor: '#fff5f5'},
