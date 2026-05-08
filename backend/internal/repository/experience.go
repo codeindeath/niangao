@@ -235,7 +235,7 @@ func (r *ExperienceRepo) List(ctx context.Context, query model.ExperienceListQue
 			&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
 			&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
-			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason,
+			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
 			&e.Status, &e.CreatedAt, &e.UpdatedAt,
 				&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 		); err != nil {
@@ -331,7 +331,7 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, of
 			&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
 			&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
-			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason,
+			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
 			&e.Status, &e.CreatedAt, &e.UpdatedAt,
 				&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 			&recScore,
@@ -479,7 +479,7 @@ func scanExperiences(rows pgx.Rows, total int) ([]model.Experience, int, error) 
 			&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
 			&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
-			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason,
+			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
 			&e.Status, &e.CreatedAt, &e.UpdatedAt,
 				&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 		); err != nil {
