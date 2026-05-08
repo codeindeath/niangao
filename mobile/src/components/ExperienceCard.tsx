@@ -120,6 +120,12 @@ export default function FlipCard({
                 {item.score_reason ? <Text style={styles.scoreText}>{item.score_reason}</Text> : null}
               </View>
             )}
+            {item.original_text ? (
+              <View style={styles.originalCard}>
+                <Text style={styles.originalLabel}>📖 原文</Text>
+                <Text style={styles.originalText}>{item.original_text}</Text>
+              </View>
+            ) : null}
           </View>
           {showActions && (
             <View style={styles.bottomActions}>
@@ -229,6 +235,18 @@ const styles = StyleSheet.create({
   starRow: {flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8},
   stars: {fontSize: 16, color: '#e8a850', letterSpacing: 2},
   scoreText: {fontSize: 10, color: '#b5b0a8'},
+  originalCard: {
+    marginTop: 16, marginHorizontal: 16,
+    padding: 14, backgroundColor: '#f7f4ee',
+    borderRadius: 10, borderWidth: 1, borderColor: '#e0dbd0', borderStyle: 'dashed',
+    alignSelf: 'stretch',
+  },
+  originalLabel: {fontSize: 10, fontWeight: '600', color: '#b5b0a8', letterSpacing: 1, marginBottom: 6},
+  originalText: {
+    fontSize: 13, lineHeight: 20, color: '#6a6a5a',
+    fontStyle: 'italic', textAlign: 'center',
+    fontFamily: 'Georgia',
+  },
   bottomActions: {position: 'absolute', bottom: 28, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 12, zIndex: 2},
   actionBtn: {paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#fff', borderWidth: 0.5, borderColor: '#f0ece7'},
   actionText: {fontSize: 13, color: '#9a9a9a', fontWeight: '500'},

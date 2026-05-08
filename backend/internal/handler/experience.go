@@ -2,8 +2,10 @@ package handler
 
 import (
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/niangao/backend/internal/middleware"
@@ -50,6 +52,14 @@ func (h *ExperienceHandler) List(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list experiences"})
 		return
+	}
+
+	// Shuffle to break creator clustering (only for default/latest sort)
+	if query.Sort == "" || query.Sort == "latest" {
+		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		rng.Shuffle(len(experiences), func(i, j int) {
+			experiences[i], experiences[j] = experiences[j], experiences[i]
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -395,6 +405,12 @@ func (h *ExperienceHandler) GetRecommendations(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get recommendations"})
 		return
 	}
+
+	// Shuffle to break creator clustering
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng.Shuffle(len(experiences), func(i, j int) {
+		experiences[i], experiences[j] = experiences[j], experiences[i]
+	})
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":  experiences,

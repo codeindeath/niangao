@@ -134,7 +134,7 @@ func (r *ExperienceRepo) CreateOfficial(ctx context.Context, authorID, content, 
 
 const experienceSelectCols = `e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
 		e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
-		e.creator_name, e.source_type, e.score_reason,
+		e.creator_name, e.source_type, e.score_reason, e.original_text,
 		e.status, e.created_at, e.updated_at,
 		u.nickname, u.avatar_url, u.title as author_title`
 
@@ -146,7 +146,7 @@ func scanExperience(row pgx.Row, e *model.Experience) error {
 		&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
 		&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 		&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
-		&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason,
+		&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
 		&e.Status, &e.CreatedAt, &e.UpdatedAt,
 		&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 	)

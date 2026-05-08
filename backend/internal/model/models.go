@@ -178,6 +178,7 @@ type Experience struct {
 	CreatorName             *string   `json:"creator_name,omitempty"`
 	SourceType              string    `json:"source_type"`
 	ScoreReason             *string   `json:"score_reason,omitempty"`
+	OriginalText            *string   `json:"original_text,omitempty"`
 	CreatedAt               time.Time  `json:"created_at"`
 	UpdatedAt               time.Time  `json:"updated_at"`
 	DeletedAt               *time.Time `json:"deleted_at,omitempty"`

@@ -61,7 +61,7 @@ type adminExpListQuery struct {
 const adminExpSelectCols = `e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain,
 	e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
 	e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
-	e.creator_name, e.source_type, e.score_reason,
+	e.creator_name, e.source_type, e.score_reason, e.original_text,
 	e.status, e.created_at, e.updated_at, e.deleted_at,
 	COALESCE(u.nickname, '') as author_name,
 	COALESCE(u.avatar_url, '') as author_avatar,
@@ -72,7 +72,7 @@ func scanAdminExperience(row interface{ Scan(...interface{}) error }, e *model.E
 		&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
 		&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 		&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
-		&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason,
+		&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
 		&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.DeletedAt,
 		&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle,
 	)

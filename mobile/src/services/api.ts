@@ -27,6 +27,7 @@ export interface Experience {
   review_reason?: string;
   quality_score?: number;
   score_details?: string;
+  original_text?: string;
   created_at: string;
 }
 
