@@ -314,7 +314,7 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, of
 		WHERE e.status = 'published' AND e.review_status = 'approved' AND e.is_private = FALSE AND e.deleted_at IS NULL
 		  AND e.author_id != $1
 		  AND e.id NOT IN (SELECT experience_id FROM bookmarks WHERE user_id = $1)
-		ORDER BY rec_score DESC, e.created_at DESC, e.id
+		ORDER BY COALESCE(ds.score, 1) * (e.like_count + e.bookmark_count + 1) * RANDOM() DESC
 		LIMIT $2 OFFSET $3`
 
 	rows, err := r.db.Query(ctx, query, userID, limit, offset)
