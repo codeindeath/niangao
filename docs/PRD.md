@@ -1,13 +1,13 @@
 # 年糕 App 产品需求文档（PRD）
 
-> **版本**：v2.4 | **日期**：2026-05-06 | **状态**：搜索修复 / 浏览去重 / 我的页 V5-A1 / 统计系统
+> **版本**：v2.7 | **日期**：2026-05-10 | **状态**：发布管线重构 / 内容准入 5 类规则 / 翻译自动生成 / 对话人本主义重设计 / 管理后台 v3.0
 
 ---
 
 ## 一、产品概述
 
 ### 1.1 产品定位
-年糕是一款**结构化经验分享 + AI 辅导社区**。用户发布 ≤100 字的精炼经验，平台通过「硬策略 + AI」双层审核确保内容质量，基于领域偏好进行个性化推荐，并提供 AI 对话辅导。
+年糕是一款**结构化经验分享 + AI 辅导社区**。用户发布 ≤100 字的精炼经验，平台通过「先存后审 + normalize + 硬策略 + 5 类 AI 质量规则」多层准入确保内容质量。审核通过后自动完成古文/英文翻译和 AI 解读生成。基于领域偏好进行个性化推荐，并提供人本主义风格 AI 对话辅导。
 
 ### 1.2 目标用户
 中国 20-35 岁职场青年，有成长意愿。
@@ -17,9 +17,9 @@
 | 维度 | 传统社区 | 年糕 |
 |------|---------|------|
 | 内容形式 | 长文 / 短视频 | **≤100 字结构化经验** |
-| 质量保障 | 人工审核 | **硬策略 + AI 双层审核** |
+| 质量保障 | 人工审核 | **normalize + 硬策略 + 5 类 AI 拒绝规则** |
 | 分发机制 | 时间线 / 关注 | **领域偏好加权推荐** |
-| AI 应用 | 辅助写作 | **准入分析 + 6 维打分 + 对话辅导** |
+| AI 应用 | 辅助写作 | **自动解读 + 古文/英文翻译 + 人本主义对话辅导** |
 
 ---
 
@@ -46,10 +46,9 @@
 │   ├─ 内容输入（10-100 字，实时字数统计）
 │   ├─ 一级领域选择（5 个）
 │   ├─ 二级领域选择（选择一级后展示，共 21 个）
-│   ├─ AI 生成解读（可选，调用 /ai generate-interpretation）
 │   ├─ 私密开关（默认公开）
-│   ├─ 公开经验 → 硬策略检查 → AI 审核+打分 → 入库
-│   └─ 私密经验 → 直接入库（跳过审核）
+│   ├─ 发布 → 立即保存原始内容 → 异步走平台池管线
+│   └─ 平台池管线：normalize(去壳/繁简/格式) → 去重(排除自身) → 硬策略 → 5类AI拒绝 → 翻译(古文/英文) → 生成解读
 │
 ├─ 📋 经验详情页
 │   ├─ 创作者信息（头像、名称）
@@ -73,11 +72,12 @@
 │   ├─ 退出登录
 │   └─ 未登录 → "去登录"引导按钮
 │
-├─ 🤖 AI 对话
-│   ├─ 基于用户经验库的人本主义辅导
-│   ├─ 多轮对话（上下文记忆）
+├─ 🤖 AI 对话（罗杰斯人本主义风格）
+│   ├─ 基于用户 48h 内经验 + 收藏经验的辅导对话
+│   ├─ 多轮对话（Go 后端编排，48h 上下文窗口）
+│   ├─ 智能打招呼（50 条模板，按 6 档离线间隔随机选择）
 │   ├─ 引用经验 ID
-│   └─ 每日对话轮次限制（50 轮）
+│   └─ 每日对话轮次限制（100 轮）
 │
 ├─ 🔍 搜索
 │   ├─ 关键词搜索：匹配经验内容 + 创建者（creator_name / nickname）
@@ -105,58 +105,92 @@
 ┌─ 填写内容（10-100字）──┐
 │  选择一级领域（必选）    │
 │  选择二级领域（必选）    │
-│  (可选) AI 生成解读      │
-│  私密开关（默认公开）    │
+│  私密开关（默认公开）    │     ← 前端无 AI 生成解读按钮
 └────────────────────────┘
         │
         ▼
-   【私密？】─── 是 ──→ 直接入库
-        │              review_status = "private"
-        │              自动收藏
-        │              返回创建成功
+   【Step 1: 立即保存】—— 不做任何处理
+   原始内容直接入库
+   review_status = "private"（私密） / "pending"（公开）
+   自动收藏
+        │
+        ▼
+   【私密？】─── 是 ──→ 直接返回创建成功
+        │              （跳过所有后续步骤）
         否
         │
         ▼
-   【硬策略检查】
-   ├─ 字数 ≥ 10 字？
-   ├─ 包含汉字/字母？
-   ├─ 敏感词过滤？
-   └─ 重复字符 ≤ 10？
+   【Step 2: 平台池准入管线】
         │
-    不通过 ──→ 入库 (review_status="rejected")
-        │      自动收藏
-        │      返回拒绝原因 + 提示
-        │
-     通过
-        │
-        ▼
-   【AI 审核】(DeepSeek API, 30s 超时)
-   ├─ 合规性检查
-   ├─ 内容类型判断（经验 vs 纯知识）
-   └─ 6 维度打分
-        │
-   ┌────┼────┐
-   ▼    ▼    ▼
- 通过  拒绝  超时/失败
-   │    │    │
-   │    │    └─→ 入库 (review_status="pending")
-   │    │         等待异步重试
-   │    │
-   │    └─→ 入库 (review_status="rejected")
-   │         保存拒绝原因
-   │         自动收藏
-   │         返回提示："已保存但未进入平台池"
-   │
-   └─→ 入库 (review_status="approved")
-        保存 6 维度评分
-        自动收藏
-        进入平台经验池
-        返回成功 + 评分
+   ┌────┴────────────────────────────┐
+   │  2a. normalize（文本清理）       │
+   │  ├─ ⑦ 去壳留核：XX说过/我认为→   │
+   │  ├─ ⑧ 格式杂质：引号/署名/列表符  │
+   │  ├─ 繁→简（zhconv）              │
+   │  └─ trim + 空白压缩               │
+   └────────────┬───────────────────┘
+                │
+                ▼
+   ┌──── 2b. 去重检查（排除自身ID）──┐
+   │  ExistsByContentExcluding()     │
+   │  相同内容已存在 → rejected      │
+   └────────────┬───────────────────┘
+                │ 不重复
+                ▼
+   ┌──── 2c. 硬策略检查 ────────────┐
+   │  CheckHardPolicy(cleaned)       │
+   │  ├─ 字数 ≥ 10 字？              │
+   │  ├─ 包含汉字/字母？             │
+   │  ├─ 敏感词过滤（7 类）？        │
+   │  └─ 重复字符 ≤ 10？             │
+   │  不通过 → rejected              │
+   └────────────┬───────────────────┘
+                │ 通过
+                ▼
+   ┌──── 2d. AI 审核（DeepSeek）────┐
+   │  5 类拒绝规则：                  │
+   │  ① 个人经历（无普适教训）       │
+   │  ② 客观描述（无个人洞见）       │
+   │  ③ 纯鸡汤（无可操作方法）       │
+   │  ④ 段子/笑话（无经验价值）      │
+   │  ⑤ 空泛无物（≤8字无实质）       │
+   │  + 合规性检查                    │
+   │  + 6 维度打分                    │
+   └──┬───────┬───────┬──────────────┘
+      │       │       │
+    通过    拒绝   超时/失败
+      │       │       │
+      │       │       └─→ 保持 pending
+      │       │           等待异步重试
+      │       │
+      │       └─→ UpdateReviewResult(rejected)
+      │            保存 AI 拒绝原因
+      │            返回："已保存但未进入平台池"
+      │
+      └─→ 2e. 翻译（如需）
+          callAITranslate(cleaned)
+          古文 → 现代汉语
+          英文 → 中文
+          原文存入 original_text
+              │
+              ▼
+          2f. 生成 AI 解读
+          callGenerateInterpretation(cleaned)
+              │
+              ▼
+          2g. UpdateReviewResult(approved)
+          内容替换为 cleaned 版本
+          入库 quality_score + 解读
+          进入平台经验池
+          返回成功 + 评分
 ```
 
-> **发布后刷新**：发布成功后，前端通过 `triggerTabRefresh('my')` → `useFocusEffect` 机制自动标记"我的"Tab 需要刷新。用户返回首页切到"我的"时，自动重新加载列表，无需重新登录。
-
-> **校验规则**：后端 handler 层对 `content`（10-100 字）和 `interpretation`（≤300 字）使用 `len([]rune(s))` 进行字数计数，确保中文等多字节字符的计数准确。Gin struct tag 的 `binding:"max=N"` 按字节校验，已全部移除。
+> **与历史版本的关键差异**：
+> - **v2.5+**：保存与审核完全解耦——用户提交后立即保存原始内容，管线异步判定是否入池
+> - **v2.5+**：新增 normalize 步骤（去壳、繁→简、格式清理）——所有内容先清理再审核
+> - **v2.5+**：去重排除自身 ID（`ExistsByContentExcluding`），避免刚保存的内容匹配到自己
+> - **v2.7**：去掉「领域过窄」拒绝规则，从 6 类缩减为 5 类
+> - **v2.5+**：去掉前端 AI 生成解读按钮——解读由后端审核通过后自动生成
 
 ### 3.2 首页加载流程
 
@@ -330,8 +364,9 @@
 | content | TextInput | ✅ | 10-100 字 | 经验内容，实时显示字数 X/100 |
 | domain | 选择器 | ✅ | 5 选 1 | 一级领域：职场/关系/认知/生活/情感 |
 | sub_domain | 选择器 | ✅ | 4-5 选 1 | 二级领域：选择一级后展示 |
-| interpretation | TextInput | ❌ | ≤500 字 | AI 解读（可手动编辑或 AI 生成） |
 | is_private | Switch | ❌ | 默认 false | 私密开关 |
+
+> **v2.5+ 变更**：前端不再提供 AI 生成解读按钮。解读由后端在审核通过后自动调用 `callGenerateInterpretation` 生成。
 
 #### 4.3.2 审核反馈
 
@@ -339,7 +374,8 @@
 |------|------|--------|---------|
 | 通过 | 201 | `{experience, review:{status:"approved", score, message}}` | "发布成功" |
 | 硬策略拒绝 | 201 | `{experience, review:{status:"rejected", reason, message}}` | "已保存但不符合准入规则" |
-| AI 拒绝 | 201 | `{experience, review:{status:"rejected", reason, message}}` | "已保存但未通过 AI 审核" |
+| AI 拒绝 | 201 | `{experience, review:{status:"rejected", reason, message}}` | "已保存但未通过平台审核" |
+| 去重拒绝 | 201 | `{experience, review:{status:"rejected", reason:"相同内容的经验已存在"}}` | "已保存但因内容重复未进入平台池" |
 | AI 超时 | 201 | `{experience, review:{status:"pending", message}}` | "已保存，审核中" |
 | 未登录 | 401 | `{error:"请先登录"}` | "请先登录后再发布经验" |
 | 校验失败 | 400 | `{error:"..."}` | 具体字段错误提示 |
@@ -370,12 +406,14 @@
 | 功能点 | 详细说明 |
 |--------|---------|
 | 触发 | 底部 Tab 独立入口 |
-| 模型 | DeepSeek API |
-| 上下文 | 用户已发布经验 + 历史对话（最近 5 条） |
-| 辅导风格 | 人本主义（以人为本、非评判、启发式） |
+| 模型 | DeepSeek API（Go 后端编排） |
+| 上下文 | 用户 48h 内发布经验 + 收藏经验 + 最近 5 条历史对话 |
+| 辅导风格 | 罗杰斯人本主义（以人为本、非评判、启发式、镜像语言、开放式提问） |
+| 打招呼 | 50 条模板，按 6 档离线时间间隔随机选择（>2h 未对话自动触发） |
 | 引用 | AI 回复可引用具体经验 ID |
-| 限制 | 每日 50 轮对话（可配置） |
+| 限制 | 每日 100 轮对话（可配置） |
 | 用户 ID | 从 `getUserInfo()` 动态获取（非硬编码） |
+| 后端 | Go `handler/chat.go` 编排 — 落库 + 48h 上下文窗口 + 收藏经验注入 |
 
 ### 4.6 搜索
 
@@ -445,7 +483,34 @@ emotion 情绪情感
 
 ## 六、经验池准入体系
 
-### 6.1 硬策略（第一层，Go 代码，毫秒级）
+经验池准入采用「先存后审 + 多层管线」架构：用户提交后原始内容立即入库，随后按顺序通过 normalize → 去重 → 硬策略 → AI 5 类拒绝规则 → 翻译 → 自动解读。
+
+### 6.0 normalize（文本清理，Python AI 服务，毫秒级）
+
+```
+POST /api/v1/normalize
+  {content: "乔布斯说过：做产品要聚焦...-施威特"}
+
+处理步骤：
+  ⑦ 去壳留核：XX说过/我认为/在我看来/老话说… → 只保留核心内容
+  ⑧ 格式杂质：引号包裹 → 去掉、“内容”——作者 → 去掉署名、1.列表符 → 去掉
+  繁→简：zhconv.convert(text, "zh-cn")
+  trim + 空白压缩
+
+返回：
+  {content: "做产品要聚焦...", changed: true}
+```
+
+### 6.1 去重检查（Go repository，毫秒级）
+
+```
+ExistsByContentExcluding(content, excludeID)
+  → 检查 DB 中是否有相同 content 的其他经验（排除自身）
+  → 有 → review_status = "rejected"，原因："相同内容的经验已存在"
+  → 无 → 继续下一环节
+```
+
+### 6.2 硬策略（第一层，Go 代码，毫秒级）
 
 ```
 CheckHardPolicy(content)
@@ -467,7 +532,7 @@ Rule 4: 重复字符
   不通过 → "内容包含过多重复字符"
 ```
 
-### 6.2 AI 审核（第二层，DeepSeek API，30s 超时）
+### 6.3 AI 质量审核（第二层，DeepSeek API，30s 超时）
 
 ```
 callAIReview(content, domain, sub_domain)
@@ -476,40 +541,68 @@ callAIReview(content, domain, sub_domain)
   │   是否符合中国法律法规？
   │   是否安全、正向、无不良引导？
   │
-  └─ 内容类型判断
-      是「可指导行动的经验」？
-      还是「单纯的知识点」（公式/定义/事实罗列）？
-      前者 approved，后者 rejected
+  ├─ 5 类拒绝规则（任一命中 → approved=false）
+  │   ① 个人经历：仅描述个人具体经历，未提炼普适教训
+  │   ② 客观描述：仅陈述事实/定义/流程，无个人洞见
+  │   ③ 纯鸡汤：空洞励志口号，无可操作方法
+  │   ④ 段子/笑话：以娱乐为目的，无经验价值
+  │   ⑤ 空泛无物：内容过短（≤8字）且无实质经验见解
+  │
+  ├─ 内容类型判断
+  │   是「可指导行动的经验」？
+  │   还是「单纯的知识点」（公式/定义/事实罗列）？
+  │
+  └─ 6 维度打分（通过时）
+      overall / value / actionable / universal / original / clarity
+      各维度 0-10 分，保留一位小数
+
+拒绝时 reason 格式：
+  【个人经历】仅描述个人经历，未提炼普适经验
+  【纯鸡汤】空洞励志口号，无操作方法
+  ...
 ```
 
-### 6.3 审核状态机
+### 6.4 翻译 & 解读（审核通过后）
+
+```
+callAITranslate(cleaned)
+  检测语言类型 → detected_lang: "classical-zh" | "en" | "modern-zh"
+  古文 → 现代汉语
+  英文 → 中文
+  现代文 → 跳过
+  原文存入 original_text
+
+callGenerateInterpretation(cleaned, domain)
+  生成 AI 解读（≤300 字，句子边界智能截断）
+```
+
+### 6.5 审核状态机
 
 ```
                     ┌──────────┐
        私密经验 ──→  │ private  │  (跳过一切审核)
                     └──────────┘
 
-                    ┌──────────┐
-       硬策略失败 ─→ │ rejected │  (reason = 硬策略原因)
-                    └──────────┘
-
-                    ┌──────────┐
-       AI 拒绝   ─→ │ rejected │  (reason = AI 原因)
-                    └──────────┘
-       公开经验 ─┐
-                 ├→ 硬策略
-                 │    │
-                 │   通过
-                 │    │
-                 ├→ AI 审核 ─→ ┌──────────┐
-                 │    │  通过  │ approved │ → 进入平台池
-                 │    │        └──────────┘
-                 │    │
-                 │    ├── 拒绝 → rejected
-                 │    │
-                 │    └── 超时 → ┌─────────┐
-                 │              │ pending  │ → 等待异步重试
-                 │              └─────────┘
+       公开经验
+          │
+          ▼
+     立即保存 ──→ review_status = "pending"
+          │
+          ▼
+    ┌ normalize ──→ 去重 ──→ 硬策略 ──→ AI 审核
+    │                │         │           │
+    │             重复→    不通过→     ┌────┼────┐
+    │            rejected  rejected   ▼    ▼    ▼
+    │                               通过  拒绝  超时
+    │                                 │    │    │
+    │                                 │    │  pending
+    │                                 │    │
+    │                                 │  rejected
+    │                                 │
+    │                        翻译 → 解读 → approved
+    │                                  进入平台池
+    │
+    └── 所有结果都通过 UpdateReviewResult() 更新 DB
 ```
 
 ---
@@ -673,12 +766,36 @@ H = like_count + bookmark_count + 1
 | GET | `/api/v1/experiences/recommend` | 个性推荐 | ✅ | `?limit=20&offset=0`（offset 分页） |
 | GET | `/api/v1/me/experiences` | 我的经验 | ✅ | `?page=&page_size=` |
 | GET | `/api/v1/me/bookmarks` | 我的收藏 | ✅ | `?page=&page_size=` |
+| GET | `/api/v1/me/stats` | 用户统计（9 维度） | ✅ | — |
+| POST | `/api/v1/experiences/:id/view` | 记录浏览 | ❌ | — |
 | POST | `/api/v1/review` | AI 审核+打分 | ❌ | `{content, domain, sub_domain}` |
-| POST | `/api/v1/chat/send` | AI 对话 | ❌ | `{message, user_id, history?, conversation_id?}` |
+| POST | `/api/v1/translate` | 语言检测+翻译 | ❌ | `{content}` |
+| POST | `/api/v1/normalize` | 文本清理 | ❌ | `{content}` |
+| POST | `/api/v1/chat/send` | AI 对话 | ❌ | `{message, user_id, history?, conversation_id?, bookmarked_experiences?}` |
 | POST | `/api/v1/chat/generate-interpretation` | AI 生成解读 | ❌ | `{content, domain}` |
 | GET | `/health` | 健康检查 | ❌ | — |
 
-### 11.4 数据库触发器
+### 11.4 Admin API（管理后台）
+
+| 方法 | 路径 | 功能 | 认证 |
+|------|------|------|------|
+| POST | `/api/v1/auth/admin/login` | 管理员登录 | ❌ |
+| GET | `/api/v1/admin/dashboard` | 仪表盘统计 | ✅(admin) |
+| GET | `/api/v1/admin/review-queue` | 审核队列 | ✅(admin) |
+| PUT | `/api/v1/admin/experiences/:id/review-status` | 修改审核状态 | ✅(admin) |
+| GET | `/api/v1/admin/experiences` | 内容管理 | ✅(admin) |
+| DELETE | `/api/v1/admin/experiences/:id/hard-delete` | 硬删除 | ✅(admin) |
+| POST | `/api/v1/admin/experiences/:id/unpublish` | 下架经验 | ✅(admin) |
+| GET | `/api/v1/admin/users` | 用户管理 | ✅(admin) |
+| GET | `/api/v1/admin/ai-status` | AI 服务状态 | ✅(admin) |
+| GET | `/api/v1/admin/domains` | 领域管理 | ✅(admin) |
+| PUT | `/api/v1/admin/domains/:name` | 编辑领域 | ✅(admin) |
+| GET | `/api/v1/admin/platform-content` | 平台内容管理 | ✅(admin) |
+| GET | `/api/v1/admin/system-config` | 系统配置 | ✅(admin) |
+| GET | `/api/v1/admin/logs` | 管理日志 | ✅(admin) |
+| GET | `/api/v1/admin/stats` | 数据统计 | ✅(admin) |
+
+### 11.5 数据库触发器
 
 ```
 likes 表:
@@ -743,6 +860,7 @@ practiced（bookmarks.practiced 变更）:
 | score_details | JSONB | NULL | 6 维度明细 |
 | like_count | INT | 0 | 触发器维护 |
 | bookmark_count | INT | 0 | 触发器维护 |
+| original_text | TEXT | NULL | 原文（古文/英文翻译后保留原始文本） |
 | interpretation_generated | BOOLEAN | FALSE | AI 生成标记 |
 | status | VARCHAR(20) | 'published' | published/hidden/flagged |
 | deleted_at | TIMESTAMPTZ | NULL | 软删除时间（approved 经验用户删除时设置） |
@@ -835,28 +953,30 @@ if (e instanceof ApiError && e.status === 401) {
 
 | 层 | 包/模块 | 测试文件 | 测试数 | 状态 |
 |----|---------|---------|--------|------|
-| Go backend | handler, model, middleware | 3 | 56+ | ✅ 全部通过 |
+| Go backend | handler, model, middleware, auth, config | 5 | 56+ | ✅ 全部通过 |
 | Go backend | repository | 1 | 5 | ✅ 集成测试通过（需 -tags=integration） |
 | Python AI | tests/ | 1 | 14 | ✅ 全部通过 |
+| Admin React | — | — | — | ✅ TypeScript 零错误，手动验证 9 页 |
 | React Native | __tests__/ | 2 | 0 | 🔴 babel/jest 配置中（待修复） |
 
 ### 14.2 已知限制
 
 | 限制 | 影响 | 计划 |
 |------|------|------|
-| AI 服务直连 :8000 | 绕过 Nginx 统一入口 | 待改路由为 /ai/* 前缀 |
 | 移动端测试框架未就绪 | babel/jest 配置不完整 | P1 |
-| 无 CI/CD | 手动部署 | P3 |
+| 无 CI/CD | 手动部署（ssh + scp + go build） | P3 |
 | 硬编码 ECS IP | `mobile/src/services/config.ts` 用 `115.190.177.146` | 开发阶段可接受 |
 
 ---
 
 ## 十五、种子数据
 
-- **105 条** approved 官方种子经验
-- 21 二级领域 × 5 条/领域
-- 每条 60-99 字，高质量中文经验
+- **328 条** approved 官方平台经验（含 AI 打分+解读）
+- 来源：维基语录（科技领袖）+ Paul Graham / Naval Ravikant / Sam Altman 等技术博客
+- 81 条古文已完成现代汉语翻译，153 条英文已完成中文翻译
+- 9 位名人种子经验（迁移 009）
 - author_id: `00000000-0000-0000-0000-000000000000`（官方账号）
+- 管理后台访问：http://115.190.177.146/admin（admin / Sweet24412*）
 
 ---
 
@@ -864,7 +984,9 @@ if (e instanceof ApiError && e.status === 401) {
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
-| v2.4 | 2026-05-06 | **我的页 V5-A1 + 搜索系统完整上线**：个人中心全面重构为双区块统计（发布/浏览维度 含领域分布）、对话统计、个人信息编辑。底部 Tab "搜索" → "朋友"（空态占位），首页顶部新增搜索图标。搜索从 `content OR interpretation` → `content OR creator_name OR nickname`，排除解读噪音。新建 SearchPage（搜索框+结果列表）、SearchCardScreen（卡片流浏览）、ProfileEditScreen。统计后端：`GET /api/v1/user/stats`（9 维统计查询）、`POST /api/v1/experiences/:id/view`（浏览记录）。新建 `user_views` 表（migration 010）。recordView 去重（模块级 Set）+ `console.warn` 错误可见化。repository 层新增 5 个集成测试。修复迁移编号冲突（两个 009 → 009+010）。GLM-Image 图像生成 API 可用。 |
+| v2.7 | 2026-05-10 | **发布管线全面重构**：先存后审——用户提交后立即保存原始内容，管线异步判定平台池准入。normalize 管线加入去壳(⑦)和格式杂质清理(⑧)，兜底引号+署名混排和普通连字符。AI 审核引入 5 类拒绝规则（去掉领域过窄）。审核通过后自动翻译（古文/英文→中文）+ 自动生成 AI 解读。前端去掉 AI 生成解读按钮。新增 `UpdateReviewResult` / `ExistsByContentExcluding` repo 方法。 |
+| v2.6 | 2026-05-07 | **对话人本主义重设计**：Go 后端成为对话编排层（不再直连 AI）。50 条打招呼模板按 6 档时间间隔。System Prompt 重写为罗杰斯风格（反映感受/追问具体/镜像语言/开放式提问）。每日 100 轮上限。收藏经验注入上下文。 |
+| v2.5 | 2026-05-07 | **管理后台 v3.0**：PRD 1433 行（14章+8附录），10 页面 97% 实现度。内容采集系统——维基语录科技领袖 + PG/Naval 博客，328 条平台经验。翻译端点（古文/英文检测），81 条古文 + 153 条英文翻译完成。`original_text` 列。6 包 Go 测试全绿。normalize 端点（trim + 繁→简）。去重检查。 |
 | v2.3 | 2026-05-06 | AI 解读 300 字硬截断 / rune 校验全链路对齐 / 发布自动刷新 / 批量打分脚本 rune 安全截断修复 |
 | v2.2 | 2026-05-05 | **沉浸式体验升级**：全屏卡片滑动（抖音式）、3D 卡片翻转（正面经验/背面解读）、顶部三标签（推荐/我的/收藏，方案A）、左右滑手势循环切标签（Touch 事件）、透明顶部 tab 栏、自定义用户称号（≤20 字符） |
 | v2.1 | 2026-05-05 | 创作者/价值度星级/平台经验/名人种子/无限滚动/经验删除 |
