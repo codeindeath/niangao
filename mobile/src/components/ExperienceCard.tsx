@@ -65,8 +65,8 @@ export default function FlipCard({
     // 原文：13px字号 20px行高，~35英文字符/行
     const originalLines = Math.max(1, Math.ceil(originalLen / 35));
     const originalHeight = originalLines * 20 + 30; // +label padding
-    // 固定占用：胶囊区(contentTop+68) + 分隔线(26) + 作者(36) + 星级(~28) + 底部(100)
-    const fixedHeight = contentTop + 68 + 26 + 36 + (showScore ? 28 : 0) + 100;
+    // 固定占用：胶囊区(contentTop+68) + 分隔线(26) + 作者(36) + 星级(~28) + 底部(60)
+    const fixedHeight = contentTop + 68 + 26 + 36 + (showScore ? 28 : 0) + 60;
     const available = cardHeight - fixedHeight - contentHeight;
     return originalHeight <= available;
   })();

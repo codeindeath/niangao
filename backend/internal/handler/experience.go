@@ -60,6 +60,8 @@ func (h *ExperienceHandler) List(c *gin.Context) {
 		rng.Shuffle(len(experiences), func(i, j int) {
 			experiences[i], experiences[j] = experiences[j], experiences[i]
 		})
+		// Ensure no 2 consecutive same creator
+		spreadCreators(experiences, 2)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -412,9 +414,55 @@ func (h *ExperienceHandler) GetRecommendations(c *gin.Context) {
 		experiences[i], experiences[j] = experiences[j], experiences[i]
 	})
 
+	// Spread same-creator items: no 2 consecutive same creator
+	spreadCreators(experiences, 2)
+
 	c.JSON(http.StatusOK, gin.H{
 		"data":  experiences,
 		"total": len(experiences),
 	})
+}
+
+// spreadCreators ensures no creator appears more than maxConsecutive times
+// in a row. It spreads repeated creators by swapping with later items.
+func spreadCreators(experiences []model.Experience, maxConsecutive int) {
+	n := len(experiences)
+	if n <= maxConsecutive {
+		return
+	}
+
+	for i := maxConsecutive; i < n; i++ {
+		creator := ""
+		if experiences[i].CreatorName != nil {
+			creator = *experiences[i].CreatorName
+		}
+
+		// Check if this creates a cluster of > maxConsecutive
+		cluster := true
+		for j := 1; j <= maxConsecutive; j++ {
+			prevCreator := ""
+			if experiences[i-j].CreatorName != nil {
+				prevCreator = *experiences[i-j].CreatorName
+			}
+			if prevCreator != creator {
+				cluster = false
+				break
+			}
+		}
+
+		if cluster {
+			// Swap with next item from a different creator
+			for j := i + 1; j < n; j++ {
+				swapCreator := ""
+				if experiences[j].CreatorName != nil {
+					swapCreator = *experiences[j].CreatorName
+				}
+				if swapCreator != creator {
+					experiences[i], experiences[j] = experiences[j], experiences[i]
+					break
+				}
+			}
+		}
+	}
 }
 
