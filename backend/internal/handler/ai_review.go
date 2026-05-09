@@ -81,3 +81,49 @@ func qualityScoreToDB(s *QualityScoreData) (score *float64, details *string) {
 var _ = model.ReviewApproved
 var _ = model.ReviewRejected
 var _ = model.ReviewPending
+
+// ============================================================
+// Classical Chinese translation
+// ============================================================
+
+type TranslateRequest struct {
+	Content string `json:"content"`
+}
+
+type TranslateResult struct {
+	IsClassical  bool   `json:"is_classical"`
+	OriginalText string `json:"original_text"`
+	ModernText   string `json:"modern_text"`
+}
+
+// callAITranslate detects classical Chinese and returns modern translation.
+// Returns the result, or nil on error (caller should fall back to original content).
+func callAITranslate(content string) *TranslateResult {
+	body, err := json.Marshal(TranslateRequest{Content: content})
+	if err != nil {
+		return nil
+	}
+
+	aiURL := os.Getenv("AI_SERVICE_URL")
+	if aiURL == "" {
+		aiURL = defaultAIServiceURL
+	}
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Post(aiURL+"/api/v1/translate", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil
+	}
+
+	var result TranslateResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil
+	}
+
+	return &result
+}

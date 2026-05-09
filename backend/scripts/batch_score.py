@@ -45,10 +45,26 @@ async def process_one(row):
             print(f"  [{eid[:8]}] review error: {e}")
             return None
 
-        # 2. Interpretation
+        # 1.5 Classical Chinese detection & translation
+        modern_content = content
+        original_text = None
+        try:
+            async with session.post(f"{AI_BASE}/api/v1/translate", json={
+                "content": content,
+            }) as resp:
+                if resp.status == 200:
+                    trans = await resp.json()
+                    if trans.get('is_classical'):
+                        modern_content = trans.get('modern_text', content)
+                        original_text = trans.get('original_text', content)
+                        print(f"  [{eid[:8]}] Classical detected → translated")
+        except Exception as e:
+            print(f"  [{eid[:8]}] translate error: {e}")
+
+        # 2. Interpretation (use modern_content for better AI understanding)
         try:
             async with session.post(f"{AI_BASE}/api/v1/chat/generate-interpretation", json={
-                "content": content, "domain": domain,
+                "content": modern_content, "domain": domain,
             }) as resp:
                 if resp.status != 200:
                     interp = ""
@@ -77,7 +93,7 @@ async def process_one(row):
         if len(interp) > 500:
             interp = interp[:495]
 
-    return (eid, overall, reason, interp)
+    return (eid, overall, reason, interp, modern_content, original_text)
 
 async def main():
     db = await asyncpg.connect(DB_DSN)
@@ -103,9 +119,15 @@ async def main():
         result = await coro
         done += 1
         if result:
-            eid, overall, reason, interp = result
+            eid, overall, reason, interp, modern_content, original_text = result
             try:
-                # Update score first (always works)
+                # Update content if classical Chinese was translated
+                if original_text:
+                    await db.execute("""
+                        UPDATE experiences SET content = $1, original_text = $2
+                        WHERE id = $3::uuid
+                    """, modern_content, original_text, eid)
+                # Update score
                 await db.execute("""
                     UPDATE experiences SET quality_score = $1, score_reason = $2
                     WHERE id = $3::uuid

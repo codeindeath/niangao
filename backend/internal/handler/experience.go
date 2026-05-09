@@ -141,7 +141,7 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 	if result := CheckHardPolicy(req.Content); !result.Passed {
 		reason := result.Reason
 		exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
-			string(model.ReviewRejected), &reason, nil, nil)
+			string(model.ReviewRejected), &reason, nil, nil, nil)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
 			return
@@ -172,7 +172,7 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 	if err != nil {
 		log.Printf("AI review failed: %v — saving as pending", err)
 		exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
-			string(model.ReviewPending), nil, nil, nil)
+			string(model.ReviewPending), nil, nil, nil, nil)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
 			return
@@ -197,7 +197,7 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 
 	if !aiResult.Approved {
 		exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
-			string(model.ReviewRejected), &aiResult.Reason, score, details)
+			string(model.ReviewRejected), &aiResult.Reason, score, details, nil)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
 			return
@@ -219,9 +219,16 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// 审核通过
+	// 审核通过 — 检测古文并翻译
+	var originalText *string
+	if translateResult := callAITranslate(req.Content); translateResult != nil && translateResult.IsClassical {
+		req.Content = translateResult.ModernText
+		originalText = &translateResult.OriginalText
+		log.Printf("Classical Chinese detected — translated to modern Chinese (orig: %s)", (*originalText)[:min(len(*originalText), 30)])
+	}
+
 	exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
-		string(model.ReviewApproved), nil, score, details)
+		string(model.ReviewApproved), nil, score, details, originalText)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
 		return

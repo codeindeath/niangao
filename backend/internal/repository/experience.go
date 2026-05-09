@@ -42,10 +42,10 @@ func (r *ExperienceRepo) Create(ctx context.Context, authorID string, req model.
 
 	err := r.db.QueryRow(ctx,
 		`INSERT INTO experiences (author_id, content, interpretation, domain, sub_domain, is_private, source_type,
-		 review_status, status, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+		 review_status, status, original_text, created_at, updated_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
 		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.SubDomain, exp.IsPrivate, exp.SourceType,
-		exp.ReviewStatus, exp.Status, exp.CreatedAt, exp.UpdatedAt,
+		exp.ReviewStatus, exp.Status, exp.OriginalText, exp.CreatedAt, exp.UpdatedAt,
 	).Scan(&exp.ID)
 	if err != nil {
 		return nil, fmt.Errorf("insert experience: %w", err)
@@ -55,7 +55,8 @@ func (r *ExperienceRepo) Create(ctx context.Context, authorID string, req model.
 }
 
 // CreateWithReview creates an experience with review fields.
-func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, req model.CreateExperienceRequest, reviewStatus string, reviewReason *string, qualityScore *float64, scoreDetails *string) (*model.Experience, error) {
+// originalText is set when the content is a translation (e.g., classical→modern Chinese).
+func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, req model.CreateExperienceRequest, reviewStatus string, reviewReason *string, qualityScore *float64, scoreDetails *string, originalText *string) (*model.Experience, error) {
 	exp := &model.Experience{
 		AuthorID:     authorID,
 		Content:      req.Content,
@@ -68,6 +69,7 @@ func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, 
 		ReviewReason: reviewReason,
 		QualityScore: qualityScore,
 		ScoreDetails: scoreDetails,
+		OriginalText: originalText,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
@@ -78,11 +80,11 @@ func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, 
 
 	err := r.db.QueryRow(ctx,
 		`INSERT INTO experiences (author_id, content, interpretation, domain, sub_domain, is_private, source_type,
-		 review_status, review_reason, quality_score, score_details, status, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+		 review_status, review_reason, quality_score, score_details, status, original_text, created_at, updated_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id`,
 		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.SubDomain, exp.IsPrivate, exp.SourceType,
 		exp.ReviewStatus, exp.ReviewReason, exp.QualityScore, exp.ScoreDetails,
-		exp.Status, exp.CreatedAt, exp.UpdatedAt,
+		exp.Status, exp.OriginalText, exp.CreatedAt, exp.UpdatedAt,
 	).Scan(&exp.ID)
 	if err != nil {
 		return nil, fmt.Errorf("insert experience with review: %w", err)
@@ -118,12 +120,12 @@ func (r *ExperienceRepo) CreateOfficial(ctx context.Context, authorID, content, 
 	err := r.db.QueryRow(ctx,
 		`INSERT INTO experiences (author_id, content, interpretation, domain, sub_domain,
 		 is_official, source_type, source_label, creator_name, score_reason,
-		 review_status, quality_score, interpretation_generated, status, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
+		 review_status, quality_score, interpretation_generated, status, original_text, created_at, updated_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,
 		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.SubDomain,
 		exp.IsOfficial, exp.SourceType, exp.SourceLabel, exp.CreatorName, exp.ScoreReason,
 		exp.ReviewStatus, exp.QualityScore, exp.InterpretationGenerated,
-		exp.Status, exp.CreatedAt, exp.UpdatedAt,
+		exp.Status, exp.OriginalText, exp.CreatedAt, exp.UpdatedAt,
 	).Scan(&exp.ID)
 	if err != nil {
 		return nil, fmt.Errorf("insert official: %w", err)
