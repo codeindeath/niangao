@@ -396,8 +396,9 @@ func (h *ExperienceHandler) GetRecommendations(c *gin.Context) {
 	}
 
 	limit := parseIntParam(c.Query("limit"), 20)
+	offset := parseIntParam(c.Query("offset"), 0)
 
-	experiences, err := h.repo.Recommend(c.Request.Context(), userID, limit, 0)
+	experiences, err := h.repo.Recommend(c.Request.Context(), userID, limit, offset)
 	if err != nil {
 		log.Printf("ERROR Recommend: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get recommendations"})
