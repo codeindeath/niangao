@@ -74,8 +74,8 @@ export default function FlipCard({
     const charsPerLine = isChinese ? 16 : 35;
     const originalLines = Math.max(1, Math.ceil(originalLen / charsPerLine));
     const originalHeight = originalLines * 20 + 30; // +label padding
-    // 固定占用：胶囊区(contentTop+68) + 分隔线(26) + 作者(36) + 星级(~28) + 底部(60)
-    const fixedHeight = contentTop + 68 + 26 + 36 + (showScore ? 28 : 0) + 60;
+    // 固定占用：引号(72-20=52) + 胶囊区(contentTop+68) + 分隔线(26) + 作者(36) + 星级(~28) + 底部(60) + 安全余量(10)
+    const fixedHeight = 52 + contentTop + 68 + 26 + 36 + (showScore ? 28 : 0) + 60 + 10;
     const available = cardHeight - fixedHeight - contentHeight;
     return originalHeight <= available;
   })();
