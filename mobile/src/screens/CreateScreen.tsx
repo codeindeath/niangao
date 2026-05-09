@@ -13,7 +13,7 @@ import {
   Switch,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {createExperience, generateInterpretation, ApiError} from '../services/api';
+import {createExperience, ApiError} from '../services/api';
 import {triggerTabRefresh} from './HomeScreen';
 
 const PRIMARY_DOMAINS: {key: string; label: string}[] = [
@@ -63,8 +63,6 @@ export default function CreateScreen({navigation}: any) {
   const [domain, setDomain] = useState('');
   const [subDomain, setSubDomain] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
-  const [interpretation, setInterpretation] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleDomainSelect = (key: string) => {
@@ -75,22 +73,6 @@ export default function CreateScreen({navigation}: any) {
     } else {
       setDomain(key);
       setSubDomain(''); // Reset sub-domain when switching first-level domains
-    }
-  };
-
-  const handleGenerateAI = async () => {
-    if (!content.trim() || !domain) {
-      Alert.alert('提示', '请先填写经验内容和选择领域');
-      return;
-    }
-    setAiLoading(true);
-    try {
-      const result = await generateInterpretation(content.trim(), domain);
-      setInterpretation(result.interpretation || '');
-    } catch (e: any) {
-      Alert.alert('生成失败', 'AI 解读生成失败，请稍后再试');
-    } finally {
-      setAiLoading(false);
     }
   };
 
@@ -114,7 +96,7 @@ export default function CreateScreen({navigation}: any) {
         domain,
         subDomain,
         isPrivate,
-        interpretation.trim() || undefined,
+        undefined,
       );
       Alert.alert('发布成功', '你的经验已发布', [
         {text: '好的', onPress: () => {
@@ -229,31 +211,6 @@ export default function CreateScreen({navigation}: any) {
             />
           </View>
 
-          {/* AI Interpretation */}
-          <View style={styles.aiSection}>
-            <TouchableOpacity
-              style={[styles.aiButton, aiLoading && styles.aiButtonLoading]}
-              onPress={handleGenerateAI}
-              disabled={aiLoading}>
-              {aiLoading ? (
-                <ActivityIndicator size="small" color="#4a7c59" />
-              ) : (
-                <Text style={styles.aiButtonText}>🤖 AI 生成解读</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {interpretation !== '' && (
-            <>
-              <Text style={styles.label}>AI 解读</Text>
-              <View style={styles.interpretationBox}>
-                <Text style={styles.interpretationText}>{interpretation}</Text>
-              </View>
-              <TouchableOpacity onPress={() => setInterpretation('')}>
-                <Text style={styles.clearInterpretation}>清除重新生成</Text>
-              </TouchableOpacity>
-            </>
-          )}
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -411,44 +368,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#4a4a4a',
-  },
-  aiSection: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  aiButton: {
-    backgroundColor: '#eaf2e8',
-    borderRadius: 20,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#4a7c59',
-  },
-  aiButtonLoading: {
-    opacity: 0.6,
-  },
-  aiButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#4a7c59',
-  },
-  interpretationBox: {
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 0.5,
-    borderColor: '#d4e0d6',
-  },
-  interpretationText: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#3d3d3d',
-  },
-  clearInterpretation: {
-    fontSize: 12,
-    color: '#9a9a9a',
-    textAlign: 'right',
-    marginTop: 6,
   },
   bottomBar: {
     flexDirection: 'row',
