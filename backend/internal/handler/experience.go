@@ -120,6 +120,15 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		return
 	}
 
+	// Step 3 清理: 2编辑 — trim + 繁→简
+	req.Content = callNormalize(req.Content)
+
+	// Step 3 清理: 6删除 — 去重
+	if exists, err := h.repo.ExistsByContent(c.Request.Context(), req.Content); err == nil && exists {
+		c.JSON(http.StatusConflict, gin.H{"error": "相同内容的经验已存在"})
+		return
+	}
+
 	// 私密经验：跳过审核，直接保存
 	if req.IsPrivate {
 		exp, err := h.repo.Create(c.Request.Context(), userID, req)

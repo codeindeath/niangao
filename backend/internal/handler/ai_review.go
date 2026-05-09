@@ -172,3 +172,41 @@ func callGenerateInterpretation(content, domain string) string {
 
 	return result.Interpretation
 }
+
+// ============================================================
+// Text normalization (trim + traditional→simplified)
+// ============================================================
+
+// callNormalize trims whitespace and converts traditional Chinese to simplified.
+// Returns normalized content, or original on error.
+func callNormalize(content string) string {
+	body, err := json.Marshal(map[string]string{"content": content})
+	if err != nil {
+		return content
+	}
+
+	aiURL := os.Getenv("AI_SERVICE_URL")
+	if aiURL == "" {
+		aiURL = defaultAIServiceURL
+	}
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Post(aiURL+"/api/v1/normalize", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return content
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return content
+	}
+
+	var result struct {
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return content
+	}
+
+	return result.Content
+}

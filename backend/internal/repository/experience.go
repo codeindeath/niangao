@@ -94,6 +94,16 @@ func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, 
 	return exp, nil
 }
 
+// ExistsByContent checks if an experience with the same content already exists (not deleted).
+func (r *ExperienceRepo) ExistsByContent(ctx context.Context, content string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM experiences WHERE content = $1 AND deleted_at IS NULL)`,
+		content,
+	).Scan(&exists)
+	return exists, err
+}
+
 // CreateOfficial inserts a platform-generated experience with full metadata.
 func (r *ExperienceRepo) CreateOfficial(ctx context.Context, authorID, content, interpretation, domain, subDomain, creatorName, sourceLabel, scoreReason string, qualityScore float64) (*model.Experience, error) {
 	exp := &model.Experience{
