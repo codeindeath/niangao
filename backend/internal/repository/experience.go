@@ -76,15 +76,16 @@ func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, 
 
 	if req.Interpretation != "" {
 		exp.Interpretation = &req.Interpretation
+		exp.InterpretationGenerated = true
 	}
 
 	err := r.db.QueryRow(ctx,
 		`INSERT INTO experiences (author_id, content, interpretation, domain, sub_domain, is_private, source_type,
-		 review_status, review_reason, quality_score, score_details, status, original_text, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id`,
+		 review_status, review_reason, quality_score, score_details, status, original_text, interpretation_generated, created_at, updated_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
 		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.SubDomain, exp.IsPrivate, exp.SourceType,
 		exp.ReviewStatus, exp.ReviewReason, exp.QualityScore, exp.ScoreDetails,
-		exp.Status, exp.OriginalText, exp.CreatedAt, exp.UpdatedAt,
+		exp.Status, exp.OriginalText, exp.InterpretationGenerated, exp.CreatedAt, exp.UpdatedAt,
 	).Scan(&exp.ID)
 	if err != nil {
 		return nil, fmt.Errorf("insert experience with review: %w", err)

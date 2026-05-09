@@ -129,3 +129,46 @@ func callAITranslate(content string) *TranslateResult {
 
 	return &result
 }
+
+// ============================================================
+// Interpretation generation
+// ============================================================
+
+type InterpretationRequest struct {
+	Content string `json:"content"`
+	Domain  string `json:"domain"`
+}
+
+// callGenerateInterpretation calls the AI service to generate an interpretation.
+// Returns the interpretation text, or empty string on error.
+func callGenerateInterpretation(content, domain string) string {
+	body, err := json.Marshal(InterpretationRequest{Content: content, Domain: domain})
+	if err != nil {
+		return ""
+	}
+
+	aiURL := os.Getenv("AI_SERVICE_URL")
+	if aiURL == "" {
+		aiURL = defaultAIServiceURL
+	}
+
+	client := &http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Post(aiURL+"/api/v1/chat/generate-interpretation", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ""
+	}
+
+	var result struct {
+		Interpretation string `json:"interpretation"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return ""
+	}
+
+	return result.Interpretation
+}

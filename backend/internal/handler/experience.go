@@ -219,12 +219,20 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// 审核通过 — 检测古文并翻译
+	// 审核通过 — Step 3: 翻译 + Step 4: 解读
 	var originalText *string
 	if translateResult := callAITranslate(req.Content); translateResult != nil && translateResult.IsClassical {
 		req.Content = translateResult.ModernText
 		originalText = &translateResult.OriginalText
 		log.Printf("Translation applied (lang=%s): orig=%s", translateResult.DetectedLang, (*originalText)[:min(len(*originalText), 30)])
+	}
+
+	// 生成 AI 解读（使用翻译后的内容）
+	if req.Interpretation == "" {
+		if interp := callGenerateInterpretation(req.Content, string(req.Domain)); interp != "" {
+			req.Interpretation = interp
+			log.Printf("Interpretation generated (%d chars)", len([]rune(interp)))
+		}
 	}
 
 	exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
