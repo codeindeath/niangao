@@ -94,9 +94,11 @@ type TranslateResult struct {
 	IsClassical  bool   `json:"is_classical"`
 	OriginalText string `json:"original_text"`
 	ModernText   string `json:"modern_text"`
+	DetectedLang string `json:"detected_lang"`
 }
 
-// callAITranslate detects classical Chinese and returns modern translation.
+// callAITranslate detects language and returns translation if needed.
+// Handles English→Chinese and Classical→Modern Chinese.
 // Returns the result, or nil on error (caller should fall back to original content).
 func callAITranslate(content string) *TranslateResult {
 	body, err := json.Marshal(TranslateRequest{Content: content})

@@ -224,7 +224,7 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 	if translateResult := callAITranslate(req.Content); translateResult != nil && translateResult.IsClassical {
 		req.Content = translateResult.ModernText
 		originalText = &translateResult.OriginalText
-		log.Printf("Classical Chinese detected — translated to modern Chinese (orig: %s)", (*originalText)[:min(len(*originalText), 30)])
+		log.Printf("Translation applied (lang=%s): orig=%s", translateResult.DetectedLang, (*originalText)[:min(len(*originalText), 30)])
 	}
 
 	exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
