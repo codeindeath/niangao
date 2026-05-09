@@ -70,8 +70,8 @@ export default function FlipCard({
     // 正文：26px字号 40px行高，~12中文字符/行
     const contentLines = Math.max(1, Math.ceil(contentLen / 12));
     const contentHeight = contentLines * 40;
-    // 原文：13px字号 20px行高，中文~20字符/行，英文~35字符/行
-    const charsPerLine = isChinese ? 20 : 35;
+    // 原文：13px字号 20px行高，Georgia斜体中文字符更宽~16字符/行，英文~35字符/行
+    const charsPerLine = isChinese ? 16 : 35;
     const originalLines = Math.max(1, Math.ceil(originalLen / charsPerLine));
     const originalHeight = originalLines * 20 + 30; // +label padding
     // 固定占用：胶囊区(contentTop+68) + 分隔线(26) + 作者(36) + 星级(~28) + 底部(60)
@@ -149,7 +149,7 @@ export default function FlipCard({
             {shouldShowOriginal ? (
               <View style={styles.originalCard}>
                 <Text style={styles.originalLabel}>📖 原文</Text>
-                <Text style={styles.originalText}>{item.original_text}</Text>
+                <Text style={styles.originalText} numberOfLines={3}>{item.original_text}</Text>
               </View>
             ) : null}
           </View>
