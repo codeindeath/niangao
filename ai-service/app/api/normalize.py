@@ -51,13 +51,15 @@ async def normalize_text(req: NormalizeRequest):
             text = pat.sub('', text)
 
     # ⑧ 格式杂质
-    # 全角引号包裹（如 "经验内容" → 经验内容）
+    # 引号+署名混排："内容"——作者 或 "内容"-作者
+    text = re.sub(r'^\u201c(.+?)\u201d\s*[-——–—]+\s*.{1,15}$', r'\1', text)
+    # 纯引号包裹："内容" → 内容
     text = re.sub(r'^\u201c(.+?)\u201d$', r'\1', text)
     text = re.sub(r'^\u2018(.+?)\u2019$', r'\1', text)
     # 半角引号包裹
     text = re.sub(r'^"(.+?)"$', r'\1', text)
-    # "——作者/——某某/——来自xxx" 后缀
-    text = re.sub(r'\s*[——–—]+\s*.{1,15}$', '', text)
+    # 署名后缀：内容——作者 / 内容-作者 / 内容—作者
+    text = re.sub(r'\s*[-——–—]+\s*.{1,15}$', '', text)
     # 列表符开头（1. 2、 ① • - · ）
     text = re.sub(r'^[\d]+[\.\、\)\)]\s*', '', text)
     text = re.sub(r'^[①②③④⑤⑥⑦⑧⑨⑩]\s*', '', text)
