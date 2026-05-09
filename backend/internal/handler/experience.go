@@ -88,7 +88,7 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 
 	var req model.CreateExperienceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "请填写完整：领域和子领域"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请填写完整：领域和子领域"})
 		return
 	}
 
@@ -99,7 +99,6 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// Interpretation validation with rune count
 	if req.Interpretation != "" && len([]rune(req.Interpretation)) > 300 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "经验解读不超过 300 字"})
 		return
@@ -109,89 +108,94 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid domain"})
 		return
 	}
-
 	if !model.IsValidSubDomain(req.SubDomain) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sub_domain"})
 		return
 	}
-
 	if !model.SubDomainBelongsToParent(req.Domain, req.SubDomain) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "sub_domain does not belong to domain"})
 		return
 	}
 
-	// Step 3 清理: 2编辑 — trim + 繁→简
-	req.Content = callNormalize(req.Content)
+	// ============================================================
+	// Step 1: 直接保存原始内容，不做任何处理
+	// ============================================================
 
-	// Step 3 清理: 6删除 — 去重
-	if exists, err := h.repo.ExistsByContent(c.Request.Context(), req.Content); err == nil && exists {
-		c.JSON(http.StatusConflict, gin.H{"error": "相同内容的经验已存在"})
+	// 私密经验 review_status=private，公开经验初始为 pending
+	reviewStatus := string(model.ReviewPending)
+	if req.IsPrivate {
+		reviewStatus = string(model.ReviewPrivate)
+	}
+
+	exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
+		reviewStatus, nil, nil, nil, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
 		return
 	}
 
-	// 私密经验：跳过审核，直接保存
+	// Auto-bookmark
+	if bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID); err != nil {
+		log.Printf("auto-bookmark failed for exp=%s user=%s: %v", exp.ID, userID, err)
+	} else if bookmarked {
+		exp.BookmarkCount = 1
+		exp.IsBookmarked = true
+	}
+
+	// 私密经验：保存后直接返回，不进平台池
 	if req.IsPrivate {
-		exp, err := h.repo.Create(c.Request.Context(), userID, req)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create experience"})
-			return
-		}
-		if bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID); err != nil {
-			log.Printf("auto-bookmark failed for exp=%s user=%s: %v", exp.ID, userID, err)
-		} else if bookmarked {
-			exp.BookmarkCount = 1
-			exp.IsBookmarked = true
-		}
 		c.JSON(http.StatusCreated, exp)
 		return
 	}
 
-	// 公开经验：硬策略检查
-	if result := CheckHardPolicy(req.Content); !result.Passed {
-		reason := result.Reason
-		exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
-			string(model.ReviewRejected), &reason, nil, nil, nil)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
-			return
-		}
-		if bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID); err != nil {
-			log.Printf("auto-bookmark failed for exp=%s user=%s: %v", exp.ID, userID, err)
-		} else if bookmarked {
-			exp.BookmarkCount = 1
-			exp.IsBookmarked = true
-		}
+	// ============================================================
+	// Step 2: 平台经验池管线 — 仅对公开经验执行
+	// normalize → 去重 → hard_policy → AI review → 翻译 → 解读
+	// ============================================================
+
+	// 2a. normalize（trim + 繁→简 + 去壳 + 格式清理）
+	cleaned := callNormalize(req.Content)
+
+	// 2b. 去重（排除当前经验自身）
+	if exists, err := h.repo.ExistsByContentExcluding(c.Request.Context(), cleaned, exp.ID); err == nil && exists {
+		reason := "相同内容的经验已存在"
+		h.repo.UpdateReviewResult(c.Request.Context(), exp.ID, cleaned, nil, nil, nil, nil,
+			string(model.ReviewRejected), &reason)
 		c.JSON(http.StatusCreated, gin.H{
 			"experience": exp,
 			"review": gin.H{
 				"status":  "rejected",
-				"reason":  result.Reason,
-				"message": "经验已保存到你的个人经验，但因内容不符合准入规则，未进入平台经验池",
+				"reason":  reason,
+				"message": "经验已保存，但因内容重复未进入平台经验池",
 			},
 		})
 		return
 	}
 
-	// AI 审核
+	// 2c. hard_policy
+	if result := CheckHardPolicy(cleaned); !result.Passed {
+		reason := result.Reason
+		h.repo.UpdateReviewResult(c.Request.Context(), exp.ID, cleaned, nil, nil, nil, nil,
+			string(model.ReviewRejected), &reason)
+		c.JSON(http.StatusCreated, gin.H{
+			"experience": exp,
+			"review": gin.H{
+				"status":  "rejected",
+				"reason":  reason,
+				"message": "经验已保存，但因内容不符合准入规则未进入平台经验池",
+			},
+		})
+		return
+	}
+
+	// 2d. AI 审核
 	aiResult, err := callAIReview(ReviewRequest{
-		Content:   req.Content,
+		Content:   cleaned,
 		Domain:    string(req.Domain),
 		SubDomain: string(req.SubDomain),
 	})
 	if err != nil {
-		log.Printf("AI review failed: %v — saving as pending", err)
-		exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
-			string(model.ReviewPending), nil, nil, nil, nil)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
-			return
-		}
-		if bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID); err != nil {
-			log.Printf("auto-bookmark failed for exp=%s user=%s: %v", exp.ID, userID, err)
-		} else if bookmarked {
-			exp.BookmarkCount = 1
-			exp.IsBookmarked = true
-		}
+		log.Printf("AI review failed: %v — leaving as pending", err)
 		c.JSON(http.StatusCreated, gin.H{
 			"experience": exp,
 			"review": gin.H{
@@ -202,61 +206,44 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	score, details := qualityScoreToDB(aiResult.Score)
+	score, scoreDetails := qualityScoreToDB(aiResult.Score)
 
 	if !aiResult.Approved {
-		exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
-			string(model.ReviewRejected), &aiResult.Reason, score, details, nil)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
-			return
-		}
-		if bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID); err != nil {
-			log.Printf("auto-bookmark failed for exp=%s user=%s: %v", exp.ID, userID, err)
-		} else if bookmarked {
-			exp.BookmarkCount = 1
-			exp.IsBookmarked = true
-		}
+		h.repo.UpdateReviewResult(c.Request.Context(), exp.ID, cleaned, nil, nil,
+			score, scoreDetails, string(model.ReviewRejected), &aiResult.Reason)
 		c.JSON(http.StatusCreated, gin.H{
 			"experience": exp,
 			"review": gin.H{
 				"status":  "rejected",
 				"reason":  aiResult.Reason,
-				"message": "经验已保存到你的个人经验，但未通过 AI 审核，未进入平台经验池",
+				"message": "经验已保存，但未通过平台审核，未进入平台经验池",
 			},
 		})
 		return
 	}
 
-	// 审核通过 — Step 3: 翻译 + Step 4: 解读
+	// 2e. 审核通过 — 翻译 + AI 解读
 	var originalText *string
-	if translateResult := callAITranslate(req.Content); translateResult != nil && translateResult.IsClassical {
-		req.Content = translateResult.ModernText
+	if translateResult := callAITranslate(cleaned); translateResult != nil && translateResult.IsClassical {
+		cleaned = translateResult.ModernText
 		originalText = &translateResult.OriginalText
 		log.Printf("Translation applied (lang=%s): orig=%s", translateResult.DetectedLang, (*originalText)[:min(len(*originalText), 30)])
 	}
 
 	// 生成 AI 解读（使用翻译后的内容）
+	var interpretation *string
 	if req.Interpretation == "" {
-		if interp := callGenerateInterpretation(req.Content, string(req.Domain)); interp != "" {
-			req.Interpretation = interp
+		if interp := callGenerateInterpretation(cleaned, string(req.Domain)); interp != "" {
+			interpretation = &interp
 			log.Printf("Interpretation generated (%d chars)", len([]rune(interp)))
 		}
+	} else {
+		interpretation = &req.Interpretation
 	}
 
-	exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
-		string(model.ReviewApproved), nil, score, details, originalText)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
-		return
-	}
-
-	if bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID); err != nil {
-		log.Printf("auto-bookmark failed for exp=%s user=%s: %v", exp.ID, userID, err)
-	} else if bookmarked {
-		exp.BookmarkCount = 1
-		exp.IsBookmarked = true
-	}
+	// 2f. 更新入库：内容替换为清理后的版本，标记为 approved
+	h.repo.UpdateReviewResult(c.Request.Context(), exp.ID, cleaned, interpretation, originalText,
+		score, scoreDetails, string(model.ReviewApproved), nil)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"experience": exp,

@@ -104,6 +104,33 @@ func (r *ExperienceRepo) ExistsByContent(ctx context.Context, content string) (b
 	return exists, err
 }
 
+// ExistsByContentExcluding checks for duplicate content, excluding a specific experience ID.
+// Used when an experience is already saved and we want to check for OTHER duplicates.
+func (r *ExperienceRepo) ExistsByContentExcluding(ctx context.Context, content string, excludeID string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM experiences WHERE content = $1 AND id != $2 AND deleted_at IS NULL)`,
+		content, excludeID,
+	).Scan(&exists)
+	return exists, err
+}
+
+// UpdateReviewResult updates an existing experience with review results
+// (after pipeline: normalize → dedup → hard_policy → AI review → translate → interpret).
+func (r *ExperienceRepo) UpdateReviewResult(ctx context.Context, id string, content string, interpretation *string, originalText *string, score *float64, scoreDetails *string, reviewStatus string, reviewReason *string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE experiences SET content=$1, interpretation=COALESCE($2, interpretation),
+		 original_text=COALESCE($3, original_text), quality_score=COALESCE($4, quality_score),
+		 score_details=COALESCE($5, score_details), review_status=$6, review_reason=$7,
+		 interpretation_generated=CASE WHEN $2 IS NOT NULL THEN TRUE ELSE interpretation_generated END,
+		 updated_at=NOW() WHERE id=$8`,
+		content, interpretation, originalText, score, scoreDetails, reviewStatus, reviewReason, id)
+	if err != nil {
+		return fmt.Errorf("update review result: %w", err)
+	}
+	return nil
+}
+
 // CreateOfficial inserts a platform-generated experience with full metadata.
 func (r *ExperienceRepo) CreateOfficial(ctx context.Context, authorID, content, interpretation, domain, subDomain, creatorName, sourceLabel, scoreReason string, qualityScore float64) (*model.Experience, error) {
 	exp := &model.Experience{
