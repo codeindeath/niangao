@@ -50,18 +50,14 @@ func (h *ExperienceHandler) List(c *gin.Context) {
 
 	experiences, total, err := h.repo.List(c.Request.Context(), query, viewerStr)
 	if err != nil {
+		log.Printf("ERROR List: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list experiences"})
 		return
 	}
 
-	// Shuffle to break creator clustering (only for default/latest sort)
+	// Round-robin to break creator clustering (only for default/latest sort)
 	if query.Sort == "" || query.Sort == "latest" {
-		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-		rng.Shuffle(len(experiences), func(i, j int) {
-			experiences[i], experiences[j] = experiences[j], experiences[i]
-		})
-		// Ensure no 2 consecutive same creator
-		spreadCreators(experiences, 2)
+		experiences = interleaveByCreator(experiences)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -404,18 +400,13 @@ func (h *ExperienceHandler) GetRecommendations(c *gin.Context) {
 
 	experiences, err := h.repo.Recommend(c.Request.Context(), userID, limit, offset)
 	if err != nil {
+		log.Printf("ERROR Recommend: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get recommendations"})
 		return
 	}
 
-	// Shuffle to break creator clustering
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	rng.Shuffle(len(experiences), func(i, j int) {
-		experiences[i], experiences[j] = experiences[j], experiences[i]
-	})
-
-	// Spread same-creator items: no 2 consecutive same creator
-	spreadCreators(experiences, 2)
+	// Round-robin by creator: group into buckets, then interleave
+	experiences = interleaveByCreator(experiences)
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":  experiences,
@@ -423,46 +414,56 @@ func (h *ExperienceHandler) GetRecommendations(c *gin.Context) {
 	})
 }
 
-// spreadCreators ensures no creator appears more than maxConsecutive times
-// in a row. It spreads repeated creators by swapping with later items.
-func spreadCreators(experiences []model.Experience, maxConsecutive int) {
-	n := len(experiences)
-	if n <= maxConsecutive {
-		return
+// interleaveByCreator distributes experiences round-robin by creator.
+// Items are grouped by creator, then taken one from each bucket in random order.
+// Within each bucket, items keep their original order (already sorted by score).
+func interleaveByCreator(experiences []model.Experience) []model.Experience {
+	if len(experiences) <= 1 {
+		return experiences
 	}
 
-	for i := maxConsecutive; i < n; i++ {
+	// 1. Group by creator
+	buckets := make(map[string][]model.Experience)
+	var creatorOrder []string
+	for _, e := range experiences {
 		creator := ""
-		if experiences[i].CreatorName != nil {
-			creator = *experiences[i].CreatorName
+		if e.CreatorName != nil {
+			creator = *e.CreatorName
 		}
+		if _, ok := buckets[creator]; !ok {
+			creatorOrder = append(creatorOrder, creator)
+		}
+		buckets[creator] = append(buckets[creator], e)
+	}
 
-		// Check if this creates a cluster of > maxConsecutive
-		cluster := true
-		for j := 1; j <= maxConsecutive; j++ {
-			prevCreator := ""
-			if experiences[i-j].CreatorName != nil {
-				prevCreator = *experiences[i-j].CreatorName
-			}
-			if prevCreator != creator {
-				cluster = false
-				break
+	if len(buckets) <= 1 {
+		return experiences
+	}
+
+	// 2. Shuffle creator order for variety
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng.Shuffle(len(creatorOrder), func(i, j int) {
+		creatorOrder[i], creatorOrder[j] = creatorOrder[j], creatorOrder[i]
+	})
+
+	// 3. Round-robin: take one from each bucket
+	result := make([]model.Experience, 0, len(experiences))
+	indices := make(map[string]int)
+	for {
+		added := false
+		for _, creator := range creatorOrder {
+			bucket := buckets[creator]
+			if indices[creator] < len(bucket) {
+				result = append(result, bucket[indices[creator]])
+				indices[creator]++
+				added = true
 			}
 		}
-
-		if cluster {
-			// Swap with next item from a different creator
-			for j := i + 1; j < n; j++ {
-				swapCreator := ""
-				if experiences[j].CreatorName != nil {
-					swapCreator = *experiences[j].CreatorName
-				}
-				if swapCreator != creator {
-					experiences[i], experiences[j] = experiences[j], experiences[i]
-					break
-				}
-			}
+		if !added {
+			break
 		}
 	}
+
+	return result
 }
 

@@ -27,7 +27,7 @@ func (r *ExperienceRepo) Create(ctx context.Context, authorID string, req model.
 		AuthorID:     authorID,
 		Content:      req.Content,
 		Domain:       req.Domain,
-		SubDomain:    string(req.SubDomain),
+		SubDomain:    strPtr(string(req.SubDomain)),
 		IsPrivate:    req.IsPrivate,
 		SourceType:   "user",
 		Status:       "published",
@@ -60,7 +60,7 @@ func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, 
 		AuthorID:     authorID,
 		Content:      req.Content,
 		Domain:       req.Domain,
-		SubDomain:    string(req.SubDomain),
+		SubDomain:    strPtr(string(req.SubDomain)),
 		IsPrivate:    req.IsPrivate,
 		SourceType:   "user",
 		Status:       "published",
@@ -97,7 +97,7 @@ func (r *ExperienceRepo) CreateOfficial(ctx context.Context, authorID, content, 
 		AuthorID:                authorID,
 		Content:                 content,
 		Domain:                  model.Domain(domain),
-		SubDomain:               subDomain,
+		SubDomain:               &subDomain,
 		IsOfficial:              true,
 		SourceType:              "platform",
 		SourceLabel:             &sourceLabel,
@@ -489,3 +489,5 @@ func scanExperiences(rows pgx.Rows, total int) ([]model.Experience, int, error) 
 	}
 	return experiences, total, nil
 }
+
+func strPtr(s string) *string { return &s }

@@ -163,7 +163,7 @@ type Experience struct {
 	Content                 string    `json:"content"`
 	Interpretation          *string   `json:"interpretation,omitempty"`
 	Domain                  Domain    `json:"domain"`
-	SubDomain               string    `json:"sub_domain,omitempty"`
+	SubDomain               *string   `json:"sub_domain,omitempty"`
 	IsOfficial              bool      `json:"is_official"`
 	IsPrivate               bool      `json:"is_private"`
 	SourceLabel             *string   `json:"source_label,omitempty"`
