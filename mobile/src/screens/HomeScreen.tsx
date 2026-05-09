@@ -92,7 +92,7 @@ export default function HomeScreen() {
   const hasMore = tabCaches[activeTab].hasMore;
 
   useEffect(() => {
-    getToken().then(t => { tokenRef.current = t; });
+    getToken().then(t => { tokenRef.current = t; loadInitial('recommend'); });
     getUserInfo().then(u => setCurrentUserId(u?.id || null));
   }, []);
 
@@ -150,8 +150,6 @@ export default function HomeScreen() {
     catch (e) { console.error(e); setError('加载失败'); }
     finally { setLoading(false); }
   }, [loadPage]);
-
-  useEffect(() => { loadInitial('recommend'); }, []);
 
   const handleLoadMore = useCallback(async () => {
     const cache = tabCaches[activeTab];
