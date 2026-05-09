@@ -62,11 +62,11 @@ export default function ReviewQueuePage() {
 
   // Toast
   const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = (msg: string, type: 'ok' | 'err' = 'ok') => {
     setToast({ msg, type });
-    clearTimeout(toastTimer.current);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 3000);
   };
 
@@ -209,7 +209,7 @@ export default function ReviewQueuePage() {
     setBatchProcessing(true);
     try {
       const ids = Array.from(selected);
-      await batchReview(ids, batchAction, batchReason || undefined);
+      await batchReview(ids, batchAction!, batchReason || undefined);
       setItems(prev => prev.filter(i => !selected.has(i.id)));
       setSelected(new Set());
       setSelectAll(false);

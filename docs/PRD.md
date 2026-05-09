@@ -766,7 +766,7 @@ H = like_count + bookmark_count + 1
 | GET | `/api/v1/experiences/recommend` | 个性推荐 | ✅ | `?limit=20&offset=0`（offset 分页） |
 | GET | `/api/v1/me/experiences` | 我的经验 | ✅ | `?page=&page_size=` |
 | GET | `/api/v1/me/bookmarks` | 我的收藏 | ✅ | `?page=&page_size=` |
-| GET | `/api/v1/me/stats` | 用户统计（9 维度） | ✅ | — |
+| GET | `/api/v1/user/stats` | 用户统计（9 维度） | ✅ | — |
 | POST | `/api/v1/experiences/:id/view` | 记录浏览 | ❌ | — |
 | POST | `/api/v1/review` | AI 审核+打分 | ❌ | `{content, domain, sub_domain}` |
 | POST | `/api/v1/translate` | 语言检测+翻译 | ❌ | `{content}` |
@@ -955,7 +955,7 @@ if (e instanceof ApiError && e.status === 401) {
 |----|---------|---------|--------|------|
 | Go backend | handler, model, middleware, auth, config | 5 | 56+ | ✅ 全部通过 |
 | Go backend | repository | 1 | 5 | ✅ 集成测试通过（需 -tags=integration） |
-| Python AI | tests/ | 1 | 14 | ✅ 全部通过 |
+| Python AI | tests/ | 1 | 12 | ✅ 全部通过 |
 | Admin React | — | — | — | ✅ TypeScript 零错误，手动验证 9 页 |
 | React Native | __tests__/ | 2 | 0 | 🔴 babel/jest 配置中（待修复） |
 

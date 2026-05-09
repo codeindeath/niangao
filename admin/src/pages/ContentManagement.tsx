@@ -235,7 +235,7 @@ export default function ContentManagement() {
                     <td>
                       <div className="btn-group">
                         <button className="btn btn-outline btn-sm" onClick={() => openEdit(item)}>✏️ 编辑</button>
-                        {item.review_status === 'deleted' || item.status === 'deleted' ? (
+                        {item.review_status === 'deleted' ? (
                           <>
                             <button className="btn btn-green btn-sm" onClick={() => handleRestore(item.id)}>🔄 恢复</button>
                             <button className="btn btn-red btn-sm" onClick={() => handleHardDelete(item.id)}>💀 永久删除</button>

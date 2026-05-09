@@ -11,6 +11,7 @@ export default function AdminLogs() {
   const [keywordSearch, setKeywordSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  void setStartDate; void setEndDate; // TODO: date picker UI
 
   const load = useCallback(async () => {
     setLoading(true);

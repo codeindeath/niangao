@@ -73,18 +73,16 @@ export default function UserManagement() {
   const handleToggle = async (user: AdminUser) => {
     const newEnabled = !user.is_active;
     const action = newEnabled ? '启用' : '禁用';
-    let reason = '';
     if (newEnabled) {
       if (!window.confirm(`确认${action}用户「${user.nickname}」？`)) return;
     } else {
       const input = window.prompt(`确认禁用「${user.nickname}」？请输入理由（≤200字）：`);
       if (input === null) return;
       if (input.length > 200) { alert('理由不能超过200字'); return; }
-      reason = input;
     }
     setToggling(true);
     try {
-      await toggleUserEnabled(user.id, newEnabled, reason);
+      await toggleUserEnabled(user.id, newEnabled);
       await load();
     } catch {
       alert('操作失败');
