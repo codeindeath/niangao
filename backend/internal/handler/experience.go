@@ -397,37 +397,19 @@ func (h *ExperienceHandler) GetRecommendations(c *gin.Context) {
 
 	limit := parseIntParam(c.Query("limit"), 20)
 
-	// Fetch a larger candidate pool so shuffle has room to work
-	candidateLimit := limit * 5
-	if candidateLimit < 100 {
-		candidateLimit = 100
-	}
-	if candidateLimit > 200 {
-		candidateLimit = 200
-	}
-
-	candidates, err := h.repo.Recommend(c.Request.Context(), userID, candidateLimit, 0)
+	experiences, err := h.repo.Recommend(c.Request.Context(), userID, limit, 0)
 	if err != nil {
 		log.Printf("ERROR Recommend: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get recommendations"})
 		return
 	}
 
-	// Shuffle the whole pool to break score bias
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	rng.Shuffle(len(candidates), func(i, j int) {
-		candidates[i], candidates[j] = candidates[j], candidates[i]
-	})
-
-	// Round-robin by creator, then take top N
-	candidates = interleaveByCreator(candidates)
-	if len(candidates) > limit {
-		candidates = candidates[:limit]
-	}
+	// Round-robin by creator to prevent consecutive same creator
+	experiences = interleaveByCreator(experiences)
 
 	c.JSON(http.StatusOK, gin.H{
-		"data":  candidates,
-		"total": len(candidates),
+		"data":  experiences,
+		"total": len(experiences),
 	})
 }
 

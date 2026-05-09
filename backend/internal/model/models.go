@@ -182,6 +182,7 @@ type Experience struct {
 	CreatedAt               time.Time  `json:"created_at"`
 	UpdatedAt               time.Time  `json:"updated_at"`
 	DeletedAt               *time.Time `json:"deleted_at,omitempty"`
+	RandomSort              float64    `json:"-"`
 	// Joined fields
 	AuthorName   *string `json:"author_name,omitempty"`
 	AuthorAvatar *string `json:"author_avatar,omitempty"`

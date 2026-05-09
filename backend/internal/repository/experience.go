@@ -135,7 +135,7 @@ func (r *ExperienceRepo) CreateOfficial(ctx context.Context, authorID, content, 
 const experienceSelectCols = `e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
 		e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
 		e.creator_name, e.source_type, e.score_reason, e.original_text,
-		e.status, e.created_at, e.updated_at,
+		e.status, e.created_at, e.updated_at, e.random_sort,
 		u.nickname, u.avatar_url, u.title as author_title`
 
 const experienceLikedBookmark = `EXISTS(SELECT 1 FROM likes WHERE user_id=$2 AND experience_id=e.id) as is_liked,
@@ -147,7 +147,7 @@ func scanExperience(row pgx.Row, e *model.Experience) error {
 		&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 		&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
 		&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
-		&e.Status, &e.CreatedAt, &e.UpdatedAt,
+		&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.RandomSort,
 		&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 	)
 }
@@ -236,7 +236,7 @@ func (r *ExperienceRepo) List(ctx context.Context, query model.ExperienceListQue
 			&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
 			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
-			&e.Status, &e.CreatedAt, &e.UpdatedAt,
+			&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.RandomSort,
 				&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan: %w", err)
@@ -274,50 +274,60 @@ func (r *ExperienceRepo) SearchByEmbedding(ctx context.Context, embedding []floa
 	return experiences, nil
 }
 
-// Recommend returns experiences the user hasn't seen,
-// ranked by domain preference × hotness (like_count + bookmark_count).
+// Recommend returns personalized recommendations.
+// - bookmarks < 100: purely random order (discovery mode)
+// - bookmarks >= 100: domain preference + unseen priority + random_sort
 func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, offset int) ([]model.Experience, error) {
-	if limit < 1 || limit > 50 {
+	if limit < 1 || limit > 200 {
 		limit = 20
 	}
 	if offset < 0 {
 		offset = 0
 	}
 
-	query := `
-		WITH user_domain_stats AS (
-			SELECT domain, COUNT(*) * 2 AS weight
-			FROM experiences
-			WHERE author_id = $1 AND status = 'published'
-			GROUP BY domain
-			UNION ALL
-			SELECT e.domain, COUNT(*) AS weight
-			FROM bookmarks b
-			JOIN experiences e ON e.id = b.experience_id
-			WHERE b.user_id = $1 AND e.status = 'published'
-			GROUP BY e.domain
-		),
-		domain_scores AS (
-			SELECT domain, SUM(weight) AS score FROM user_domain_stats GROUP BY domain
-		)
-		SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
-		       e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
-		       e.creator_name, e.source_type, e.score_reason, e.original_text,
-		       e.status, e.created_at, e.updated_at,
-		u.nickname, u.avatar_url, u.title as author_title,
-		       EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND experience_id = e.id) AS is_liked,
-		       EXISTS(SELECT 1 FROM bookmarks WHERE user_id = $1 AND experience_id = e.id) AS is_bookmarked,
-		       COALESCE(ds.score, 1) * (e.like_count + e.bookmark_count + 1) AS rec_score
-		FROM experiences e
-		LEFT JOIN users u ON u.id = e.author_id
-		LEFT JOIN domain_scores ds ON ds.domain = e.domain
-		WHERE e.status = 'published' AND e.review_status = 'approved' AND e.is_private = FALSE AND e.deleted_at IS NULL
-		  AND e.author_id != $1
-		  AND e.id NOT IN (SELECT experience_id FROM bookmarks WHERE user_id = $1)
-		ORDER BY COALESCE(ds.score, 1) * (e.like_count + e.bookmark_count + 1) * RANDOM() DESC
-		LIMIT $2 OFFSET $3`
+	// Count user bookmarks to decide strategy
+	var bookmarkCount int
+	err := r.db.QueryRow(ctx,
+		`SELECT COUNT(*) FROM bookmarks WHERE user_id = $1`, userID,
+	).Scan(&bookmarkCount)
+	if err != nil {
+		bookmarkCount = 0
+	}
 
-	rows, err := r.db.Query(ctx, query, userID, limit, offset)
+	var query string
+	var args []interface{}
+
+	baseSelect := `SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
+		e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
+		e.creator_name, e.source_type, e.score_reason, e.original_text,
+		e.status, e.created_at, e.updated_at, e.random_sort,
+		u.nickname, u.avatar_url, u.title as author_title,
+		EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND experience_id = e.id) AS is_liked,
+		EXISTS(SELECT 1 FROM bookmarks WHERE user_id = $1 AND experience_id = e.id) AS is_bookmarked`
+
+	baseFrom := `FROM experiences e
+		LEFT JOIN users u ON u.id = e.author_id`
+
+	baseWhere := `WHERE e.status = 'published' AND e.review_status = 'approved' AND e.is_private = FALSE AND e.deleted_at IS NULL
+		AND e.author_id != $1`
+
+	if bookmarkCount < 100 {
+		// Pure random discovery
+		query = baseSelect + " " + baseFrom + " " + baseWhere + `
+		ORDER BY e.random_sort
+		LIMIT $2 OFFSET $3`
+		args = []interface{}{userID, limit, offset}
+	} else {
+		// Domain preference + unseen priority + random_sort
+		query = baseSelect + " " + baseFrom + " " + baseWhere + `
+		ORDER BY
+			CASE WHEN e.id NOT IN (SELECT experience_id FROM user_views WHERE user_id = $1) THEN 0 ELSE 1 END,
+			e.random_sort
+		LIMIT $2 OFFSET $3`
+		args = []interface{}{userID, limit, offset}
+	}
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("recommend: %w", err)
 	}
@@ -326,15 +336,13 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, of
 	var experiences []model.Experience
 	for rows.Next() {
 		var e model.Experience
-		var recScore float64
 		if err := rows.Scan(
 			&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
 			&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
 			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
-			&e.Status, &e.CreatedAt, &e.UpdatedAt,
-				&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
-			&recScore,
+			&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.RandomSort,
+			&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 		); err != nil {
 			return nil, fmt.Errorf("recommend scan: %w", err)
 		}
@@ -411,7 +419,7 @@ func (r *ExperienceRepo) ListByAuthor(ctx context.Context, authorID string, page
 		`SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
 		        e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
 		        e.creator_name, e.source_type, e.score_reason, e.original_text,
-		        e.status, e.created_at, e.updated_at,
+		e.status, e.created_at, e.updated_at, e.random_sort,
 		        u.nickname, u.avatar_url, u.title as author_title,
 		        EXISTS(SELECT 1 FROM likes WHERE user_id=$1 AND experience_id=e.id) as is_liked,
 		        EXISTS(SELECT 1 FROM bookmarks WHERE user_id=$1 AND experience_id=e.id) as is_bookmarked
@@ -452,7 +460,7 @@ func (r *ExperienceRepo) ListBookmarked(ctx context.Context, userID string, page
 		`SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
 		        e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
 		        e.creator_name, e.source_type, e.score_reason, e.original_text,
-		        e.status, e.created_at, e.updated_at,
+		e.status, e.created_at, e.updated_at, e.random_sort,
 		        u.nickname, u.avatar_url, u.title as author_title,
 		        EXISTS(SELECT 1 FROM likes WHERE user_id=$1 AND experience_id=e.id) as is_liked,
 		        true as is_bookmarked
@@ -480,7 +488,7 @@ func scanExperiences(rows pgx.Rows, total int) ([]model.Experience, int, error) 
 			&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
 			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
-			&e.Status, &e.CreatedAt, &e.UpdatedAt,
+			&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.RandomSort,
 				&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan: %w", err)
