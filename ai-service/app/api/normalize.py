@@ -29,6 +29,43 @@ async def normalize_text(req: NormalizeRequest):
     import re
     text = re.sub(r"\s+", " ", text)
 
+    # ================================================================
+    # ⑦ 非必要外壳 — 去壳留核
+    # "XX说过/认为/觉得/看来/表示：xxx" → "xxx"
+    # "我认为/我觉得/在我看来，xxx" → "xxx"
+    # ================================================================
+    shell_patterns = [
+        # "XX说过/认为/觉得/表示/强调/指出/分享/总结：xxx"
+        re.compile(r'^.{1,8}(?:说过|认为|觉得|看来|表示|强调|指出|分享|总结|提到|写道)[：:，,]\s*'),
+        # "我/笔者 认为/觉得/看来/发现/总结，xxx"
+        re.compile(r'^(?:我|笔者|个人)(?:认为|觉得|看来|以为|发现|总结|的感受?是)[：:，,\s]*'),
+        # "在我看来/依我看/就我而言，xxx"
+        re.compile(r'^(?:在我看来|依我看|就我而言|对我而言|就我个人而言|个人认为|个人觉得)[，,]\s*'),
+        # "有人说过/有人说/常言道/俗话说，xxx"
+        re.compile(r'^(?:有人说过?|有人说|常言道|俗话说|老话说|古人云)[：:，,]\s*'),
+    ]
+    prev = None
+    while text != prev:
+        prev = text
+        for pat in shell_patterns:
+            text = pat.sub('', text)
+
+    # ⑧ 格式杂质
+    # 全角引号包裹（如 "经验内容" → 经验内容）
+    text = re.sub(r'^\u201c(.+?)\u201d$', r'\1', text)
+    text = re.sub(r'^\u2018(.+?)\u2019$', r'\1', text)
+    # 半角引号包裹
+    text = re.sub(r'^"(.+?)"$', r'\1', text)
+    # "——作者/——某某/——来自xxx" 后缀
+    text = re.sub(r'\s*[——–—]+\s*.{1,15}$', '', text)
+    # 列表符开头（1. 2、 ① • - · ）
+    text = re.sub(r'^[\d]+[\.\、\)\)]\s*', '', text)
+    text = re.sub(r'^[①②③④⑤⑥⑦⑧⑨⑩]\s*', '', text)
+    text = re.sub(r'^[•\-\*\·\►\▸\▪]\s*', '', text)
+
+    # Final trim after all cleaning
+    text = text.strip()
+
     # 繁体→简体
     try:
         import zhconv
