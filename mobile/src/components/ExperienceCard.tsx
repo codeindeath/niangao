@@ -59,11 +59,20 @@ export default function FlipCard({
     if (!item.original_text) return false;
     const contentLen = item.content?.length || 0;
     const originalLen = item.original_text.length;
+    // 判断原文是否为中文（CJK字符占比 > 0.3）
+    const cjkCount = [...item.original_text].filter(c => {
+      const code = c.codePointAt(0)!;
+      return (code >= 0x4E00 && code <= 0x9FFF) ||
+             (code >= 0x3400 && code <= 0x4DBF) ||
+             (code >= 0xF900 && code <= 0xFAFF);
+    }).length;
+    const isChinese = cjkCount / originalLen > 0.3;
     // 正文：26px字号 40px行高，~12中文字符/行
     const contentLines = Math.max(1, Math.ceil(contentLen / 12));
     const contentHeight = contentLines * 40;
-    // 原文：13px字号 20px行高，~35英文字符/行
-    const originalLines = Math.max(1, Math.ceil(originalLen / 35));
+    // 原文：13px字号 20px行高，中文~20字符/行，英文~35字符/行
+    const charsPerLine = isChinese ? 20 : 35;
+    const originalLines = Math.max(1, Math.ceil(originalLen / charsPerLine));
     const originalHeight = originalLines * 20 + 30; // +label padding
     // 固定占用：胶囊区(contentTop+68) + 分隔线(26) + 作者(36) + 星级(~28) + 底部(60)
     const fixedHeight = contentTop + 68 + 26 + 36 + (showScore ? 28 : 0) + 60;
