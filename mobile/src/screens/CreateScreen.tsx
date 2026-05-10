@@ -17,44 +17,60 @@ import {createExperience, ApiError} from '../services/api';
 import {triggerTabRefresh} from './HomeScreen';
 
 const PRIMARY_DOMAINS: {key: string; label: string}[] = [
-  {key: 'career', label: '职场成长'},
-  {key: 'relationship', label: '人际关系'},
-  {key: 'cognition', label: '认知升级'},
-  {key: 'life', label: '生活智慧'},
-  {key: 'emotion', label: '情绪情感'},
+  {key: 'vitality', label: '生命'},
+  {key: 'living', label: '生活'},
+  {key: 'work', label: '工作'},
+  {key: 'relationship', label: '关系'},
+  {key: 'cognition', label: '认知'},
+  {key: 'meaning', label: '意义'},
 ];
 
 const SUB_DOMAINS: Record<string, {key: string; label: string}[]> = {
-  career: [
-    {key: 'career-planning', label: '职业规划'},
-    {key: 'skill-building', label: '技能提升'},
-    {key: 'side-hustle', label: '副业探索'},
-    {key: 'workplace-comm', label: '职场沟通'},
+  vitality: [
+    {key: 'health', label: '健康'},
+    {key: 'housing', label: '居住'},
+    {key: 'transit', label: '出行'},
+    {key: 'diet', label: '饮食'},
+    {key: 'exercise', label: '运动'},
+  ],
+  living: [
+    {key: 'pets', label: '宠物'},
+    {key: 'travel', label: '旅行'},
+    {key: 'fashion', label: '衣着'},
+    {key: 'selfcare', label: '养护'},
+    {key: 'shopping', label: '购物'},
+    {key: 'fun', label: '娱乐'},
+  ],
+  work: [
+    {key: 'jobhunt', label: '求职'},
+    {key: 'promotion', label: '升职'},
+    {key: 'startup', label: '创业'},
+    {key: 'work-comm', label: '沟通'},
+    {key: 'management', label: '管理'},
+    {key: 'productivity', label: '效率'},
   ],
   relationship: [
-    {key: 'intimate', label: '亲密关系'},
-    {key: 'family', label: '家庭关系'},
-    {key: 'social-skill', label: '社交技巧'},
-    {key: 'communication', label: '沟通表达'},
+    {key: 'marriage', label: '夫妻'},
+    {key: 'romance', label: '恋人'},
+    {key: 'friendship', label: '朋友'},
+    {key: 'parenting', label: '亲子'},
+    {key: 'parents', label: '父母'},
+    {key: 'siblings', label: '兄妹'},
   ],
   cognition: [
-    {key: 'mental-model', label: '思维模型'},
-    {key: 'learning', label: '学习方法'},
-    {key: 'decision', label: '决策判断'},
-    {key: 'psychology', label: '心理认知'},
+    {key: 'cog-learning', label: '学习'},
+    {key: 'thinking', label: '思维'},
+    {key: 'info', label: '信息'},
+    {key: 'tools', label: '工具'},
+    {key: 'creativity', label: '创造'},
+    {key: 'expression', label: '表达'},
   ],
-  life: [
-    {key: 'finance', label: '财务管理'},
-    {key: 'health', label: '健康养生'},
-    {key: 'time-mgmt', label: '时间管理'},
-    {key: 'habits', label: '习惯养成'},
-    {key: 'digital-life', label: '数字生活'},
-  ],
-  emotion: [
-    {key: 'regulation', label: '情绪调节'},
-    {key: 'self-growth', label: '自我成长'},
-    {key: 'happiness', label: '幸福感'},
-    {key: 'stress-mgmt', label: '压力管理'},
+  meaning: [
+    {key: 'self', label: '自我'},
+    {key: 'happiness', label: '幸福'},
+    {key: 'faith', label: '信仰'},
+    {key: 'mission', label: '使命'},
+    {key: 'belonging', label: '归属'},
   ],
 };
 

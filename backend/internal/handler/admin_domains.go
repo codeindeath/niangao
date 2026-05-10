@@ -13,11 +13,12 @@ import (
 
 // domainIcons maps each top-level domain to an icon identifier.
 var domainIcons = map[model.Domain]string{
-	model.DomainCareer:       "briefcase",
+	model.DomainVitality:     "heartbeat",
+	model.DomainLiving:       "home",
+	model.DomainWork:         "briefcase",
 	model.DomainRelationship: "heart",
 	model.DomainCognition:    "brain",
-	model.DomainLife:         "home",
-	model.DomainEmotion:      "smile",
+	model.DomainMeaning:      "star",
 }
 
 // domainHierarchyItem represents a top-level domain with its sub-domains

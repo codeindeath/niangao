@@ -3,24 +3,26 @@ package model
 import "time"
 
 // ============================================================
-// 一级领域
+// 一级领域 v3 — 6 领域体系
 // ============================================================
 type Domain string
 
 const (
-	DomainCareer       Domain = "career"
-	DomainRelationship Domain = "relationship"
-	DomainCognition    Domain = "cognition"
-	DomainLife         Domain = "life"
-	DomainEmotion      Domain = "emotion"
+	DomainVitality     Domain = "vitality"     // 生命
+	DomainLiving       Domain = "living"       // 生活
+	DomainWork         Domain = "work"         // 工作
+	DomainRelationship Domain = "relationship" // 关系
+	DomainCognition    Domain = "cognition"    // 认知
+	DomainMeaning      Domain = "meaning"      // 意义
 )
 
 var ValidDomains = map[Domain]string{
-	DomainCareer:       "职场成长",
-	DomainRelationship: "人际关系",
-	DomainCognition:    "认知升级",
-	DomainLife:         "生活智慧",
-	DomainEmotion:      "情感",
+	DomainVitality:     "生命",
+	DomainLiving:       "生活",
+	DomainWork:         "工作",
+	DomainRelationship: "关系",
+	DomainCognition:    "认知",
+	DomainMeaning:      "意义",
 }
 
 func IsValidDomain(d Domain) bool {
@@ -29,86 +31,119 @@ func IsValidDomain(d Domain) bool {
 }
 
 // ============================================================
-// 二级领域
+// 二级领域 v3 — 36 子领域
 // ============================================================
 type SubDomain string
 
-// career 职场成长
+// vitality 生命
 const (
-	SubCareerPlanning   SubDomain = "career-planning"
-	SubSkillBuilding    SubDomain = "skill-building"
-	SubSideHustle       SubDomain = "side-hustle"
-	SubWorkplaceComm    SubDomain = "workplace-comm"
+	SubHealth   SubDomain = "health"
+	SubHousing  SubDomain = "housing"
+	SubTransit  SubDomain = "transit"
+	SubDiet     SubDomain = "diet"
+	SubExercise SubDomain = "exercise"
 )
 
-// relationship 人际关系
+// living 生活
 const (
-	SubIntimate      SubDomain = "intimate"
-	SubFamily        SubDomain = "family"
-	SubSocialSkill   SubDomain = "social-skill"
-	SubCommunication SubDomain = "communication"
+	SubPets     SubDomain = "pets"
+	SubTravel   SubDomain = "travel"
+	SubFashion  SubDomain = "fashion"
+	SubSelfcare SubDomain = "selfcare"
+	SubShopping SubDomain = "shopping"
+	SubFun      SubDomain = "fun"
 )
 
-// cognition 认知升级
+// work 工作
 const (
-	SubMentalModel SubDomain = "mental-model"
-	SubLearning    SubDomain = "learning"
-	SubDecision    SubDomain = "decision"
-	SubPsychology  SubDomain = "psychology"
+	SubJobhunt       SubDomain = "jobhunt"
+	SubPromotion     SubDomain = "promotion"
+	SubStartup       SubDomain = "startup"
+	SubWorkComm      SubDomain = "work-comm"
+	SubManagement    SubDomain = "management"
+	SubProductivity  SubDomain = "productivity"
 )
 
-// life 生活智慧
+// relationship 关系
 const (
-	SubFinance    SubDomain = "finance"
-	SubHealth     SubDomain = "health"
-	SubTimeMgmt   SubDomain = "time-mgmt"
-	SubHabits     SubDomain = "habits"
-	SubDigitalLife SubDomain = "digital-life"
+	SubMarriage   SubDomain = "marriage"
+	SubRomance    SubDomain = "romance"
+	SubFriendship SubDomain = "friendship"
+	SubParenting  SubDomain = "parenting"
+	SubParents    SubDomain = "parents"
+	SubSiblings   SubDomain = "siblings"
 )
 
-// emotion 情绪情感
+// cognition 认知
 const (
-	SubRegulation  SubDomain = "regulation"
-	SubSelfGrowth  SubDomain = "self-growth"
-	SubHappiness   SubDomain = "happiness"
-	SubStressMgmt  SubDomain = "stress-mgmt"
+	SubCognitiveLearning   SubDomain = "cog-learning"
+	SubThinking            SubDomain = "thinking"
+	SubInfo                SubDomain = "info"
+	SubTools               SubDomain = "tools"
+	SubCreativity          SubDomain = "creativity"
+	SubExpression          SubDomain = "expression"
+)
+
+// meaning 意义
+const (
+	SubSelf      SubDomain = "self"
+	SubHappiness SubDomain = "happiness"
+	SubFaith     SubDomain = "faith"
+	SubMission   SubDomain = "mission"
+	SubBelonging SubDomain = "belonging"
 )
 
 var ValidSubDomains = map[SubDomain]string{
-	SubCareerPlanning: "职业规划",
-	SubSkillBuilding:  "技能提升",
-	SubSideHustle:     "副业创业",
-	SubWorkplaceComm:  "职场沟通",
-
-	SubIntimate:      "亲密关系",
-	SubFamily:        "家庭关系",
-	SubSocialSkill:   "社交技巧",
-	SubCommunication: "沟通表达",
-
-	SubMentalModel: "思维模型",
-	SubLearning:    "学习方法",
-	SubDecision:    "决策判断",
-	SubPsychology:  "心理认知",
-
-	SubFinance:    "理财规划",
-	SubHealth:     "健康养生",
-	SubTimeMgmt:   "时间管理",
-	SubHabits:     "习惯养成",
-	SubDigitalLife: "数字生活",
-
-	SubRegulation: "情绪调节",
-	SubSelfGrowth: "自我成长",
-	SubHappiness:  "幸福感",
-	SubStressMgmt: "压力管理",
+	// 生命
+	SubHealth:   "健康",
+	SubHousing:  "居住",
+	SubTransit:  "出行",
+	SubDiet:     "饮食",
+	SubExercise: "运动",
+	// 生活
+	SubPets:     "宠物",
+	SubTravel:   "旅行",
+	SubFashion:  "衣着",
+	SubSelfcare: "养护",
+	SubShopping: "购物",
+	SubFun:      "娱乐",
+	// 工作
+	SubJobhunt:      "求职",
+	SubPromotion:    "升职",
+	SubStartup:      "创业",
+	SubWorkComm:     "沟通",
+	SubManagement:   "管理",
+	SubProductivity: "效率",
+	// 关系
+	SubMarriage:   "夫妻",
+	SubRomance:    "恋人",
+	SubFriendship: "朋友",
+	SubParenting:  "亲子",
+	SubParents:    "父母",
+	SubSiblings:   "兄妹",
+	// 认知
+	SubCognitiveLearning: "学习",
+	SubThinking:          "思维",
+	SubInfo:              "信息",
+	SubTools:             "工具",
+	SubCreativity:        "创造",
+	SubExpression:        "表达",
+	// 意义
+	SubSelf:      "自我",
+	SubHappiness: "幸福",
+	SubFaith:     "信仰",
+	SubMission:   "使命",
+	SubBelonging: "归属",
 }
 
 // SubDomainsByParent maps parent domain to its child sub-domains
 var SubDomainsByParent = map[Domain][]SubDomain{
-	DomainCareer:       {SubCareerPlanning, SubSkillBuilding, SubSideHustle, SubWorkplaceComm},
-	DomainRelationship: {SubIntimate, SubFamily, SubSocialSkill, SubCommunication},
-	DomainCognition:    {SubMentalModel, SubLearning, SubDecision, SubPsychology},
-	DomainLife:         {SubFinance, SubHealth, SubTimeMgmt, SubHabits, SubDigitalLife},
-	DomainEmotion:      {SubRegulation, SubSelfGrowth, SubHappiness, SubStressMgmt},
+	DomainVitality:     {SubHealth, SubHousing, SubTransit, SubDiet, SubExercise},
+	DomainLiving:       {SubPets, SubTravel, SubFashion, SubSelfcare, SubShopping, SubFun},
+	DomainWork:         {SubJobhunt, SubPromotion, SubStartup, SubWorkComm, SubManagement, SubProductivity},
+	DomainRelationship: {SubMarriage, SubRomance, SubFriendship, SubParenting, SubParents, SubSiblings},
+	DomainCognition:    {SubCognitiveLearning, SubThinking, SubInfo, SubTools, SubCreativity, SubExpression},
+	DomainMeaning:      {SubSelf, SubHappiness, SubFaith, SubMission, SubBelonging},
 }
 
 func IsValidSubDomain(d SubDomain) bool {

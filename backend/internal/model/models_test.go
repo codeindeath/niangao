@@ -12,11 +12,11 @@ func TestIsValidDomain(t *testing.T) {
 		domain Domain
 		valid  bool
 	}{
-		{"career is valid", DomainCareer, true},
+		{"work is valid", DomainWork, true},
 		{"relationship is valid", DomainRelationship, true},
 		{"cognition is valid", DomainCognition, true},
-		{"life is valid", DomainLife, true},
-		{"emotion is valid", DomainEmotion, true},
+		{"vitality is valid", DomainVitality, true},
+		{"meaning is valid", DomainMeaning, true},
 		{"empty is invalid", "", false},
 		{"unknown is invalid", "sports", false},
 		{"case sensitive - uppercase invalid", "CAREER", false},
@@ -34,11 +34,12 @@ func TestIsValidDomain(t *testing.T) {
 
 func TestValidDomainsMapping(t *testing.T) {
 	expected := map[Domain]string{
-		DomainCareer:       "职场成长",
-		DomainRelationship: "人际关系",
-		DomainCognition:    "认知升级",
-		DomainLife:         "生活智慧",
-		DomainEmotion:      "情感",
+		DomainVitality:     "生命",
+		DomainLiving:       "生活",
+		DomainWork:         "工作",
+		DomainRelationship: "关系",
+		DomainCognition:    "认知",
+		DomainMeaning:      "意义",
 	}
 
 	if len(ValidDomains) != len(expected) {
@@ -65,26 +66,26 @@ func TestCreateExperienceRequestValidation(t *testing.T) {
 		{
 			name:    "valid experience",
 			content: "接到任务先确认 deadline",
-			domain:  DomainCareer,
+			domain:  DomainWork,
 			valid:   true,
 		},
 		{
 			name:    "content too long (over 100 chars)",
 			content: strings.Repeat("a", 101),
-			domain:  DomainCareer,
+			domain:  DomainWork,
 			valid:   false,
 			errMsg:  "exceeds 100",
 		},
 		{
 			name:    "content exactly 100 chars",
 			content: strings.Repeat("a", 100),
-			domain:  DomainLife,
+			domain:  DomainVitality,
 			valid:   true,
 		},
 		{
 			name:    "empty content",
 			content: "",
-			domain:  DomainCareer,
+			domain:  DomainWork,
 			valid:   false,
 			errMsg:  "required",
 		},

@@ -110,11 +110,12 @@ type UserStatusUpdate struct {
 
 // DomainSortOrder defines the display order of top-level domains.
 var DomainSortOrder = []Domain{
-	DomainCareer,
+	DomainVitality,
+	DomainLiving,
+	DomainWork,
 	DomainRelationship,
 	DomainCognition,
-	DomainLife,
-	DomainEmotion,
+	DomainMeaning,
 }
 
 type DomainItem struct {

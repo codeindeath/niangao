@@ -13,19 +13,17 @@ import {searchExperiences, Experience, toggleLike, toggleBookmark} from '../serv
 
 const DOMAINS: {key: string; label: string}[] = [
   {key: '', label: '全部'},
-  {key: 'career', label: '职场'},
-  {key: 'relationship', label: '人际'},
+  {key: 'vitality', label: '生命'},
+  {key: 'living', label: '生活'},
+  {key: 'work', label: '工作'},
+  {key: 'relationship', label: '关系'},
   {key: 'cognition', label: '认知'},
-  {key: 'life', label: '生活'},
-  {key: 'emotion', label: '情感'},
+  {key: 'meaning', label: '意义'},
 ];
 
 const domainLabels: Record<string, string> = {
-  career: '职场成长',
-  relationship: '人际关系',
-  cognition: '认知升级',
-  life: '生活智慧',
-  emotion: '情感',
+  vitality: '生命', living: '生活', work: '工作',
+  relationship: '关系', cognition: '认知', meaning: '意义',
 };
 
 export default function SearchScreen({navigation}: any) {
