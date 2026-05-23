@@ -70,6 +70,7 @@ const SUB_DOMAINS: Record<string, {key: string; label: string}[]> = {
   meaning: [
     {key: 'self', label: '自我'},
     {key: 'happiness', label: '幸福'},
+    {key: 'emotion', label: '情绪'},
     {key: 'faith', label: '信仰'},
     {key: 'mission', label: '使命'},
     {key: 'belonging', label: '归属'},
@@ -139,6 +140,21 @@ export default function CreateScreen({navigation}: any) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(subdomainOpacity, {
+        toValue: domain ? 1 : 0,
+        duration: domain ? 180 : 120,
+        useNativeDriver: false,
+      }),
+      Animated.timing(subdomainHeight, {
+        toValue: domain ? 1 : 0,
+        duration: domain ? 180 : 120,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [domain, subdomainHeight, subdomainOpacity]);
+
   const handleBack = () => {
     if (content.trim()) {
       const draft: DraftData = {content, domain, subDomain, topics, isPrivate};
@@ -155,40 +171,11 @@ export default function CreateScreen({navigation}: any) {
 
   const handleDomainSelect = (key: string) => {
     if (domain === key) {
-      // Deselect: hide subdomains with animation
       setDomain('');
       setSubDomain('');
-      Animated.parallel([
-        Animated.timing(subdomainOpacity, {
-          toValue: 0,
-          duration: 120,
-          useNativeDriver: false,
-        }),
-        Animated.timing(subdomainHeight, {
-          toValue: 0,
-          duration: 120,
-          useNativeDriver: false,
-        }),
-      ]).start();
     } else {
-      const wasEmpty = domain === '';
       setDomain(key);
       setSubDomain('');
-      if (wasEmpty) {
-        // First selection: animate in
-        Animated.parallel([
-          Animated.timing(subdomainOpacity, {
-            toValue: 1,
-            duration: 180,
-            useNativeDriver: false,
-          }),
-          Animated.timing(subdomainHeight, {
-            toValue: 1,
-            duration: 180,
-            useNativeDriver: false,
-          }),
-        ]).start();
-      }
     }
   };
 
@@ -315,18 +302,17 @@ export default function CreateScreen({navigation}: any) {
             <Text style={styles.charCount}>{content.length}/100</Text>
           </View>
 
-          {!isFocused && (
-            <>
-              <Text style={styles.domainHint}>领域</Text>
-              <Text style={styles.domainDash}>—</Text>
+          <>
+            <Text style={styles.domainHint}>领域</Text>
+            <Text style={styles.domainDash}>—</Text>
 
-              {/* Domain row */}
-              <View style={styles.domainSection}>
-                <View style={styles.domainRow}>
-                  {PRIMARY_DOMAINS.map(d => {
-                    const isSelected = domain === d.key;
-                    const hasSelection = domain !== '';
-                    return (
+            {/* Domain row */}
+            <View style={styles.domainSection}>
+              <View style={styles.domainRow}>
+                {PRIMARY_DOMAINS.map(d => {
+                  const isSelected = domain === d.key;
+                  const hasSelection = domain !== '';
+                  return (
                     <TouchableOpacity
                       key={d.key}
                       style={[styles.domainChip, isSelected && styles.domainChipActive]}
@@ -339,28 +325,28 @@ export default function CreateScreen({navigation}: any) {
                         {d.label}
                       </Text>
                     </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                  );
+                })}
+              </View>
 
-                {/* Animated subdomain row */}
-                <Animated.View
-                  style={[
-                    styles.subdomainWrapper,
-                    {
-                      opacity: subdomainOpacity,
-                      maxHeight: subdomainHeight.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 100],
-                      }),
-                    },
-                  ]}>
-                  {domain !== '' && SUB_DOMAINS[domain] && (
-                    <View style={styles.subdomainRow}>
-                      {SUB_DOMAINS[domain].map(sd => {
-                        const isSelected = subDomain === sd.key;
-                        const hasSelection = subDomain !== '';
-                        return (
+              {/* Animated subdomain row */}
+              <Animated.View
+                style={[
+                  styles.subdomainWrapper,
+                  {
+                    opacity: subdomainOpacity,
+                    maxHeight: subdomainHeight.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 100],
+                    }),
+                  },
+                ]}>
+                {domain !== '' && SUB_DOMAINS[domain] && (
+                  <View style={styles.subdomainRow}>
+                    {SUB_DOMAINS[domain].map(sd => {
+                      const isSelected = subDomain === sd.key;
+                      const hasSelection = subDomain !== '';
+                      return (
                         <TouchableOpacity
                           key={sd.key}
                           style={[styles.subDomainChip, isSelected && styles.subDomainChipActive]}
@@ -373,14 +359,13 @@ export default function CreateScreen({navigation}: any) {
                             {sd.label}
                           </Text>
                         </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  )}
-                </Animated.View>
-              </View>
-            </>
-          )}
+                      );
+                    })}
+                  </View>
+                )}
+              </Animated.View>
+            </View>
+          </>
 
           {/* Topic section */}
           {!isFocused && (

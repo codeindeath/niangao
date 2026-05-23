@@ -301,7 +301,7 @@ var chatDomainKeywords = map[string][]string{
 		"learn", "think", "decision", "writing", "tool",
 	},
 	string(model.DomainMeaning): {
-		"意义", "自我", "幸福", "信仰", "使命", "孤独", "迷茫", "价值", "人生",
+		"意义", "自我", "幸福", "情绪", "信仰", "使命", "孤独", "迷茫", "价值", "人生",
 		"归属", "内耗", "空虚", "方向", "存在", "identity", "meaning", "purpose",
 	},
 }

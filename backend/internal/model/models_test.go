@@ -55,6 +55,24 @@ func TestValidDomainsMapping(t *testing.T) {
 	}
 }
 
+func TestMeaningEmotionSubDomain(t *testing.T) {
+	if !IsValidSubDomain(SubEmotion) {
+		t.Fatal("meaning emotion sub-domain should be valid")
+	}
+
+	if got := ValidSubDomains[SubEmotion]; got != "情绪" {
+		t.Fatalf("ValidSubDomains[SubEmotion] = %q, want %q", got, "情绪")
+	}
+
+	if !SubDomainBelongsToParent(DomainMeaning, SubEmotion) {
+		t.Fatal("emotion sub-domain should belong to meaning")
+	}
+
+	if SubDomainBelongsToParent(DomainRelationship, SubEmotion) {
+		t.Fatal("emotion sub-domain should not belong to relationship")
+	}
+}
+
 func TestCreateExperienceRequestValidation(t *testing.T) {
 	tests := []struct {
 		name    string

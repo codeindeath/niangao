@@ -86,6 +86,7 @@ func TestInferChatDomainFromCurrentMessage(t *testing.T) {
 		{"work", "最近和老板沟通项目压力很大", string(model.DomainWork)},
 		{"relationship", "我和女朋友吵架之后一直很难受", string(model.DomainRelationship)},
 		{"meaning", "最近很迷茫，不知道人生方向在哪里", string(model.DomainMeaning)},
+		{"meaning emotion", "最近情绪起伏很大，不知道怎么和自己相处", string(model.DomainMeaning)},
 		{"none", "今天只是想随便聊聊", ""},
 	}
 

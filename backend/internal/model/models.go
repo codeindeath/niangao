@@ -31,7 +31,7 @@ func IsValidDomain(d Domain) bool {
 }
 
 // ============================================================
-// 二级领域 v3 — 34 子领域
+// 二级领域 v3 — 35 子领域
 // ============================================================
 type SubDomain string
 
@@ -88,6 +88,7 @@ const (
 const (
 	SubSelf      SubDomain = "self"
 	SubHappiness SubDomain = "happiness"
+	SubEmotion   SubDomain = "emotion"
 	SubFaith     SubDomain = "faith"
 	SubMission   SubDomain = "mission"
 	SubBelonging SubDomain = "belonging"
@@ -131,6 +132,7 @@ var ValidSubDomains = map[SubDomain]string{
 	// 意义
 	SubSelf:      "自我",
 	SubHappiness: "幸福",
+	SubEmotion:   "情绪",
 	SubFaith:     "信仰",
 	SubMission:   "使命",
 	SubBelonging: "归属",
@@ -143,7 +145,7 @@ var SubDomainsByParent = map[Domain][]SubDomain{
 	DomainWork:         {SubJobhunt, SubPromotion, SubStartup, SubWorkComm, SubManagement, SubProductivity},
 	DomainRelationship: {SubMarriage, SubRomance, SubFriendship, SubParenting, SubParents, SubSiblings},
 	DomainCognition:    {SubCognitiveLearning, SubThinking, SubInfo, SubTools, SubCreativity, SubExpression},
-	DomainMeaning:      {SubSelf, SubHappiness, SubFaith, SubMission, SubBelonging},
+	DomainMeaning:      {SubSelf, SubHappiness, SubEmotion, SubFaith, SubMission, SubBelonging},
 }
 
 func IsValidSubDomain(d SubDomain) bool {

@@ -50,7 +50,7 @@ const SUB_LABELS: Record<string, string> = {
   'parenting': '亲子', 'parents': '父母', 'siblings': '兄妹',
   'cog-learning': '学习', 'thinking': '思维', 'info': '信息',
   'tools': '工具', 'creativity': '创造', 'expression': '表达',
-  'self': '自我', 'happiness': '幸福', 'faith': '信仰',
+  'self': '自我', 'happiness': '幸福', 'emotion': '情绪', 'faith': '信仰',
   'mission': '使命', 'belonging': '归属',
 };
 

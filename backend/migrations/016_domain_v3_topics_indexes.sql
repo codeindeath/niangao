@@ -70,7 +70,7 @@ SET domain = CASE
   WHEN sub_domain IN ('jobhunt', 'promotion', 'startup', 'work-comm', 'management', 'productivity') THEN 'work'
   WHEN sub_domain IN ('marriage', 'romance', 'friendship', 'parenting', 'parents', 'siblings') THEN 'relationship'
   WHEN sub_domain IN ('cog-learning', 'thinking', 'info', 'tools', 'creativity', 'expression') THEN 'cognition'
-  WHEN sub_domain IN ('self', 'happiness', 'faith', 'mission', 'belonging') THEN 'meaning'
+  WHEN sub_domain IN ('self', 'happiness', 'emotion', 'faith', 'mission', 'belonging') THEN 'meaning'
   WHEN domain = 'career' THEN 'work'
   WHEN domain = 'life' THEN 'living'
   WHEN domain = 'emotion' THEN 'meaning'

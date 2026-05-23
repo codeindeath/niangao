@@ -36,7 +36,7 @@ CN2EN = {
     "亲子": "parenting", "父母": "parents", "兄妹": "siblings",
     "学习": "cog-learning", "思维": "thinking", "信息": "info",
     "工具": "tools", "创造": "creativity", "表达": "expression",
-    "自我": "self", "幸福": "happiness", "信仰": "faith",
+    "自我": "self", "幸福": "happiness", "情绪": "emotion", "信仰": "faith",
     "使命": "mission", "归属": "belonging",
 }
 
@@ -54,7 +54,7 @@ living(生活): pets(宠物)/travel(旅行)/fashion(衣着)/selfcare(养护)/sho
 work(工作): jobhunt(求职)/promotion(升职)/startup(创业)/work-comm(沟通)/management(管理)/productivity(效率)
 relationship(关系): marriage(夫妻)/romance(恋人)/friendship(朋友)/parenting(亲子)/parents(父母)/siblings(兄妹)
 cognition(认知): cog-learning(学习)/thinking(思维)/info(信息)/tools(工具)/creativity(创造)/expression(表达)
-meaning(意义): self(自我)/happiness(幸福)/faith(信仰)/mission(使命)/belonging(归属)
+meaning(意义): self(自我)/happiness(幸福)/emotion(情绪)/faith(信仰)/mission(使命)/belonging(归属)
 
 经验: {content}"""},
         ],
