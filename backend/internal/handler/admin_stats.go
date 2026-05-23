@@ -327,7 +327,7 @@ func getAdminAIStats(c *gin.Context, db *pgxpool.Pool) {
 // ============================================================
 
 type retentionResponse struct {
-	Days  int       `json:"days"`
+	Days  int           `json:"days"`
 	Day1  []model.Trend `json:"day1"`
 	Day7  []model.Trend `json:"day7"`
 	Day30 []model.Trend `json:"day30"`

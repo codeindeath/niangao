@@ -81,18 +81,18 @@ func getDashboard(c *gin.Context, db *pgxpool.Pool) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"total_users":        d.TotalUsers,
-		"total_experiences":  d.TotalExperiences,
-		"today_new_users":    d.TodayNewUsers,
-		"today_new_exps":     d.TodayNewExps,
-		"today_active_users": d.TodayActiveUsers,
-		"today_ai_chats":     d.TodayAIChats,
-		"pending_reviews":    d.PendingReviews,
-		"today_approved":     d.TodayApproved,
-		"today_rejected":     d.TodayRejected,
+		"total_users":         d.TotalUsers,
+		"total_experiences":   d.TotalExperiences,
+		"today_new_users":     d.TodayNewUsers,
+		"today_new_exps":      d.TodayNewExps,
+		"today_active_users":  d.TodayActiveUsers,
+		"today_ai_chats":      d.TodayAIChats,
+		"pending_reviews":     d.PendingReviews,
+		"today_approved":      d.TodayApproved,
+		"today_rejected":      d.TodayRejected,
 		"yesterday_new_users": yesterdayNewUsers,
 		"yesterday_new_exps":  yesterdayNewExps,
-		"review_preview":     reviewPreview,
+		"review_preview":      reviewPreview,
 	})
 }
 

@@ -19,8 +19,12 @@ const ts = (d: string) => {
 };
 
 const DOMAIN_LABELS: Record<string, string> = {
-  career: '职场', cognition: '认知', life: '生活',
-  relationship: '关系', emotion: '情感', wealth: '财富',
+  vitality: '生命',
+  living: '生活',
+  work: '工作',
+  relationship: '关系',
+  cognition: '认知',
+  meaning: '意义',
 };
 
 const REJECT_REASONS = [

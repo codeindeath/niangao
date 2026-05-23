@@ -24,11 +24,11 @@ var domainIcons = map[model.Domain]string{
 // domainHierarchyItem represents a top-level domain with its sub-domains
 // in the hierarchy endpoint response.
 type domainHierarchyItem struct {
-	Name        string              `json:"name"`
-	DisplayName string              `json:"display_name"`
-	Parent      *string             `json:"parent"`
-	Icon        string              `json:"icon"`
-	SubDomains  []domainSubItem     `json:"sub_domains"`
+	Name        string          `json:"name"`
+	DisplayName string          `json:"display_name"`
+	Parent      *string         `json:"parent"`
+	Icon        string          `json:"icon"`
+	SubDomains  []domainSubItem `json:"sub_domains"`
 }
 
 type domainSubItem struct {

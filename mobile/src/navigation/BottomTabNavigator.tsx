@@ -1,21 +1,29 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text } from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
 import ChatScreen from '../screens/ChatScreen';
 import CreateScreen from '../screens/CreateScreen';
-import FriendsScreen from '../screens/FriendsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
-// 简化的 Tab 图标 — 生产环境替换为 SVG 图标库
+const TAB_BAR_VISIBLE = {
+  backgroundColor: 'rgba(250,248,245,0.93)',
+  borderTopColor: '#e8e4df',
+  borderTopWidth: 0.5,
+  height: 80,
+  paddingBottom: 10,
+  paddingTop: 6,
+};
+
+const TAB_BAR_HIDDEN = { display: 'none' as const };
+
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   const icons: Record<string, string> = {
     home: '⌂',
     chat: '💬',
-    create: '+',
-    search: '👥',
+    create: '📝',
     profile: '👤',
   };
   return (
@@ -35,14 +43,10 @@ export default function BottomTabNavigator() {
         ),
         tabBarActiveTintColor: '#4a7c59',
         tabBarInactiveTintColor: '#9a9a9a',
-        tabBarStyle: {
-          backgroundColor: 'rgba(250,248,245,0.93)',
-          borderTopColor: '#e8e4df',
-          borderTopWidth: 0.5,
-          height: 80,
-          paddingBottom: 10,
-          paddingTop: 6,
-        },
+        tabBarStyle:
+          route.name === 'chat' || route.name === 'create'
+            ? TAB_BAR_HIDDEN
+            : TAB_BAR_VISIBLE,
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '600',
@@ -62,19 +66,7 @@ export default function BottomTabNavigator() {
       <Tab.Screen
         name="create"
         component={CreateScreen}
-        options={{
-          tabBarLabel: '',
-          tabBarIcon: () => (
-            <View style={styles.createButton}>
-              <Text style={styles.createButtonText}>+</Text>
-            </View>
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="search"
-        component={FriendsScreen}
-        options={{ tabBarLabel: '朋友' }}
+        options={{ tabBarLabel: '记录' }}
       />
       <Tab.Screen
         name="profile"
@@ -84,26 +76,3 @@ export default function BottomTabNavigator() {
     </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  createButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#4a7c59',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-    shadowColor: '#4a7c59',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  createButtonText: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: '600',
-    lineHeight: 28,
-  },
-});

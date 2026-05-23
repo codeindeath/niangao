@@ -2,15 +2,24 @@
 重新推断全部经验的领域和子领域（v3 新体系）。
 """
 
-import os, json
+import json
+import os
+
 import psycopg2
 from openai import OpenAI
 
-DB_URL = "postgres://niangao:NiangaoDB2026!@localhost:5432/niangao?sslmode=disable"
+DB_URL = os.getenv("DATABASE_URL")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+
+if not DB_URL:
+    raise RuntimeError("DATABASE_URL is required")
+if not DEEPSEEK_API_KEY:
+    raise RuntimeError("DEEPSEEK_API_KEY is required")
 
 client = OpenAI(
-    api_key="sk-fcaca52db0e3400da406a12f2005ca7a",
-    base_url="https://api.deepseek.com",
+    api_key=DEEPSEEK_API_KEY,
+    base_url=DEEPSEEK_BASE_URL,
 )
 
 # 中文→英文 key 映射（兜底）
@@ -59,8 +68,10 @@ meaning(意义): self(自我)/happiness(幸福)/faith(信仰)/mission(使命)/be
     # 兜底：中文→英文
     d = r.get("domain", "")
     s = r.get("sub_domain", "")
-    if d in CN2EN: d = CN2EN[d]
-    if s in CN2EN: s = CN2EN[s]
+    if d in CN2EN:
+        d = CN2EN[d]
+    if s in CN2EN:
+        s = CN2EN[s]
     return d, s
 
 
@@ -90,16 +101,19 @@ def main():
         if (i + 1) % 30 == 0:
             print(f"  {i+1}/{total} ok={ok} err={err}")
 
-    cur.close(); conn.close()
+    cur.close()
+    conn.close()
     print(f"\n完成: ok={ok} err={err} total={total}")
 
     # 显示新分布
-    cur2 = psycopg2.connect(DB_URL).cursor()
+    conn2 = psycopg2.connect(DB_URL)
+    cur2 = conn2.cursor()
     cur2.execute("SELECT domain, count(*) FROM experiences GROUP BY domain ORDER BY count(*) DESC")
     print("\n新分布：")
     for d, c in cur2.fetchall():
         print(f"  {d}: {c}")
     cur2.close()
+    conn2.close()
 
 
 if __name__ == "__main__":

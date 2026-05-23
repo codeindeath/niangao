@@ -1,7 +1,6 @@
 """
 AI Service 单元测试 — Prompt 构建、消息构建、配置验证
 """
-import pytest
 from app.core.prompts import build_chat_system_prompt, build_chat_messages, CHAT_SYSTEM_PROMPT
 from app.core.config import Settings
 
@@ -26,12 +25,12 @@ class TestSystemPrompt:
     def test_prompt_formats_experiences(self):
         """经验应该以编号列表形式出现"""
         experiences = [
-            {"domain": "career", "content": "接到任务先确认 deadline"},
-            {"domain": "life", "content": "每周留 2 小时做复盘"},
+            {"domain": "work", "content": "接到任务先确认 deadline"},
+            {"domain": "living", "content": "每周留 2 小时做复盘"},
         ]
         prompt = build_chat_system_prompt(experiences)
-        assert "1. [career] 接到任务先确认 deadline" in prompt
-        assert "2. [life] 每周留 2 小时做复盘" in prompt
+        assert "1. [work] 接到任务先确认 deadline" in prompt
+        assert "2. [living] 每周留 2 小时做复盘" in prompt
 
     def test_prompt_template_is_unchanged(self):
         """确保核心 Prompt 模板基本结构不变"""
@@ -94,7 +93,7 @@ class TestSettings:
         settings = Settings()
         assert settings.deepseek_model == "deepseek-chat"
         assert settings.max_daily_chat_rounds == 50
-        assert settings.max_context_experiences == 5
+        assert settings.max_context_experiences == 50
 
     def test_deepseek_base_url_default(self):
         settings = Settings()
@@ -108,7 +107,7 @@ class TestPromptEdgeCases:
         """经验缺少字段时不应崩溃"""
         experiences = [
             {"content": "只有 content"},
-            {"domain": "career", "content": ""},
+            {"domain": "work", "content": ""},
             {},
         ]
         prompt = build_chat_system_prompt(experiences)
@@ -118,7 +117,7 @@ class TestPromptEdgeCases:
     def test_very_long_experience_content(self):
         """极长的经验内容不破坏 Prompt 格式"""
         experiences = [
-            {"domain": "career", "content": "很" * 100},
+            {"domain": "work", "content": "很" * 100},
         ]
         prompt = build_chat_system_prompt(experiences)
         assert "很" * 100 in prompt
@@ -127,8 +126,8 @@ class TestPromptEdgeCases:
     def test_special_characters_in_experiences(self):
         """特殊字符不破坏 Prompt"""
         experiences = [
-            {"domain": "career", "content": 'test <script>alert("xss")</script>'},
-            {"domain": "life", "content": "test\nwith\nnewlines"},
+            {"domain": "work", "content": 'test <script>alert("xss")</script>'},
+            {"domain": "living", "content": "test\nwith\nnewlines"},
         ]
         prompt = build_chat_system_prompt(experiences)
         assert "<script>" in prompt

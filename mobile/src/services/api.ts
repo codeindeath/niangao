@@ -10,6 +10,7 @@ export interface Experience {
   interpretation?: string;
   domain: string;
   sub_domain?: string;
+  topics?: string;
   is_private?: boolean;
   is_official: boolean;
   source_type?: string;
@@ -83,18 +84,21 @@ export async function fetchExperience(id: string): Promise<Experience> {
 
 export async function createExperience(
   content: string,
-  domain: string,
-  sub_domain: string,
+  domain?: string,
+  sub_domain?: string,
   is_private: boolean = false,
   interpretation?: string,
+  topics?: string,
 ): Promise<Experience> {
-  return apiPost('/api/v1/experiences', {
+  const body: Record<string, unknown> = {
     content,
-    domain,
-    sub_domain,
     is_private,
     interpretation,
-  });
+    topics,
+  };
+  if (domain) body.domain = domain;
+  if (sub_domain) body.sub_domain = sub_domain;
+  return apiPost('/api/v1/experiences', body);
 }
 
 export async function toggleLike(id: string): Promise<{liked: boolean}> {

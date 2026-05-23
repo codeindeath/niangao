@@ -27,7 +27,8 @@ func (r *ExperienceRepo) Create(ctx context.Context, authorID string, req model.
 		AuthorID:     authorID,
 		Content:      req.Content,
 		Domain:       req.Domain,
-		SubDomain:    strPtr(string(req.SubDomain)),
+		SubDomain:    strPtrNilIfEmpty(string(req.SubDomain)),
+		Topics:       req.Topics,
 		IsPrivate:    req.IsPrivate,
 		SourceType:   "user",
 		Status:       "published",
@@ -41,10 +42,10 @@ func (r *ExperienceRepo) Create(ctx context.Context, authorID string, req model.
 	}
 
 	err := r.db.QueryRow(ctx,
-		`INSERT INTO experiences (author_id, content, interpretation, domain, sub_domain, is_private, source_type,
+		`INSERT INTO experiences (author_id, content, interpretation, domain, sub_domain, topics, is_private, source_type,
 		 review_status, status, original_text, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
-		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.SubDomain, exp.IsPrivate, exp.SourceType,
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.SubDomain, exp.Topics, exp.IsPrivate, exp.SourceType,
 		exp.ReviewStatus, exp.Status, exp.OriginalText, exp.CreatedAt, exp.UpdatedAt,
 	).Scan(&exp.ID)
 	if err != nil {
@@ -61,7 +62,8 @@ func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, 
 		AuthorID:     authorID,
 		Content:      req.Content,
 		Domain:       req.Domain,
-		SubDomain:    strPtr(string(req.SubDomain)),
+		SubDomain:    strPtrNilIfEmpty(string(req.SubDomain)),
+		Topics:       req.Topics,
 		IsPrivate:    req.IsPrivate,
 		SourceType:   "user",
 		Status:       "published",
@@ -80,10 +82,10 @@ func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, 
 	}
 
 	err := r.db.QueryRow(ctx,
-		`INSERT INTO experiences (author_id, content, interpretation, domain, sub_domain, is_private, source_type,
+		`INSERT INTO experiences (author_id, content, interpretation, domain, sub_domain, topics, is_private, source_type,
 		 review_status, review_reason, quality_score, score_details, status, original_text, interpretation_generated, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
-		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.SubDomain, exp.IsPrivate, exp.SourceType,
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,
+		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.SubDomain, exp.Topics, exp.IsPrivate, exp.SourceType,
 		exp.ReviewStatus, exp.ReviewReason, exp.QualityScore, exp.ScoreDetails,
 		exp.Status, exp.OriginalText, exp.InterpretationGenerated, exp.CreatedAt, exp.UpdatedAt,
 	).Scan(&exp.ID)
@@ -172,7 +174,7 @@ func (r *ExperienceRepo) CreateOfficial(ctx context.Context, authorID, content, 
 	return exp, nil
 }
 
-const experienceSelectCols = `e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
+const experienceSelectCols = `e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, COALESCE(e.topics, ''), e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
 		e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
 		e.creator_name, e.source_type, e.score_reason, e.original_text,
 		e.status, e.created_at, e.updated_at, e.random_sort,
@@ -184,7 +186,7 @@ const experienceLikedBookmark = `EXISTS(SELECT 1 FROM likes WHERE user_id=$2 AND
 func scanExperience(row pgx.Row, e *model.Experience) error {
 	return row.Scan(
 		&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
-		&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
+		&e.SubDomain, &e.Topics, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 		&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
 		&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
 		&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.RandomSort,
@@ -198,12 +200,27 @@ func (r *ExperienceRepo) GetByID(ctx context.Context, id string, viewerID string
 	}
 	query := fmt.Sprintf(`SELECT %s, %s FROM experiences e
 		 LEFT JOIN users u ON u.id = e.author_id
-		WHERE e.id = $1`, experienceSelectCols, experienceLikedBookmark)
+		WHERE e.id = $1 AND e.deleted_at IS NULL
+		  AND ((e.status = 'published' AND e.review_status = 'approved' AND e.is_private = FALSE)
+		       OR e.author_id = $2)`, experienceSelectCols, experienceLikedBookmark)
 
 	exp := &model.Experience{}
 	err := scanExperience(r.db.QueryRow(ctx, query, id, viewerID), exp)
 	if err != nil {
 		return nil, fmt.Errorf("get experience: %w", err)
+	}
+	return exp, nil
+}
+
+func (r *ExperienceRepo) GetByIDForAdmin(ctx context.Context, id string) (*model.Experience, error) {
+	query := fmt.Sprintf(`SELECT %s, %s FROM experiences e
+		 LEFT JOIN users u ON u.id = e.author_id
+		WHERE e.id = $1`, experienceSelectCols, experienceLikedBookmark)
+
+	exp := &model.Experience{}
+	err := scanExperience(r.db.QueryRow(ctx, query, id, nilUUID), exp)
+	if err != nil {
+		return nil, fmt.Errorf("get admin experience: %w", err)
 	}
 	return exp, nil
 }
@@ -273,11 +290,11 @@ func (r *ExperienceRepo) List(ctx context.Context, query model.ExperienceListQue
 		var e model.Experience
 		if err := rows.Scan(
 			&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
-			&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
+			&e.SubDomain, &e.Topics, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
 			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
 			&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.RandomSort,
-				&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
+			&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan: %w", err)
 		}
@@ -337,7 +354,7 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, of
 	var query string
 	var args []interface{}
 
-	baseSelect := `SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
+	baseSelect := `SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, COALESCE(e.topics, ''), e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
 		e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
 		e.creator_name, e.source_type, e.score_reason, e.original_text,
 		e.status, e.created_at, e.updated_at, e.random_sort,
@@ -359,9 +376,25 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, of
 		args = []interface{}{userID, limit, offset}
 	} else {
 		// Domain preference + unseen priority + random_sort
-		query = baseSelect + " " + baseFrom + " " + baseWhere + `
+		query = `WITH user_domain_score AS (
+			SELECT domain, SUM(weight) AS score
+			FROM (
+				SELECT e.domain::text AS domain, 2 AS weight
+				FROM experiences e
+				WHERE e.author_id = $1 AND e.deleted_at IS NULL
+				UNION ALL
+				SELECT e.domain::text AS domain, 1 AS weight
+				FROM bookmarks b
+				JOIN experiences e ON e.id = b.experience_id
+				WHERE b.user_id = $1 AND e.deleted_at IS NULL
+			) s
+			GROUP BY domain
+		) ` + baseSelect + " " + baseFrom + `
+		LEFT JOIN user_domain_score uds ON uds.domain = e.domain::text ` + baseWhere + `
 		ORDER BY
 			CASE WHEN e.id NOT IN (SELECT experience_id FROM user_views WHERE user_id = $1) THEN 0 ELSE 1 END,
+			COALESCE(uds.score, 0) DESC,
+			(e.like_count + e.bookmark_count) DESC,
 			e.random_sort
 		LIMIT $2 OFFSET $3`
 		args = []interface{}{userID, limit, offset}
@@ -378,7 +411,7 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, of
 		var e model.Experience
 		if err := rows.Scan(
 			&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
-			&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
+			&e.SubDomain, &e.Topics, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
 			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
 			&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.RandomSort,
@@ -394,9 +427,9 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, of
 
 func (r *ExperienceRepo) Update(ctx context.Context, id, authorID string, req model.CreateExperienceRequest) error {
 	result, err := r.db.Exec(ctx,
-		`UPDATE experiences SET content=$1, interpretation=$2, domain=$3, updated_at=NOW()
-		 WHERE id=$4 AND author_id=$5`,
-		req.Content, req.Interpretation, req.Domain, id, authorID,
+		`UPDATE experiences SET content=$1, interpretation=NULLIF($2, ''), domain=$3, sub_domain=NULLIF($4, ''), is_private=$5, topics=$6, updated_at=NOW()
+		 WHERE id=$7 AND author_id=$8`,
+		req.Content, req.Interpretation, req.Domain, string(req.SubDomain), req.IsPrivate, req.Topics, id, authorID,
 	)
 	if err != nil {
 		return fmt.Errorf("update experience: %w", err)
@@ -456,7 +489,7 @@ func (r *ExperienceRepo) ListByAuthor(ctx context.Context, authorID string, page
 	}
 
 	rows, err := r.db.Query(ctx,
-		`SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
+		`SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, COALESCE(e.topics, ''), e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
 		        e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
 		        e.creator_name, e.source_type, e.score_reason, e.original_text,
 		e.status, e.created_at, e.updated_at, e.random_sort,
@@ -497,7 +530,7 @@ func (r *ExperienceRepo) ListBookmarked(ctx context.Context, userID string, page
 	}
 
 	rows, err := r.db.Query(ctx,
-		`SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
+		`SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, COALESCE(e.topics, ''), e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
 		        e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
 		        e.creator_name, e.source_type, e.score_reason, e.original_text,
 		e.status, e.created_at, e.updated_at, e.random_sort,
@@ -525,11 +558,11 @@ func scanExperiences(rows pgx.Rows, total int) ([]model.Experience, int, error) 
 		var e model.Experience
 		if err := rows.Scan(
 			&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
-			&e.SubDomain, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
+			&e.SubDomain, &e.Topics, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
 			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
 			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
 			&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.RandomSort,
-				&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
+			&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan: %w", err)
 		}
@@ -539,3 +572,10 @@ func scanExperiences(rows pgx.Rows, total int) ([]model.Experience, int, error) 
 }
 
 func strPtr(s string) *string { return &s }
+
+func strPtrNilIfEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}

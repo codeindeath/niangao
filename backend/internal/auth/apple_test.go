@@ -20,9 +20,9 @@ func TestVerifyAppleIDToken_ExpiredToken(t *testing.T) {
 	claims := AppleIDTokenClaims{
 		Email: "test@privaterelay.appleid.com",
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:   "https://appleid.apple.com",
-			Subject:  "001234.abcdef",
-			Audience: jwt.ClaimStrings{"com.test.app"},
+			Issuer:    "https://appleid.apple.com",
+			Subject:   "001234.abcdef",
+			Audience:  jwt.ClaimStrings{"com.test.app"},
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)),
 		},
 	}

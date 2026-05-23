@@ -86,20 +86,20 @@ func listPlatformExperiences(c *gin.Context, db *pgxpool.Pool) {
 	defer rows.Close()
 
 	type item struct {
-		ID                string  `json:"id"`
-		Content           string  `json:"content"`
-		Domain            string  `json:"domain"`
-		SubDomain         *string `json:"sub_domain"`
-		CreatorName       *string `json:"creator_name"`
-		SourceLabel       *string `json:"source_label"`
+		ID                string   `json:"id"`
+		Content           string   `json:"content"`
+		Domain            string   `json:"domain"`
+		SubDomain         *string  `json:"sub_domain"`
+		CreatorName       *string  `json:"creator_name"`
+		SourceLabel       *string  `json:"source_label"`
 		QualityScore      *float64 `json:"quality_score"`
-		ScoreReason       *string `json:"score_reason"`
-		Interpretation    *string `json:"interpretation"`
-		HasInterpretation bool    `json:"has_interpretation"`
-		LikeCount         int     `json:"like_count"`
-		BookmarkCount     int     `json:"bookmark_count"`
-		CreatedAt         string  `json:"created_at"`
-		AuthorName        string  `json:"author_name"`
+		ScoreReason       *string  `json:"score_reason"`
+		Interpretation    *string  `json:"interpretation"`
+		HasInterpretation bool     `json:"has_interpretation"`
+		LikeCount         int      `json:"like_count"`
+		BookmarkCount     int      `json:"bookmark_count"`
+		CreatedAt         string   `json:"created_at"`
+		AuthorName        string   `json:"author_name"`
 	}
 
 	var items []item
@@ -130,12 +130,12 @@ func listPlatformExperiences(c *gin.Context, db *pgxpool.Pool) {
 
 func createPlatformExperience(c *gin.Context, db *pgxpool.Pool) {
 	var req struct {
-		Content      string `json:"content"`
-		Domain       string `json:"domain"`
-		SubDomain    string `json:"sub_domain"`
-		CreatorName  string `json:"creator_name"`
-		SourceLabel  string `json:"source_label"`
-		ScoreReason  string `json:"score_reason"`
+		Content     string `json:"content"`
+		Domain      string `json:"domain"`
+		SubDomain   string `json:"sub_domain"`
+		CreatorName string `json:"creator_name"`
+		SourceLabel string `json:"source_label"`
+		ScoreReason string `json:"score_reason"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.Content == "" || req.Domain == "" || req.CreatorName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请填写内容、领域和创作者名称"})
@@ -389,10 +389,10 @@ func rescorePlatformExperience(c *gin.Context, db *pgxpool.Pool) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":        exp.id,
-		"score":     score,
-		"reason":    result.Reason,
-		"approved":  result.Approved,
+		"id":       exp.id,
+		"score":    score,
+		"reason":   result.Reason,
+		"approved": result.Approved,
 	})
 }
 
@@ -477,5 +477,3 @@ func importCSVPlatformExperiences(c *gin.Context, db *pgxpool.Pool) {
 		"inserted": inserted,
 	})
 }
-
-

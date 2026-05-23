@@ -13,17 +13,18 @@ import {fetchProfile, UserProfile} from '../services/api';
 import {logout} from '../services/auth';
 
 const SUB_LABELS: Record<string, string> = {
-  'career-planning': '职业规划', 'skill-building': '技能提升',
-  'side-hustle': '副业创业', 'workplace-comm': '职场沟通',
-  'intimate': '亲密关系', 'family': '家庭关系',
-  'social-skill': '社交技巧', 'communication': '沟通表达',
-  'mental-model': '思维模型', 'learning': '学习方法',
-  'decision': '决策判断', 'psychology': '心理认知',
-  'finance': '理财规划', 'health': '健康养生',
-  'time-mgmt': '时间管理', 'habits': '习惯养成',
-  'digital-life': '数字生活',
-  'regulation': '情绪调节', 'self-growth': '自我成长',
-  'happiness': '幸福感', 'stress-mgmt': '压力管理',
+  health: '健康', housing: '居住', transit: '出行',
+  diet: '饮食', exercise: '运动',
+  pets: '宠物', travel: '旅行', fashion: '衣着',
+  selfcare: '养护', shopping: '购物', fun: '娱乐',
+  jobhunt: '求职', promotion: '升职', startup: '创业',
+  'work-comm': '沟通', management: '管理', productivity: '效率',
+  marriage: '夫妻', romance: '恋人', friendship: '朋友',
+  parenting: '亲子', parents: '父母', siblings: '兄妹',
+  'cog-learning': '学习', thinking: '思维', info: '信息',
+  tools: '工具', creativity: '创造', expression: '表达',
+  self: '自我', happiness: '幸福', faith: '信仰',
+  mission: '使命', belonging: '归属',
 };
 
 type PubTab = 'published' | 'liked_by_others' | 'bookmarked_by_others';

@@ -44,18 +44,28 @@ func TestExperienceCreateValidation(t *testing.T) {
 	}{
 		{
 			name:           "valid experience",
-			body:           `{"content":"接到任务先确认 deadline","domain":"career"}`,
+			body:           `{"content":"接到任务先确认 deadline","domain":"work","sub_domain":"work-comm"}`,
 			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:           "missing content",
-			body:           `{"domain":"career"}`,
+			body:           `{"domain":"work","sub_domain":"work-comm"}`,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "missing domain",
+			body:           `{"content":"valid content","sub_domain":"work-comm"}`,
+			expectedStatus: http.StatusCreated,
+		},
+		{
+			name:           "missing sub domain",
+			body:           `{"content":"valid content","domain":"work"}`,
+			expectedStatus: http.StatusCreated,
+		},
+		{
+			name:           "domain and sub domain omitted",
 			body:           `{"content":"valid content"}`,
-			expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:           "empty body",
@@ -64,32 +74,32 @@ func TestExperienceCreateValidation(t *testing.T) {
 		},
 		{
 			name:           "content over 100 chars — 101 a's",
-			body:           `{"content":"` + strings.Repeat("a", 101) + `","domain":"career"}`,
+			body:           `{"content":"` + strings.Repeat("a", 101) + `","domain":"work","sub_domain":"work-comm"}`,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "content exactly 100 chars",
-			body:           `{"content":"` + strings.Repeat("a", 100) + `","domain":"life"}`,
+			body:           `{"content":"` + strings.Repeat("a", 100) + `","domain":"living","sub_domain":"selfcare"}`,
 			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:           "chinese content",
-			body:           `{"content":"把重要的决定放到早上做","domain":"cognition"}`,
+			body:           `{"content":"把重要的决定放到早上做","domain":"cognition","sub_domain":"thinking"}`,
 			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:           "with interpretation",
-			body:           `{"content":"valid","domain":"career","interpretation":"详细解释..."}`,
+			body:           `{"content":"valid value here","domain":"work","sub_domain":"work-comm","interpretation":"详细解释..."}`,
 			expectedStatus: http.StatusCreated,
 		},
 		{
-			name:           "interpretation over 500 chars",
-			body:           `{"content":"valid","domain":"career","interpretation":"` + strings.Repeat("a", 501) + `"}`,
+			name:           "interpretation over 300 chars",
+			body:           `{"content":"valid value here","domain":"work","sub_domain":"work-comm","interpretation":"` + strings.Repeat("a", 301) + `"}`,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name:           "interpretation exactly 500 chars",
-			body:           `{"content":"valid","domain":"career","interpretation":"` + strings.Repeat("a", 500) + `"}`,
+			name:           "interpretation exactly 300 chars",
+			body:           `{"content":"valid value here","domain":"work","sub_domain":"work-comm","interpretation":"` + strings.Repeat("a", 300) + `"}`,
 			expectedStatus: http.StatusCreated,
 		},
 	}
@@ -106,9 +116,11 @@ func TestExperienceCreateValidation(t *testing.T) {
 				c.Set("user_id", "test-user-id")
 			}, middleware.RequireAuth(), func(c *gin.Context) {
 				var req struct {
-					Content        string `json:"content" binding:"required,max=100"`
-					Domain         string `json:"domain" binding:"required"`
-					Interpretation string `json:"interpretation" binding:"max=500"`
+					Content        string `json:"content" binding:"required,min=10,max=100"`
+					Domain         string `json:"domain"`
+					SubDomain      string `json:"sub_domain"`
+					Interpretation string `json:"interpretation" binding:"max=300"`
+					Topics         string `json:"topics" binding:"max=200"`
 				}
 				if err := c.ShouldBindJSON(&req); err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -117,6 +129,7 @@ func TestExperienceCreateValidation(t *testing.T) {
 				c.JSON(http.StatusCreated, gin.H{
 					"content":        req.Content,
 					"domain":         req.Domain,
+					"sub_domain":     req.SubDomain,
 					"interpretation": req.Interpretation,
 				})
 			})
@@ -137,7 +150,7 @@ func TestExperienceCreateRequiresAuth(t *testing.T) {
 	})
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/api/v1/experiences", strings.NewReader(`{"content":"test","domain":"career"}`))
+	req := httptest.NewRequest("POST", "/api/v1/experiences", strings.NewReader(`{"content":"valid content","domain":"work","sub_domain":"work-comm"}`))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -168,10 +181,10 @@ func TestExperienceListQueryParams(t *testing.T) {
 		wantPage   string
 	}{
 		{"no params", "", "", "latest", "1"},
-		{"with domain", "domain=career", "career", "latest", "1"},
+		{"with domain", "domain=work", "work", "latest", "1"},
 		{"with sort", "sort=popular", "", "popular", "1"},
 		{"with page", "page=3", "", "latest", "3"},
-		{"all params", "domain=life&sort=popular&page=2", "life", "popular", "2"},
+		{"all params", "domain=living&sort=popular&page=2", "living", "popular", "2"},
 	}
 
 	for _, tt := range tests {

@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -41,8 +42,8 @@ func RegisterChatRoutes(r *gin.RouterGroup, convRepo *repository.ConversationRep
 
 // InitChatResponse is the response for GET /chat.
 type InitChatResponse struct {
-	ConversationID string           `json:"conversation_id"`
-	Messages       []model.Message  `json:"messages"`
+	ConversationID string          `json:"conversation_id"`
+	Messages       []model.Message `json:"messages"`
 }
 
 // InitChat loads chat history and auto-generates a greeting if needed.
@@ -112,9 +113,9 @@ type sendMessageRequest struct {
 
 // sendMessageResponse is the response for POST /chat/send.
 type sendMessageResponse struct {
-	Reply                    string   `json:"reply"`
-	ReferencedExperienceIDs  []string `json:"referenced_experience_ids"`
-	MessageID                string   `json:"message_id"`
+	Reply                   string   `json:"reply"`
+	ReferencedExperienceIDs []string `json:"referenced_experience_ids"`
+	MessageID               string   `json:"message_id"`
 }
 
 // SendMessage handles sending a user message and getting an AI reply.
@@ -163,8 +164,9 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		history = make([]model.Message, 0)
 	}
 
-	// Load bookmarked experiences
-	bookmarks, err := h.bookmarkRepo.ListBookmarkedExperiences(c.Request.Context(), userID)
+	// Load bookmarked experiences closest to the current chat topic.
+	inferredDomain := inferChatDomain(req.Message, history)
+	bookmarks, err := h.bookmarkRepo.ListBookmarkedExperiencesForChat(c.Request.Context(), userID, inferredDomain, 50)
 	if err != nil {
 		log.Printf("[chat] get bookmarks: %v", err)
 		bookmarks = make([]repository.BookmarkedExperience, 0)
@@ -199,10 +201,10 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 
 // aiChatRequest is the request sent to the AI service.
 type aiChatRequest struct {
-	Message                string                              `json:"message"`
-	UserID                 string                              `json:"user_id"`
-	History                []aiHistoryMsg                      `json:"history"`
-	BookmarkedExperiences  []repository.BookmarkedExperience   `json:"bookmarked_experiences"`
+	Message               string                            `json:"message"`
+	UserID                string                            `json:"user_id"`
+	History               []aiHistoryMsg                    `json:"history"`
+	BookmarkedExperiences []repository.BookmarkedExperience `json:"bookmarked_experiences"`
 }
 
 type aiHistoryMsg struct {
@@ -261,4 +263,86 @@ func (h *ChatHandler) callAIService(userID, message string, history []model.Mess
 	}
 
 	return aiResp.Reply, aiResp.ReferencedExperienceIDs, nil
+}
+
+var chatDomainOrder = []string{
+	string(model.DomainWork),
+	string(model.DomainRelationship),
+	string(model.DomainVitality),
+	string(model.DomainMeaning),
+	string(model.DomainCognition),
+	string(model.DomainLiving),
+}
+
+var chatDomainKeywords = map[string][]string{
+	string(model.DomainVitality): {
+		"身体", "健康", "睡眠", "失眠", "运动", "锻炼", "健身", "疲惫", "疲劳",
+		"生病", "医院", "饮食", "吃饭", "体能", "疼", "痛", "焦虑", "压力",
+		"health", "sleep", "exercise", "diet",
+	},
+	string(model.DomainLiving): {
+		"生活", "租房", "房子", "居住", "通勤", "出行", "旅行", "宠物", "猫",
+		"狗", "购物", "衣服", "穿搭", "护肤", "娱乐", "家务", "收纳",
+		"life", "home", "travel", "shopping",
+	},
+	string(model.DomainWork): {
+		"工作", "职场", "老板", "上司", "同事", "项目", "绩效", "晋升", "升职",
+		"加班", "会议", "汇报", "管理", "创业", "产品", "客户", "面试", "求职",
+		"简历", "效率", "deadline", "work", "job", "career", "startup", "manager",
+	},
+	string(model.DomainRelationship): {
+		"关系", "恋爱", "分手", "伴侣", "对象", "男朋友", "女朋友", "老公", "老婆",
+		"婚姻", "夫妻", "朋友", "友情", "父母", "家人", "孩子", "亲子", "吵架",
+		"沟通", "relationship", "friend", "partner", "family",
+	},
+	string(model.DomainCognition): {
+		"学习", "思考", "认知", "信息", "知识", "工具", "表达", "写作", "决策",
+		"判断", "思维", "模型", "创造", "复盘", "方法", "阅读",
+		"learn", "think", "decision", "writing", "tool",
+	},
+	string(model.DomainMeaning): {
+		"意义", "自我", "幸福", "信仰", "使命", "孤独", "迷茫", "价值", "人生",
+		"归属", "内耗", "空虚", "方向", "存在", "identity", "meaning", "purpose",
+	},
+}
+
+func inferChatDomain(message string, history []model.Message) string {
+	scores := make(map[string]int)
+	scoreChatDomainText(scores, message, 4)
+
+	start := 0
+	if len(history) > 8 {
+		start = len(history) - 8
+	}
+	for _, msg := range history[start:] {
+		weight := 1
+		if msg.Role == "user" {
+			weight = 2
+		}
+		scoreChatDomainText(scores, msg.Content, weight)
+	}
+
+	bestDomain := ""
+	bestScore := 0
+	for _, domain := range chatDomainOrder {
+		if scores[domain] > bestScore {
+			bestDomain = domain
+			bestScore = scores[domain]
+		}
+	}
+	return bestDomain
+}
+
+func scoreChatDomainText(scores map[string]int, text string, weight int) {
+	if text == "" || weight <= 0 {
+		return
+	}
+	normalized := strings.ToLower(text)
+	for domain, keywords := range chatDomainKeywords {
+		for _, keyword := range keywords {
+			if strings.Contains(normalized, strings.ToLower(keyword)) {
+				scores[domain] += weight
+			}
+		}
+	}
 }

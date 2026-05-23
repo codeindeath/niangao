@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import chat, review, translate, normalize
-from app.core.config import settings
 from app.services.llm import LLMService
 import app.services.llm as llm_module
 

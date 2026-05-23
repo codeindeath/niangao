@@ -88,11 +88,11 @@ func main() {
 			handler.RegisterAdminUserRoutes(admin, db)
 			// Domains
 			handler.RegisterAdminDomainRoutes(admin, db)
-		// Stats
-		handler.RegisterAdminStatsRoutes(admin, db)
-		// AI
-		handler.RegisterAdminAIRoutes(admin, db)
-		// Config
+			// Stats
+			handler.RegisterAdminStatsRoutes(admin, db)
+			// AI
+			handler.RegisterAdminAIRoutes(admin, db)
+			// Config
 			handler.RegisterAdminConfigRoutes(admin, db)
 			// Logs
 			handler.RegisterAdminLogRoutes(admin, db)

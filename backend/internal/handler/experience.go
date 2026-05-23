@@ -14,9 +14,9 @@ import (
 )
 
 type ExperienceHandler struct {
-	repo      *repository.ExperienceRepo
-	likeRepo  *repository.LikeRepo
-	bookRepo  *repository.BookmarkRepo
+	repo     *repository.ExperienceRepo
+	likeRepo *repository.LikeRepo
+	bookRepo *repository.BookmarkRepo
 }
 
 func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.ExperienceRepo, likeRepo *repository.LikeRepo, bookRepo *repository.BookmarkRepo) {
@@ -88,7 +88,7 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 
 	var req model.CreateExperienceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请填写完整：领域和子领域"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请输入经验内容"})
 		return
 	}
 
@@ -103,16 +103,24 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "经验解读不超过 300 字"})
 		return
 	}
+	if len([]rune(req.Topics)) > 200 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "话题不超过 200 字"})
+		return
+	}
 
-	if !model.IsValidDomain(req.Domain) {
+	if req.Domain != "" && !model.IsValidDomain(req.Domain) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid domain"})
 		return
 	}
-	if !model.IsValidSubDomain(req.SubDomain) {
+	if req.SubDomain != "" && !model.IsValidSubDomain(req.SubDomain) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sub_domain"})
 		return
 	}
-	if !model.SubDomainBelongsToParent(req.Domain, req.SubDomain) {
+	if req.Domain == "" && req.SubDomain != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "sub_domain requires domain"})
+		return
+	}
+	if req.Domain != "" && req.SubDomain != "" && !model.SubDomainBelongsToParent(req.Domain, req.SubDomain) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "sub_domain does not belong to domain"})
 		return
 	}
@@ -255,7 +263,6 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 	})
 }
 
-
 func (h *ExperienceHandler) Update(c *gin.Context) {
 	userID := getAuthUserID(c)
 	if userID == "" {
@@ -265,7 +272,7 @@ func (h *ExperienceHandler) Update(c *gin.Context) {
 
 	var req model.CreateExperienceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "请填写完整：领域和子领域"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请输入经验内容"})
 		return
 	}
 
@@ -280,9 +287,25 @@ func (h *ExperienceHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "经验解读不超过 300 字"})
 		return
 	}
+	if len([]rune(req.Topics)) > 200 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "话题不超过 200 字"})
+		return
+	}
 
-	if !model.IsValidDomain(req.Domain) {
+	if req.Domain != "" && !model.IsValidDomain(req.Domain) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid domain"})
+		return
+	}
+	if req.SubDomain != "" && !model.IsValidSubDomain(req.SubDomain) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sub_domain"})
+		return
+	}
+	if req.Domain == "" && req.SubDomain != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "sub_domain requires domain"})
+		return
+	}
+	if req.Domain != "" && req.SubDomain != "" && !model.SubDomainBelongsToParent(req.Domain, req.SubDomain) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "sub_domain does not belong to domain"})
 		return
 	}
 
@@ -477,4 +500,3 @@ func interleaveByCreator(experiences []model.Experience) []model.Experience {
 
 	return result
 }
-

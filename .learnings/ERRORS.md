@@ -103,3 +103,31 @@ Use /System/Library/Fonts/Supplemental/Songti.ttc with `index=0` instead. For an
 ### Metadata
 - Reproducible: yes
 - Related Files: None (generation script)
+
+---
+
+## [ERR-20260523-001] ai_service_invalid_dependency_pin
+
+**Logged**: 2026-05-23T11:27:25+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+AI service dependency install failed because `pydantic-settings==2.14.0` is not available from the current package index.
+
+### Error
+```
+ERROR: Could not find a version that satisfies the requirement pydantic-settings==2.14.0
+```
+
+### Context
+- Command attempted: create local virtualenv, install `ai-service/requirements.txt`, then run pytest.
+- `pip index versions pydantic-settings` showed `2.11.0` as the latest available version.
+
+### Suggested Fix
+Pin `pydantic-settings` to an available version and verify tests in a clean virtualenv.
+
+### Metadata
+- Reproducible: yes
+- Related Files: ai-service/requirements.txt

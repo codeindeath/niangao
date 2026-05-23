@@ -9,6 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {initChat, sendChatMessage, ChatMessageItem} from '../services/api';
@@ -19,13 +21,31 @@ interface MessageBubble {
   content: string;
 }
 
-export default function ChatScreen() {
+export default function ChatScreen({navigation}: any) {
   const [conversationId, setConversationId] = useState<string>('');
   const [messages, setMessages] = useState<MessageBubble[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const flatListRef = useRef<FlatList>(null);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const screenWidth = Dimensions.get('window').width;
+
+  const handleBack = () => {
+    Animated.timing(slideAnim, {
+      toValue: -screenWidth,
+      duration: 220,
+      useNativeDriver: true,
+    }).start(() => navigation.navigate('home'));
+  };
+
+  // Reset slide position when screen gains focus
+  useEffect(() => {
+    const unsub = navigation.addListener('focus', () => {
+      slideAnim.setValue(0);
+    });
+    return unsub;
+  }, [navigation, slideAnim]);
 
   // 初始化：加载历史消息 + 自动打招呼
   useEffect(() => {
@@ -143,23 +163,38 @@ export default function ChatScreen() {
   if (initialLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <Animated.View style={[styles.flex, {transform: [{translateX: slideAnim}]}]}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>随便聊聊</Text>
-          <Text style={styles.headerSub}>收藏的经验我都记着</Text>
+          <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
+            <Text style={styles.backArrow}>←</Text>
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>随便聊聊</Text>
+            <Text style={styles.headerSub}>收藏的经验我都记着</Text>
+          </View>
+          <View style={styles.backBtn} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#4a7c59" />
         </View>
+        </Animated.View>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <Animated.View style={[styles.flex, {transform: [{translateX: slideAnim}]}]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>随便聊聊</Text>
-        <Text style={styles.headerSub}>收藏的经验我都记着</Text>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
+          <Text style={styles.backArrow}>←</Text>
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>随便聊聊</Text>
+          <Text style={styles.headerSub}>收藏的经验我都记着</Text>
+        </View>
+        <View style={styles.backBtn} />
       </View>
 
       {/* Messages */}
@@ -178,7 +213,7 @@ export default function ChatScreen() {
       {/* Input */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+        keyboardVerticalOffset={40}>
         <View style={styles.inputBar}>
           <TextInput
             style={styles.input}
@@ -190,6 +225,7 @@ export default function ChatScreen() {
             maxLength={500}
             editable={!loading}
             returnKeyType="send"
+            blurOnSubmit={false}
             onSubmitEditing={handleSend}
           />
           <TouchableOpacity
@@ -203,6 +239,7 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -212,17 +249,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#faf8f5',
   },
+  flex: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   header: {
-    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
     paddingVertical: 12,
     borderBottomWidth: 0.5,
     borderBottomColor: '#e8e4df',
     backgroundColor: '#faf8f5',
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backArrow: {
+    fontSize: 22,
+    color: '#4a7c59',
+    fontWeight: '300',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 17,
@@ -305,7 +362,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 20,
     backgroundColor: '#ffffff',
     borderTopWidth: 0.5,
     borderTopColor: '#e8e4df',

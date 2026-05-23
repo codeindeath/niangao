@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,10 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Switch,
+  Animated,
+  Dimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {createExperience, ApiError} from '../services/api';
 import {triggerTabRefresh} from './HomeScreen';
@@ -74,46 +76,145 @@ const SUB_DOMAINS: Record<string, {key: string; label: string}[]> = {
   ],
 };
 
+const DRAFT_KEY = '@niangao_create_draft';
+
+interface DraftData {
+  content: string;
+  domain: string;
+  subDomain: string;
+  topics: string;
+  isPrivate: boolean;
+}
+
 export default function CreateScreen({navigation}: any) {
   const [content, setContent] = useState('');
   const [domain, setDomain] = useState('');
   const [subDomain, setSubDomain] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [topics, setTopics] = useState('');
+  const [isTopicEditing, setIsTopicEditing] = useState(false);
+
+  const inputRef = useRef<TextInput>(null);
+  const topicPageInputRef = useRef<TextInput>(null);
+  const [topicDraft, setTopicDraft] = useState('');
+  const subdomainOpacity = useRef(new Animated.Value(0)).current;
+  const subdomainHeight = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const screenWidth = Dimensions.get('window').width;
+
+  // Auto-focus on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Reset slide position when screen gains focus
+  useEffect(() => {
+    const unsub = navigation.addListener('focus', () => {
+      slideAnim.setValue(0);
+    });
+    return unsub;
+  }, [navigation, slideAnim]);
+
+  // Load cached draft on mount
+  useEffect(() => {
+    AsyncStorage.getItem(DRAFT_KEY).then(data => {
+      if (data) {
+        try {
+          const draft: DraftData = JSON.parse(data);
+          if (draft.content) {
+            setContent(draft.content);
+            setDomain(draft.domain || '');
+            setSubDomain(draft.subDomain || '');
+            setTopics(draft.topics || '');
+            setIsPrivate(draft.isPrivate || false);
+          }
+        } catch {}
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleBack = () => {
+    if (content.trim()) {
+      const draft: DraftData = {content, domain, subDomain, topics, isPrivate};
+      AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } else {
+      AsyncStorage.removeItem(DRAFT_KEY);
+    }
+    Animated.timing(slideAnim, {
+      toValue: -screenWidth,
+      duration: 220,
+      useNativeDriver: true,
+    }).start(() => navigation.navigate('home'));
+  };
 
   const handleDomainSelect = (key: string) => {
     if (domain === key) {
-      // Deselecting the first-level domain clears everything
+      // Deselect: hide subdomains with animation
       setDomain('');
       setSubDomain('');
+      Animated.parallel([
+        Animated.timing(subdomainOpacity, {
+          toValue: 0,
+          duration: 120,
+          useNativeDriver: false,
+        }),
+        Animated.timing(subdomainHeight, {
+          toValue: 0,
+          duration: 120,
+          useNativeDriver: false,
+        }),
+      ]).start();
     } else {
+      const wasEmpty = domain === '';
       setDomain(key);
-      setSubDomain(''); // Reset sub-domain when switching first-level domains
+      setSubDomain('');
+      if (wasEmpty) {
+        // First selection: animate in
+        Animated.parallel([
+          Animated.timing(subdomainOpacity, {
+            toValue: 1,
+            duration: 180,
+            useNativeDriver: false,
+          }),
+          Animated.timing(subdomainHeight, {
+            toValue: 1,
+            duration: 180,
+            useNativeDriver: false,
+          }),
+        ]).start();
+      }
     }
   };
 
   const handlePublish = async () => {
-    if (!content.trim()) {
+    const trimmedContent = content.trim();
+    const contentLength = Array.from(trimmedContent).length;
+
+    if (!trimmedContent) {
       Alert.alert('提示', '请输入经验内容');
       return;
     }
-    if (!domain) {
-      Alert.alert('提示', '请选择领域');
-      return;
-    }
-    if (!subDomain) {
-      Alert.alert('提示', '请选择子领域');
+    if (contentLength < 10 || contentLength > 100) {
+      Alert.alert('提示', '经验内容需 10-100 字');
       return;
     }
     setSubmitting(true);
     try {
       await createExperience(
-        content.trim(),
+        trimmedContent,
         domain,
         subDomain,
         isPrivate,
         undefined,
+        topics.trim(),
       );
+      await AsyncStorage.removeItem(DRAFT_KEY);
       Alert.alert('发布成功', '你的经验已发布', [
         {text: '好的', onPress: () => {
           triggerTabRefresh('my');
@@ -131,121 +232,201 @@ export default function CreateScreen({navigation}: any) {
     }
   };
 
-  const getBottomHint = () => {
-    if (!content.trim()) return '请输入经验内容';
-    if (!domain) return '请选择经验领域';
-    if (!subDomain) return '请选择子领域';
-    return '内容就绪，可以发布';
-  };
-  const isPublishReady = !!(content.trim() && domain && subDomain);
+  const trimmedContent = content.trim();
+  const contentLength = Array.from(trimmedContent).length;
+  const isPublishReady = !!(trimmedContent) && contentLength >= 10 && contentLength <= 100;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <Animated.View style={[styles.flex, {transform: [{translateX: slideAnim}]}]}>
+      {isTopicEditing ? (
+        /* ── Full-page topic editor ── */
+        <View style={styles.flex}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => setIsTopicEditing(false)} style={styles.backBtn}>
+              <Text style={styles.backBtnText}>取消</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>话题</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setTopics(topicDraft);
+                setIsTopicEditing(false);
+              }}
+              style={styles.backBtn}>
+              <Text style={styles.topicDoneText}>完成</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.topicPageContainer}>
+            <TextInput
+              ref={topicPageInputRef}
+              style={styles.topicPageInput}
+              value={topicDraft}
+              onChangeText={setTopicDraft}
+              placeholder="#"
+              placeholderTextColor="#b5b0a8"
+              multiline
+              maxLength={200}
+              autoFocus
+              textAlignVertical="top"
+            />
+            <TouchableOpacity
+              style={styles.topicPageHashBtn}
+              onPress={() => setTopicDraft(prev => prev + '#')}>
+              <Text style={styles.topicPageHashBtnText}>#话题</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.cancelText}>取消</Text>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
+          <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>发布经验</Text>
-        <TouchableOpacity
-          onPress={handlePublish}
-          disabled={submitting}
-          style={[styles.publishBtn, (!isPublishReady || submitting) && styles.publishBtnDisabled]}>
-          {submitting ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={[styles.publishBtnText, !isPublishReady && styles.publishBtnTextDisabled]}>
-              发布
-            </Text>
-          )}
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>记录经验</Text>
+        <View style={styles.backBtn} />
       </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{flex: 1}}>
+        style={styles.flex}>
         <ScrollView
-          style={styles.body}
-          contentContainerStyle={{paddingBottom: 40}}
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled">
-          {/* Content */}
-          <Text style={styles.label}>经验内容</Text>
-          <TextInput
-            style={styles.contentInput}
-            value={content}
-            onChangeText={setContent}
-            placeholder="写下你的经验，不超过 100 字..."
-            placeholderTextColor="#b5b0a8"
-            multiline
-            maxLength={100}
-            textAlignVertical="top"
-          />
-          <Text style={styles.charCount}>{content.length}/100</Text>
 
-          {/* Domain - First Level */}
-          <Text style={styles.label}>领域</Text>
-          <View style={styles.domainRow}>
-            {PRIMARY_DOMAINS.map(d => (
-              <TouchableOpacity
-                key={d.key}
-                style={[styles.domainChip, domain === d.key && styles.domainChipActive]}
-                onPress={() => handleDomainSelect(d.key)}>
-                <Text style={[styles.domainChipText, domain === d.key && styles.domainChipTextActive]}>
-                  {d.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          {/* Central input area */}
+          <View style={styles.inputArea}>
+            <TextInput
+              ref={inputRef}
+              style={styles.centralInput}
+              value={content}
+              onChangeText={setContent}
+              placeholder="此刻你有什么想说的？"
+              placeholderTextColor="#c5bfb3"
+              multiline
+              maxLength={100}
+              textAlign="center"
+              textAlignVertical="center"
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+            />
+            <Text style={styles.charCount}>{content.length}/100</Text>
           </View>
 
-          {/* Domain - Second Level (sub-domains) */}
-          {domain !== '' && SUB_DOMAINS[domain] && (
+          {!isFocused && (
             <>
-              <Text style={styles.subLabel}>子领域</Text>
-              <View style={styles.domainRow}>
-                {SUB_DOMAINS[domain].map(sd => (
-                  <TouchableOpacity
-                    key={sd.key}
-                    style={[styles.subDomainChip, subDomain === sd.key && styles.subDomainChipActive]}
-                    onPress={() => setSubDomain(sd.key)}>
-                    <Text style={[styles.subDomainChipText, subDomain === sd.key && styles.subDomainChipTextActive]}>
-                      {sd.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <Text style={styles.domainHint}>领域</Text>
+              <Text style={styles.domainDash}>—</Text>
+
+              {/* Domain row */}
+              <View style={styles.domainSection}>
+                <View style={styles.domainRow}>
+                  {PRIMARY_DOMAINS.map(d => {
+                    const isSelected = domain === d.key;
+                    const hasSelection = domain !== '';
+                    return (
+                    <TouchableOpacity
+                      key={d.key}
+                      style={[styles.domainChip, isSelected && styles.domainChipActive]}
+                      onPress={() => handleDomainSelect(d.key)}>
+                      <Text style={[
+                        styles.domainChipText,
+                        isSelected && styles.domainChipTextActive,
+                        hasSelection && !isSelected && styles.domainChipTextDimmed,
+                      ]}>
+                        {d.label}
+                      </Text>
+                    </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* Animated subdomain row */}
+                <Animated.View
+                  style={[
+                    styles.subdomainWrapper,
+                    {
+                      opacity: subdomainOpacity,
+                      maxHeight: subdomainHeight.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 100],
+                      }),
+                    },
+                  ]}>
+                  {domain !== '' && SUB_DOMAINS[domain] && (
+                    <View style={styles.subdomainRow}>
+                      {SUB_DOMAINS[domain].map(sd => {
+                        const isSelected = subDomain === sd.key;
+                        const hasSelection = subDomain !== '';
+                        return (
+                        <TouchableOpacity
+                          key={sd.key}
+                          style={[styles.subDomainChip, isSelected && styles.subDomainChipActive]}
+                          onPress={() => setSubDomain(subDomain === sd.key ? '' : sd.key)}>
+                          <Text style={[
+                            styles.subDomainChipText,
+                            isSelected && styles.subDomainChipTextActive,
+                            hasSelection && !isSelected && styles.subDomainChipTextDimmed,
+                          ]}>
+                            {sd.label}
+                          </Text>
+                        </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </Animated.View>
               </View>
             </>
           )}
 
-          {/* Private / Public Toggle */}
-          <View style={styles.privacyRow}>
-            <Text style={styles.privacyLabel}>私密经验（仅自己可见）</Text>
-            <Switch
-              value={isPrivate}
-              onValueChange={setIsPrivate}
-              trackColor={{false: '#e0dcd5', true: '#4a7c59'}}
-              thumbColor={isPrivate ? '#ffffff' : '#f4f3f0'}
-            />
-          </View>
+          {/* Topic section */}
+          {!isFocused && (
+            <View style={styles.topicSection}>
+              <Text style={styles.domainHint}>话题</Text>
+              <Text style={styles.domainDash}>—</Text>
+
+              <TouchableOpacity
+                style={styles.topicBtnWrap}
+                onPress={() => {
+                  setTopicDraft(topics.trim() || '#');
+                  setIsTopicEditing(true);
+                  setTimeout(() => topicPageInputRef.current?.focus(), 150);
+                }}>
+                <Text style={styles.addTopicText}>
+                  {topics.trim() ? topics.trim() : '#添加话题'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
         </ScrollView>
       </KeyboardAvoidingView>
 
       {/* Bottom bar */}
       <View style={styles.bottomBar}>
-        <Text style={styles.bottomHint}>
-          {getBottomHint()}
-        </Text>
         <TouchableOpacity
-          style={[styles.submitButton, (!isPublishReady || submitting) && styles.submitButtonDisabled]}
+          style={[styles.saveButton, (!isPublishReady || submitting) && styles.saveButtonDisabled]}
           onPress={handlePublish}
           disabled={!isPublishReady || submitting}>
           {submitting ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.submitButtonText}>发布经验</Text>
+            <Text style={styles.saveButtonText}>保存</Text>
           )}
         </TouchableOpacity>
+        <TouchableOpacity style={styles.privacyRow} onPress={() => setIsPrivate(!isPrivate)}>
+          <View style={[styles.privacyDot, isPrivate && styles.privacyDotActive]} />
+          <Text style={[styles.privacyLabel, isPrivate && styles.privacyLabelActive]}>
+            {isPrivate ? '🔒 私密' : '公开'}
+          </Text>
+        </TouchableOpacity>
       </View>
+        </>
+      )}
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -255,114 +436,126 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#faf8f5',
   },
+  flex: {
+    flex: 1,
+  },
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e8e4df',
   },
-  cancelText: {
+  backBtn: {
+    width: 44,
+  },
+  backBtnText: {
     fontSize: 15,
     color: '#9a9a9a',
   },
+  backArrow: {
+    fontSize: 22,
+    color: '#4a7c59',
+    fontWeight: '300',
+  },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1a1a1a',
-  },
-  publishBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: '#4a7c59',
-  },
-  publishBtnDisabled: {
-    backgroundColor: '#c5d4c9',
-  },
-  publishBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  publishBtnTextDisabled: {
-    color: '#e8f0ea',
-  },
-  body: {
-    flex: 1,
-    paddingHorizontal: 18,
-    paddingTop: 20,
-  },
-  label: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#6e6e6e',
-    marginBottom: 8,
-    marginTop: 20,
+    color: '#a0a0a0',
   },
-  subLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8a8a8a',
-    marginBottom: 8,
-    marginTop: 14,
+  // Central input
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
-  contentInput: {
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
-    padding: 14,
-    fontSize: 16,
-    lineHeight: 24,
+  inputArea: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 200,
+    paddingTop: 140,
+  },
+  centralInput: {
+    width: '100%',
+    fontSize: 18,
+    lineHeight: 30,
     color: '#1a1a1a',
-    minHeight: 120,
-    borderWidth: 0.5,
-    borderColor: '#f0ece7',
+    minHeight: 100,
+    paddingHorizontal: 8,
+    paddingVertical: 16,
   },
   charCount: {
+    fontSize: 12,
+    color: '#c5bfb3',
+    marginTop: 4,
+    marginBottom: 40,
+  },
+  domainHint: {
     fontSize: 11,
     color: '#b5b0a8',
-    textAlign: 'right',
-    marginTop: 4,
-    marginRight: 4,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  domainDash: {
+    fontSize: 13,
+    color: '#d5d0c8',
+    textAlign: 'center',
+    marginTop: 2,
+    marginBottom: 6,
+  },
+  // Domain
+  domainSection: {
+    alignItems: 'center',
   },
   domainRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    width: '70%',
+    alignSelf: 'center',
+    gap: 10,
   },
   domainChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 18,
-    backgroundColor: '#ffffff',
-    borderWidth: 0.5,
-    borderColor: '#e8e4df',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
   domainChipActive: {
-    backgroundColor: '#4a7c59',
-    borderColor: '#4a7c59',
+    // no background — just text color changes
   },
   domainChipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#6e6e6e',
+    color: '#8a8a8a',
   },
   domainChipTextActive: {
-    color: '#ffffff',
+    color: '#4a7c59',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  domainChipTextDimmed: {
+    color: '#cdc8c0',
+  },
+  // Domain
+  subdomainWrapper: {
+    overflow: 'hidden',
+    width: '100%',
+  },
+  subdomainRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    width: '70%',
+    alignSelf: 'center',
+    gap: 10,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   subDomainChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 18,
-    backgroundColor: '#f5f2ed',
-    borderWidth: 0.5,
-    borderColor: '#e0dcd5',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
   subDomainChipActive: {
-    backgroundColor: '#2d5a3d',
-    borderColor: '#2d5a3d',
+    // no background — just text color changes
   },
   subDomainChipText: {
     fontSize: 13,
@@ -370,48 +563,102 @@ const styles = StyleSheet.create({
     color: '#8a8a8a',
   },
   subDomainChipTextActive: {
+    color: '#4a7c59',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  subDomainChipTextDimmed: {
+    color: '#cdc8c0',
+  },
+  // Bottom bar
+  bottomBar: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    paddingBottom: 28,
+    backgroundColor: '#faf8f5',
+  },
+  saveButton: {
+    backgroundColor: '#4a7c59',
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 46,
+    width: '100%',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#c5d4c9',
+  },
+  saveButtonText: {
     color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   privacyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 24,
-    paddingVertical: 10,
-    paddingHorizontal: 4,
+    justifyContent: 'center',
+    marginTop: 10,
+    gap: 6,
+    paddingVertical: 4,
+  },
+  privacyDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#d5d0c8',
+  },
+  privacyDotActive: {
+    backgroundColor: '#4a7c59',
   },
   privacyLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#4a4a4a',
+    fontSize: 11,
+    color: '#b0b0b0',
   },
-  bottomBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    backgroundColor: '#ffffff',
-    borderTopWidth: 0.5,
-    borderTopColor: '#e8e4df',
-  },
-  bottomHint: {
-    fontSize: 12,
-    color: '#9a9a9a',
-    flex: 1,
-  },
-  submitButton: {
-    backgroundColor: '#4a7c59',
-    borderRadius: 22,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#c5d4c9',
-  },
-  submitButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
+  privacyLabelActive: {
+    color: '#4a7c59',
     fontWeight: '600',
+  },
+  // Topic
+  topicSection: {
+    marginTop: 20,
+  },
+  topicBtnWrap: {
+    alignItems: 'center',
+  },
+  addTopicText: {
+    fontSize: 13,
+    color: '#8a8a8a',
+    fontWeight: '500',
+  },
+  // Topic page (full-screen editor)
+  topicDoneText: {
+    fontSize: 15,
+    color: '#4a7c59',
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  topicPageContainer: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 100,
+  },
+  topicPageInput: {
+    fontSize: 18,
+    color: '#1a1a1a',
+    minHeight: 120,
+    lineHeight: 30,
+    textAlign: 'center',
+  },
+  topicPageHashBtn: {
+    alignSelf: 'center',
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  topicPageHashBtnText: {
+    fontSize: 13,
+    color: '#4a7c59',
+    fontWeight: '500',
   },
 });

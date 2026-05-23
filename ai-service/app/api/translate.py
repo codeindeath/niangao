@@ -79,7 +79,7 @@ async def translate_content(req: TranslateRequest):
             detected_lang=lang,
         )
 
-    except (json.JSONDecodeError, KeyError) as e:
+    except (json.JSONDecodeError, KeyError):
         logger.error(f"Failed to parse translate response: {content[:200]}")
         return TranslateResponse(
             is_classical=False,

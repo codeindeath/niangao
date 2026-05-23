@@ -87,15 +87,41 @@ type BookmarkedExperience struct {
 	Domain  string `json:"domain"`
 }
 
-// ListBookmarkedExperiences returns all bookmarked experiences with content for AI context.
-func (r *BookmarkRepo) ListBookmarkedExperiences(ctx context.Context, userID string) ([]BookmarkedExperience, error) {
+// ListBookmarkedExperiencesForChat returns recently bookmarked experiences from the
+// inferred chat domain. If the user has no bookmarks in that domain, it falls back
+// to the user's most recent bookmarks across all domains.
+func (r *BookmarkRepo) ListBookmarkedExperiencesForChat(ctx context.Context, userID string, domain string, limit int) ([]BookmarkedExperience, error) {
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+	if domain != "" {
+		exps, err := r.listBookmarkedExperiences(ctx, userID, domain, limit)
+		if err != nil {
+			return nil, err
+		}
+		if len(exps) > 0 {
+			return exps, nil
+		}
+	}
+	return r.listBookmarkedExperiences(ctx, userID, "", limit)
+}
+
+func (r *BookmarkRepo) listBookmarkedExperiences(ctx context.Context, userID string, domain string, limit int) ([]BookmarkedExperience, error) {
+	domainClause := ""
+	args := []interface{}{userID, limit}
+	if domain != "" {
+		domainClause = "AND e.domain::text = $3"
+		args = append(args, domain)
+	}
+
 	rows, err := r.db.Query(ctx,
-		`SELECT e.id, e.content, e.domain::text
+		`SELECT e.id, e.content, COALESCE(e.domain::text, '')
 		 FROM bookmarks b
 		 JOIN experiences e ON e.id = b.experience_id
-		 WHERE b.user_id=$1 AND e.deleted_at IS NULL
-		 ORDER BY b.created_at DESC`,
-		userID,
+		 WHERE b.user_id=$1 AND e.deleted_at IS NULL `+domainClause+`
+		 ORDER BY b.created_at DESC
+		 LIMIT $2`,
+		args...,
 	)
 	if err != nil {
 		return nil, err

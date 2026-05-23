@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     database_url: str = os.getenv("DATABASE_URL", "")
 
     max_daily_chat_rounds: int = int(os.getenv("MAX_DAILY_CHAT_ROUNDS", "50"))
-    max_context_experiences: int = int(os.getenv("MAX_CONTEXT_EXPERIENCES", "5"))
+    max_context_experiences: int = int(os.getenv("MAX_CONTEXT_EXPERIENCES", "50"))
 
 
 settings = Settings()

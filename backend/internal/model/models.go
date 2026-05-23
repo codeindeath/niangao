@@ -31,7 +31,7 @@ func IsValidDomain(d Domain) bool {
 }
 
 // ============================================================
-// 二级领域 v3 — 36 子领域
+// 二级领域 v3 — 34 子领域
 // ============================================================
 type SubDomain string
 
@@ -56,12 +56,12 @@ const (
 
 // work 工作
 const (
-	SubJobhunt       SubDomain = "jobhunt"
-	SubPromotion     SubDomain = "promotion"
-	SubStartup       SubDomain = "startup"
-	SubWorkComm      SubDomain = "work-comm"
-	SubManagement    SubDomain = "management"
-	SubProductivity  SubDomain = "productivity"
+	SubJobhunt      SubDomain = "jobhunt"
+	SubPromotion    SubDomain = "promotion"
+	SubStartup      SubDomain = "startup"
+	SubWorkComm     SubDomain = "work-comm"
+	SubManagement   SubDomain = "management"
+	SubProductivity SubDomain = "productivity"
 )
 
 // relationship 关系
@@ -76,12 +76,12 @@ const (
 
 // cognition 认知
 const (
-	SubCognitiveLearning   SubDomain = "cog-learning"
-	SubThinking            SubDomain = "thinking"
-	SubInfo                SubDomain = "info"
-	SubTools               SubDomain = "tools"
-	SubCreativity          SubDomain = "creativity"
-	SubExpression          SubDomain = "expression"
+	SubCognitiveLearning SubDomain = "cog-learning"
+	SubThinking          SubDomain = "thinking"
+	SubInfo              SubDomain = "info"
+	SubTools             SubDomain = "tools"
+	SubCreativity        SubDomain = "creativity"
+	SubExpression        SubDomain = "expression"
 )
 
 // meaning 意义
@@ -193,27 +193,28 @@ type User struct {
 }
 
 type Experience struct {
-	ID                      string    `json:"id"`
-	AuthorID                string    `json:"author_id"`
-	Content                 string    `json:"content"`
-	Interpretation          *string   `json:"interpretation,omitempty"`
-	Domain                  Domain    `json:"domain"`
-	SubDomain               *string   `json:"sub_domain,omitempty"`
-	IsOfficial              bool      `json:"is_official"`
-	IsPrivate               bool      `json:"is_private"`
-	SourceLabel             *string   `json:"source_label,omitempty"`
-	LikeCount               int       `json:"like_count"`
-	BookmarkCount           int       `json:"bookmark_count"`
-	InterpretationGenerated bool      `json:"interpretation_generated"`
-	Status                  string    `json:"status"`
-	ReviewStatus            string    `json:"review_status"`
-	ReviewReason            *string   `json:"review_reason,omitempty"`
-	QualityScore            *float64  `json:"quality_score,omitempty"`
-	ScoreDetails            *string   `json:"score_details,omitempty"`
-	CreatorName             *string   `json:"creator_name,omitempty"`
-	SourceType              string    `json:"source_type"`
-	ScoreReason             *string   `json:"score_reason,omitempty"`
-	OriginalText            *string   `json:"original_text,omitempty"`
+	ID                      string     `json:"id"`
+	AuthorID                string     `json:"author_id"`
+	Content                 string     `json:"content"`
+	Interpretation          *string    `json:"interpretation,omitempty"`
+	Domain                  Domain     `json:"domain"`
+	SubDomain               *string    `json:"sub_domain,omitempty"`
+	Topics                  string     `json:"topics"`
+	IsOfficial              bool       `json:"is_official"`
+	IsPrivate               bool       `json:"is_private"`
+	SourceLabel             *string    `json:"source_label,omitempty"`
+	LikeCount               int        `json:"like_count"`
+	BookmarkCount           int        `json:"bookmark_count"`
+	InterpretationGenerated bool       `json:"interpretation_generated"`
+	Status                  string     `json:"status"`
+	ReviewStatus            string     `json:"review_status"`
+	ReviewReason            *string    `json:"review_reason,omitempty"`
+	QualityScore            *float64   `json:"quality_score,omitempty"`
+	ScoreDetails            *string    `json:"score_details,omitempty"`
+	CreatorName             *string    `json:"creator_name,omitempty"`
+	SourceType              string     `json:"source_type"`
+	ScoreReason             *string    `json:"score_reason,omitempty"`
+	OriginalText            *string    `json:"original_text,omitempty"`
 	CreatedAt               time.Time  `json:"created_at"`
 	UpdatedAt               time.Time  `json:"updated_at"`
 	DeletedAt               *time.Time `json:"deleted_at,omitempty"`
@@ -228,9 +229,10 @@ type Experience struct {
 
 type CreateExperienceRequest struct {
 	Content        string    `json:"content" binding:"required"`
-	Domain         Domain    `json:"domain" binding:"required"`
-	SubDomain      SubDomain `json:"sub_domain" binding:"required"`
+	Domain         Domain    `json:"domain"`
+	SubDomain      SubDomain `json:"sub_domain"`
 	Interpretation string    `json:"interpretation"`
+	Topics         string    `json:"topics"`
 	IsPrivate      bool      `json:"is_private"`
 }
 

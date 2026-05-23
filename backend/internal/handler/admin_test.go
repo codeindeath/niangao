@@ -249,7 +249,10 @@ func TestPlatformCreateValidation(t *testing.T) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "请填写内容、领域和创作者名称"})
 			return
 		}
-		validDomains := map[string]bool{"career": true, "cognition": true, "life": true, "relationship": true, "emotion": true}
+		validDomains := map[string]bool{
+			"vitality": true, "living": true, "work": true,
+			"relationship": true, "cognition": true, "meaning": true,
+		}
 		if !validDomains[req.Domain] {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "无效的领域"})
 			return
@@ -262,10 +265,10 @@ func TestPlatformCreateValidation(t *testing.T) {
 		body           string
 		expectedStatus int
 	}{
-		{"valid create", `{"content":"test","domain":"career","creator_name":"test"}`, http.StatusCreated},
-		{"missing content", `{"domain":"career","creator_name":"test"}`, http.StatusBadRequest},
+		{"valid create", `{"content":"test","domain":"work","creator_name":"test"}`, http.StatusCreated},
+		{"missing content", `{"domain":"work","creator_name":"test"}`, http.StatusBadRequest},
 		{"missing domain", `{"content":"test","creator_name":"test"}`, http.StatusBadRequest},
-		{"missing creator", `{"content":"test","domain":"career"}`, http.StatusBadRequest},
+		{"missing creator", `{"content":"test","domain":"work"}`, http.StatusBadRequest},
 		{"invalid domain", `{"content":"test","domain":"invalid","creator_name":"test"}`, http.StatusBadRequest},
 	}
 

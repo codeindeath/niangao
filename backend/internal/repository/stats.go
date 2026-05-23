@@ -20,21 +20,21 @@ type DomainCount struct {
 }
 
 type StatBlock struct {
-	Count  int            `json:"count"`
-	Total1 int            `json:"total1,omitempty"` // liked_by_others 或 liked
-	Total2 int            `json:"total2,omitempty"` // bookmarked_by_others 或 bookmarked
-	Dist   []DomainCount  `json:"domain_distribution"`
+	Count  int           `json:"count"`
+	Total1 int           `json:"total1,omitempty"` // liked_by_others 或 liked
+	Total2 int           `json:"total2,omitempty"` // bookmarked_by_others 或 bookmarked
+	Dist   []DomainCount `json:"domain_distribution"`
 }
 
 type UserStats struct {
 	Published struct {
-		Count               int `json:"count"`
-		LikedByOthers       int `json:"liked_by_others"`
-		BookmarkedByOthers  int `json:"bookmarked_by_others"`
+		Count              int `json:"count"`
+		LikedByOthers      int `json:"liked_by_others"`
+		BookmarkedByOthers int `json:"bookmarked_by_others"`
 	} `json:"published"`
 	PublishedDist struct {
-		Published         []DomainCount `json:"published"`
-		LikedByOthers     []DomainCount `json:"liked_by_others"`
+		Published          []DomainCount `json:"published"`
+		LikedByOthers      []DomainCount `json:"liked_by_others"`
 		BookmarkedByOthers []DomainCount `json:"bookmarked_by_others"`
 	} `json:"published_dist"`
 	Interactions struct {

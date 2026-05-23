@@ -50,8 +50,12 @@ export interface PaginatedData<T> {
 }
 
 export const DOMAIN_LABELS: Record<string, string> = {
-  career: '职业', cognition: '认知', life: '生活',
-  relationship: '关系', wealth: '财富',
+  vitality: '生命',
+  living: '生活',
+  work: '工作',
+  relationship: '关系',
+  cognition: '认知',
+  meaning: '意义',
 };
 
 // ── Auth ──
@@ -386,10 +390,12 @@ export async function fetchLogs(params?: Record<string, string>): Promise<Pagina
 
 export function exportUsersCSV(): string {
   const token = localStorage.getItem('admin_token');
-  return `https://115.190.177.146/api/v1/admin/export/users?format=csv&token=${token}`;
+  const base = window.location.hostname === 'localhost' ? 'http://115.190.177.146' : '';
+  return `${base}/api/v1/admin/export/users?format=csv&token=${token}`;
 }
 
 export function exportExperiencesCSV(): string {
   const token = localStorage.getItem('admin_token');
-  return `https://115.190.177.146/api/v1/admin/export/experiences?format=csv&token=${token}`;
+  const base = window.location.hostname === 'localhost' ? 'http://115.190.177.146' : '';
+  return `${base}/api/v1/admin/export/experiences?format=csv&token=${token}`;
 }

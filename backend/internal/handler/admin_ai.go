@@ -39,8 +39,8 @@ type costEstimate struct {
 }
 
 type promptConfig struct {
-	ReviewPromptLength      int `json:"review_prompt_length"`
-	ChatSystemPromptLength  int `json:"chat_system_prompt_length"`
+	ReviewPromptLength     int `json:"review_prompt_length"`
+	ChatSystemPromptLength int `json:"chat_system_prompt_length"`
 }
 
 type batchTaskItem struct {
@@ -52,15 +52,15 @@ type batchTaskItem struct {
 }
 
 type AIStatusResponse struct {
-	Model         string       `json:"model"`
-	Healthy       bool         `json:"healthy"`
-	LatencyMs     float64      `json:"latency_ms"`
-	SuccessRate   float64      `json:"success_rate"`
-	LastHourCalls int64        `json:"last_hour_calls"`
-	ErrorMsg      string       `json:"error_msg,omitempty"`
-	TierStats     *tierStats   `json:"tier_stats,omitempty"`
-	DailyCost     *costEstimate `json:"daily_cost,omitempty"`
-	PromptConfig  *promptConfig `json:"prompt_config,omitempty"`
+	Model         string          `json:"model"`
+	Healthy       bool            `json:"healthy"`
+	LatencyMs     float64         `json:"latency_ms"`
+	SuccessRate   float64         `json:"success_rate"`
+	LastHourCalls int64           `json:"last_hour_calls"`
+	ErrorMsg      string          `json:"error_msg,omitempty"`
+	TierStats     *tierStats      `json:"tier_stats,omitempty"`
+	DailyCost     *costEstimate   `json:"daily_cost,omitempty"`
+	PromptConfig  *promptConfig   `json:"prompt_config,omitempty"`
 	BatchTasks    []batchTaskItem `json:"batch_tasks,omitempty"`
 }
 
@@ -71,7 +71,7 @@ func getAIStatus(c *gin.Context, db *pgxpool.Pool) {
 	}
 
 	status := AIStatusResponse{
-		Model:  "deepseek-chat",
+		Model:   "deepseek-chat",
 		Healthy: false,
 	}
 

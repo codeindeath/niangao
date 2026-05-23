@@ -185,8 +185,7 @@ type adminExpDetail struct {
 func adminGetExperience(c *gin.Context, expRepo *repository.ExperienceRepo, db *pgxpool.Pool) {
 	id := c.Param("id")
 
-	// 复用 repo 获取基础数据（不带 viewerID，不查 is_liked/is_bookmarked）
-	exp, err := expRepo.GetByID(c.Request.Context(), id, "")
+	exp, err := expRepo.GetByIDForAdmin(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "experience not found"})
 		return

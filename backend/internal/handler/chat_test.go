@@ -3,6 +3,8 @@ package handler
 import (
 	"testing"
 	"time"
+
+	"github.com/niangao/backend/internal/model"
 )
 
 func TestPickWelcomeGreeting(t *testing.T) {
@@ -72,5 +74,37 @@ func TestGreetingPoolSize(t *testing.T) {
 	}
 	if total != 50 {
 		t.Errorf("expected 50 greeting templates total, got %d", total)
+	}
+}
+
+func TestInferChatDomainFromCurrentMessage(t *testing.T) {
+	tests := []struct {
+		name    string
+		message string
+		want    string
+	}{
+		{"work", "最近和老板沟通项目压力很大", string(model.DomainWork)},
+		{"relationship", "我和女朋友吵架之后一直很难受", string(model.DomainRelationship)},
+		{"meaning", "最近很迷茫，不知道人生方向在哪里", string(model.DomainMeaning)},
+		{"none", "今天只是想随便聊聊", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := inferChatDomain(tt.message, nil); got != tt.want {
+				t.Fatalf("inferChatDomain() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInferChatDomainUsesRecentHistory(t *testing.T) {
+	history := []model.Message{
+		{Role: "user", Content: "最近面试和求职都不顺"},
+		{Role: "assistant", Content: "听起来求职过程消耗了你很多力气"},
+	}
+
+	if got := inferChatDomain("嗯，就是这样", history); got != string(model.DomainWork) {
+		t.Fatalf("inferChatDomain() = %q, want %q", got, model.DomainWork)
 	}
 }

@@ -6,9 +6,12 @@ import asyncpg
 import os
 from datetime import datetime
 
-DB_DSN = "postgresql://niangao:NiangaoDB2026!@localhost:5432/niangao"
-AI_BASE = "http://localhost:8000"
+DB_DSN = os.getenv("DATABASE_URL")
+AI_BASE = os.getenv("AI_SERVICE_URL", "http://localhost:8000")
 BATCH_SIZE = 5
+
+if not DB_DSN:
+    raise RuntimeError("DATABASE_URL is required")
 
 def score_to_reason(score: dict) -> str:
     dims = {k: v for k, v in score.items() if k != 'overall'}

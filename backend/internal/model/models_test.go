@@ -90,7 +90,13 @@ func TestCreateExperienceRequestValidation(t *testing.T) {
 			errMsg:  "required",
 		},
 		{
-			name:    "invalid domain",
+			name:    "empty domain is allowed for uncategorized publish",
+			content: "valid content",
+			domain:  "",
+			valid:   true,
+		},
+		{
+			name:    "invalid non-empty domain",
 			content: "valid content",
 			domain:  "invalid",
 			valid:   false,
@@ -105,19 +111,19 @@ func TestCreateExperienceRequestValidation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-	t.Run(tt.name, func(t *testing.T) {
-		req := CreateExperienceRequest{
-			Content: tt.content,
-			Domain:  tt.domain,
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			req := CreateExperienceRequest{
+				Content: tt.content,
+				Domain:  tt.domain,
+			}
 
-		// Verify content length (characters, not bytes)
-		charLen := utf8.RuneCountInString(req.Content)
-		if tt.valid {
-			if charLen > 100 {
-				t.Errorf("content char length %d exceeds 100", charLen)
+			// Verify content length (characters, not bytes)
+			charLen := utf8.RuneCountInString(req.Content)
+			if tt.valid {
+				if charLen > 100 {
+					t.Errorf("content char length %d exceeds 100", charLen)
 				}
-				if !IsValidDomain(req.Domain) {
+				if req.Domain != "" && !IsValidDomain(req.Domain) {
 					t.Errorf("domain %s should be valid", req.Domain)
 				}
 			} else {
@@ -140,19 +146,19 @@ func TestInterpretationLength(t *testing.T) {
 	}{
 		{"empty interpretation (optional)", "", true},
 		{"short interpretation", "如何执行：第一步...", true},
-		{"exactly 500 chars", strings.Repeat("a", 500), true},
-		{"over 500 chars", strings.Repeat("a", 501), false},
-		{"chinese 500 chars", strings.Repeat("经", 500), true},
-		{"chinese 501 chars", strings.Repeat("验", 501), false},
+		{"exactly 300 chars", strings.Repeat("a", 300), true},
+		{"over 300 chars", strings.Repeat("a", 301), false},
+		{"chinese 300 chars", strings.Repeat("经", 300), true},
+		{"chinese 301 chars", strings.Repeat("验", 301), false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			charLen := utf8.RuneCountInString(tt.interpretation)
-			if tt.valid && charLen > 500 {
-				t.Errorf("interpretation char length %d exceeds 500", charLen)
+			if tt.valid && charLen > 300 {
+				t.Errorf("interpretation char length %d exceeds 300", charLen)
 			}
-			if !tt.valid && charLen <= 500 {
+			if !tt.valid && charLen <= 300 {
 				t.Error("interpretation should be flagged as too long")
 			}
 		})

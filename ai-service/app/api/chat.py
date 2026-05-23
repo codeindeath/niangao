@@ -1,6 +1,6 @@
 """对话 API — 由 Go 后端编排调用"""
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -36,19 +36,20 @@ async def send_message(req: ChatRequest):
     """由 Go 后端调用。接收完整上下文（历史 + 收藏经验），返回 AI 回复。"""
     try:
         # 构建系统提示词（收藏经验 + 对话历史）
-        bookmarks_dict = [b.model_dump() for b in req.bookmarked_experiences]
+        bookmarks_dict = [
+            b.model_dump()
+            for b in req.bookmarked_experiences[: settings.max_context_experiences]
+        ]
         system_prompt = build_chat_system_prompt(bookmarks_dict, req.history)
 
         # 组装消息
         messages = build_chat_messages(system_prompt, req.history, req.message)
         response = await llm_module.llm_service.chat(messages, stream=False)
 
-        # 引用哪些经验由 LLM 决定——我们不在代码层硬匹配
+        # 暂不伪造引用。后续若要展示引用，应让模型结构化返回实际使用的经验 ID。
         return {
             "reply": response,
-            "referenced_experience_ids": [
-                b.id for b in req.bookmarked_experiences
-            ],
+            "referenced_experience_ids": [],
         }
     except Exception as e:
         logger.error(f"Chat error: {e}")
@@ -62,5 +63,5 @@ async def generate_interpretation(req: InterpretationRequest):
             req.content, req.domain
         )
         return {"interpretation": interpretation}
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="生成解读失败")

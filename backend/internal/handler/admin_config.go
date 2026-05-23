@@ -253,11 +253,11 @@ func deleteSensitiveWord(c *gin.Context, db *pgxpool.Pool) {
 func getConfigDefaults(c *gin.Context) {
 	defaults := gin.H{
 		"features": gin.H{
-			"registration":     true,
+			"registration":      true,
 			"ai_interpretation": true,
-			"search":           true,
-			"ai_chat":          true,
-			"comments":         true,
+			"search":            true,
+			"ai_chat":           true,
+			"comments":          true,
 		},
 		"limits": gin.H{
 			"content_min_rune":        10,
@@ -269,8 +269,8 @@ func getConfigDefaults(c *gin.Context) {
 			"chat_per_hour":   20,
 		},
 		"review_mode": gin.H{
-			"auto_approve_platform":   false,
-			"ai_first_human_confirm":  true,
+			"auto_approve_platform":  false,
+			"ai_first_human_confirm": true,
 		},
 	}
 	c.JSON(http.StatusOK, defaults)
