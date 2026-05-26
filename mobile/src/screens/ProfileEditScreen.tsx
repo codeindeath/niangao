@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -11,21 +11,35 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {fetchProfile, updateProfile} from '../services/api';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import {reportHandledError} from '../utils/logging';
 
 export default function ProfileEditScreen({navigation}: any) {
   const [displayName, setDisplayName] = useState('');
   const [freeDescription, setFreeDescription] = useState('');
   const [commonIssues, setCommonIssues] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetchProfile().then(p => {
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const p = await fetchProfile();
       setDisplayName(p.display_name || p.nickname || '');
       setFreeDescription(p.free_description || p.bio || '');
       setCommonIssues((p.common_issues || []).join('、'));
-    }).catch(console.error).finally(() => setLoading(false));
+    } catch (e) {
+      reportHandledError('ProfileEditScreen.loadProfile', e);
+      setLoadError('个人信息暂时没取到');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   const handleSave = async () => {
     const name = displayName.trim();
@@ -59,6 +73,32 @@ export default function ProfileEditScreen({navigation}: any) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <ActivityIndicator size="large" color="#4a7c59" style={{marginTop: 200}} />
+      </SafeAreaView>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="返回">
+            <Ionicons name="chevron-back" size={22} color="#5c5548" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>编辑个人信息</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.emptyState}>
+          <Text testID="profile-edit-load-error" style={styles.emptyTitle}>{loadError}</Text>
+          <Text style={styles.emptyHint}>网络恢复后再试一下，不会改动你原来的资料。</Text>
+          <TouchableOpacity
+            testID="profile-edit-retry"
+            style={styles.retryBtn}
+            onPress={loadProfile}
+            accessibilityRole="button"
+            accessibilityLabel="重试加载个人信息">
+            <Text style={styles.retryText}>重试</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -144,9 +184,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#faf8f5',
   },
   backBtn: {width: 36, height: 36, justifyContent: 'center', alignItems: 'center', borderRadius: 8},
+  headerSpacer: {width: 68},
   headerTitle: {flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '600', color: '#2a2722'},
   saveBtn: {paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#4a7c59'},
   saveBtnText: {color: '#fff', fontSize: 14, fontWeight: '600'},
+  emptyState: {flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32},
+  emptyTitle: {fontSize: 16, fontWeight: '600', color: '#4a4338', marginBottom: 8},
+  emptyHint: {fontSize: 13, lineHeight: 20, color: '#9a9184', textAlign: 'center', marginBottom: 20},
+  retryBtn: {backgroundColor: '#4a7c59', borderRadius: 8, paddingHorizontal: 22, paddingVertical: 10},
+  retryText: {color: '#fff', fontSize: 14, fontWeight: '600'},
   content: {paddingTop: 24, paddingHorizontal: 24},
   avatarRow: {alignItems: 'center', marginBottom: 28},
   avatar: {

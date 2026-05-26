@@ -830,6 +830,20 @@ Current result:
     - production authenticated temporary JWT smoke
     - production cleanup verification
     - backend/AI `journalctl` error scans
+- Profile edit weak-state and handled-error logging hardening checks pass:
+  - `编辑个人信息` no longer falls through to an empty editable form when profile loading fails
+  - failed profile loading now shows a retryable weak state with low-pressure copy and keeps existing profile data untouched
+  - retry repopulates display name, free description, and common issues once the profile request recovers
+  - handled background errors no longer write `console.log`, `console.warn`, or `console.error` from App runtime source, reducing development overlay noise and production client logging noise
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- ProfileEditScreen.test.tsx logging.test.ts --runInBand --no-cache`
+    - `npm run test -- ProfileEditScreen.test.tsx logging.test.ts ProfileScreen.test.tsx apiEvents.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (19 suites, 77 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 
