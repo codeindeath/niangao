@@ -1222,6 +1222,41 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- Backend deprecated experience repository method cleanup checks pass:
+  - removed unused legacy `ExperienceRepo` methods that only served old App-facing surfaces or old platform-generation semantics:
+    - `CreateOfficial`
+    - `Recommend`
+    - `ListByAuthor`
+    - `ListBookmarked`
+  - removed the stale contract test that still required the deleted legacy readers to share the V4 scanner
+  - kept active V4 feed/search/detail repository readers covered by V4 ownership and scanner-drift tests
+  - regression coverage now fails if those deleted repository methods return
+  - Linux backend artifact `/tmp/niangao-backend-v4-repository-method-cleanup` was deployed to production at `/root/niangao/deployments/20260527011605/server`
+  - production backend binary hash now matches the local repository-method-cleanup artifact:
+    - `bbfa8e23e193ca66ae12371d933d1df4b22de159a4c946d13a124d5a73d509cc`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-repository-method-cleanup.20260527011605`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences/recommend` -> 410 `deprecated_endpoint`
+  - post-deploy authenticated V4 smoke passed with a temporary JWT user and cleanup:
+    - `GET /api/v1/me/profile` -> 200
+    - `GET /api/v1/me/stats/assets` -> 200
+    - `GET /api/v1/feed/mine?limit=1` -> 200
+    - `POST /api/v1/chat/temp-sessions` -> 201
+    - cleanup verification -> `codex_smoke_users=0`, `codex_smoke_temp_sessions=0`
+  - post-deploy backend/AI journal scans after the deploy window found no panic, fatal error, failed message, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestDeprecatedExperienceRepositoryMethodsAreRemoved -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestDeprecatedExperienceRepositoryMethodsAreRemoved|TestExperienceListUsesSharedV4Scanner|TestV4FeedQueriesExposeOwnerUserID|TestV4RecommendQuery' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-repository-method-cleanup`
+    - `rg -n "func \\(r \\*ExperienceRepo\\) (CreateOfficial|Recommend|ListByAuthor|ListBookmarked)\\(" backend/internal/repository/experience.go`
+    - `git diff --check`
+    - production public and authenticated temporary JWT smoke checks
+    - backend/AI `journalctl` error scans
 
 Not verified yet:
 

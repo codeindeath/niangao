@@ -48,64 +48,6 @@ func TestExperienceListUsesSharedV4Scanner(t *testing.T) {
 	}
 }
 
-func TestLegacyExperienceReadersUseSharedV4Scanner(t *testing.T) {
-	source, err := os.ReadFile("experience.go")
-	if err != nil {
-		t.Fatalf("read experience.go: %v", err)
-	}
-	text := string(source)
-
-	cases := []struct {
-		name        string
-		startMarker string
-		endMarker   string
-	}{
-		{
-			name:        "Recommend",
-			startMarker: "func (r *ExperienceRepo) Recommend(",
-			endMarker:   "func (r *ExperienceRepo) Update(",
-		},
-		{
-			name:        "ListByAuthor",
-			startMarker: "func (r *ExperienceRepo) ListByAuthor(",
-			endMarker:   "// ListBookmarked",
-		},
-		{
-			name:        "ListBookmarked",
-			startMarker: "func (r *ExperienceRepo) ListBookmarked(",
-			endMarker:   "func strPtr(",
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			body := repositoryFunctionBody(t, text, tc.startMarker, tc.endMarker)
-			if !strings.Contains(body, "experienceSelectCols") {
-				t.Fatalf("%s should select the shared V4 experience column list", tc.name)
-			}
-			if !strings.Contains(body, "scanExperience(rows, &e)") {
-				t.Fatalf("%s should reuse scanExperience so V4 select columns and scan order cannot drift", tc.name)
-			}
-			if strings.Contains(body, "rows.Scan(") {
-				t.Fatalf("%s should not maintain a separate manual rows.Scan field list", tc.name)
-			}
-		})
-	}
-}
-
-func repositoryFunctionBody(t *testing.T, text, startMarker, endMarker string) string {
-	t.Helper()
-	start := strings.Index(text, startMarker)
-	if start < 0 {
-		t.Fatalf("start marker %q not found", startMarker)
-	}
-	end := strings.Index(text[start:], endMarker)
-	if end < 0 {
-		t.Fatalf("end marker %q not found after %q", endMarker, startMarker)
-	}
-	return text[start : start+end]
-}
-
 func TestSoftDeleteSynchronizesV4LifecycleFacts(t *testing.T) {
 	source, err := os.ReadFile("experience.go")
 	if err != nil {

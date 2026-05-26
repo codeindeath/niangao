@@ -1,0 +1,26 @@
+package repository
+
+import (
+	"os"
+	"strings"
+	"testing"
+)
+
+func TestDeprecatedExperienceRepositoryMethodsAreRemoved(t *testing.T) {
+	source, err := os.ReadFile("experience.go")
+	if err != nil {
+		t.Fatalf("read experience.go: %v", err)
+	}
+	experienceSource := string(source)
+
+	for _, symbol := range []string{
+		"func (r *ExperienceRepo) CreateOfficial(",
+		"func (r *ExperienceRepo) Recommend(",
+		"func (r *ExperienceRepo) ListByAuthor(",
+		"func (r *ExperienceRepo) ListBookmarked(",
+	} {
+		if strings.Contains(experienceSource, symbol) {
+			t.Fatalf("deprecated experience repository method should be removed: %s", symbol)
+		}
+	}
+}
