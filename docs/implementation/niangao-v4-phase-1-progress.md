@@ -1741,6 +1741,40 @@ Current result:
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
+- 我的 stats V4 visibility contract checks pass:
+  - App-facing `/me/stats/*` and `/me/recent-responded-experiences` repository queries now use V4 `e.visibility='public'|'private'` predicates instead of falling back to legacy `e.is_private`
+  - repository contract coverage now prevents `me_stats_v4.go` from reintroducing `e.is_private` / `CASE WHEN e.is_private` visibility fallback
+  - Linux backend artifact `/tmp/niangao-backend-v4-me-stats-visibility` was deployed to production at `/root/niangao/deployments/20260527051801/server`
+  - production backend binary hash now matches the local me-stats-visibility artifact:
+    - `e0df52213897619757d03e16839f1c28e9954bb50fa815114df6ae284f1d525c`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-me-stats-visibility.20260527051801.backend`
+  - production SQL parse checks passed for asset stats, contribution stats, recent harvest stats, and recent responded queries
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410
+  - post-deploy authenticated 我的 stats smoke passed with a temporary JWT user and cleanup:
+    - `/api/v1/me/profile` -> 200
+    - `/api/v1/me/stats/assets` -> 200
+    - `/api/v1/me/stats/contribution` -> 200
+    - `/api/v1/me/stats/change` -> 200
+    - `/api/v1/me/stats/recent-harvest?range=7d` -> 200
+    - `/api/v1/me/recent-responded-experiences?limit=2` -> 200
+    - cleanup verification -> `cleanup_users=0`
+  - initial smoke validation checked the wrong V4 profile JSON key (`id`); HTTP was 200, the temporary user was cleaned up, the script was corrected to validate `display_name`, and the corrected smoke passed
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, stats load failure, or 5xx matches
+  - workflow hardening from this slice:
+    - raw backend Go package tests must run from `backend/`, not the repository root
+    - `/api/v1/me/profile` smoke should validate `display_name` rather than a nonexistent `id`
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestMeStatsQueriesUseV4VisibilityFacts -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestMeStatsQueriesUseV4VisibilityFacts -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -count=1`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-me-stats-visibility`
+    - production SQL parse, public smoke, authenticated temporary JWT 我的 stats smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

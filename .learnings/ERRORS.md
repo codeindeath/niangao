@@ -601,3 +601,62 @@ For multiline production SQL over SSH, prefer a local quoted heredoc into `bash 
 ### Metadata
 - Reproducible: yes
 - Related Files: None
+
+---
+
+## [ERR-20260527-013] backend_go_test_wrong_workdir
+
+**Logged**: 2026-05-27T05:16:11+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+Backend Go tests failed when launched from the repository root instead of the `backend/` module directory.
+
+### Error
+```
+go: cannot find main module, but found .git/config in /Users/swt/projects/niangao
+```
+
+### Context
+- The backend Go module lives under `/Users/swt/projects/niangao/backend`.
+- `go test ./internal/repository ...` must be run from `backend/`, while repo-root paths are only valid for shell scripts that handle their own working directory.
+- Rerunning the same command from `backend/` passed.
+
+### Suggested Fix
+Run raw backend Go package tests with `workdir=/Users/swt/projects/niangao/backend`. Use repo root only for project scripts such as `./scripts/backend-test.sh`.
+
+### Metadata
+- Reproducible: yes
+- Related Files: backend/go.mod
+
+---
+
+## [ERR-20260527-014] production_smoke_profile_wrong_key
+
+**Logged**: 2026-05-27T05:21:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: deployment
+
+### Summary
+Authenticated production smoke for `/api/v1/me/profile` initially checked for a nonexistent top-level `id` key.
+
+### Error
+```
+profile=200
+missing_key=id
+```
+
+### Context
+- The V4 profile response is `MeProfile` and contains fields such as `display_name`, `career_stage`, `common_issues`, and `profile_version`; it does not include `id`.
+- The smoke failure was in the validation script after HTTP 200, not in backend behavior.
+- The temporary smoke user from the failed run was cleaned up, and the corrected smoke checked `display_name` and passed.
+
+### Suggested Fix
+For `/api/v1/me/profile` smoke checks, validate `display_name` or another actual V4 profile field instead of `id`.
+
+### Metadata
+- Reproducible: yes
+- Related Files: backend/internal/model/models.go, backend/internal/handler/me_profile_v4.go

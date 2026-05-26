@@ -31,13 +31,13 @@ func (r *ExperienceRepo) AssetStats(ctx context.Context, userID string) (*model.
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
-			   AND COALESCE(e.visibility, CASE WHEN e.is_private THEN 'private' ELSE 'public' END)='public'
+			   AND e.visibility='public'
 			   AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
 			   AND e.deleted_at IS NULL),
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
-			   AND COALESCE(e.visibility, CASE WHEN e.is_private THEN 'private' ELSE 'public' END)='private'
+			   AND e.visibility='private'
 			   AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
 			   AND e.deleted_at IS NULL),
 			(SELECT COUNT(*)
@@ -76,7 +76,7 @@ func (r *ExperienceRepo) ContributionStats(ctx context.Context, userID string) (
 			FROM experiences e
 			WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			  AND COALESCE(e.experience_type, 'user_original')='user_original'
-			  AND COALESCE(e.visibility, CASE WHEN e.is_private THEN 'private' ELSE 'public' END)='public'
+			  AND e.visibility='public'
 			  AND COALESCE(e.lifecycle_status, 'active')='active'
 			  AND e.deleted_at IS NULL
 		)
@@ -143,7 +143,7 @@ func (r *ExperienceRepo) RecentHarvestStats(ctx context.Context, userID string, 
 			FROM experiences e
 			WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			  AND COALESCE(e.experience_type, 'user_original')='user_original'
-			  AND COALESCE(e.visibility, CASE WHEN e.is_private THEN 'private' ELSE 'public' END)='public'
+			  AND e.visibility='public'
 			  AND COALESCE(e.lifecycle_status, 'active')='active'
 			  AND e.deleted_at IS NULL
 		)
@@ -205,7 +205,7 @@ func (r *ExperienceRepo) RecentRespondedExperiences(ctx context.Context, userID 
 			FROM experiences e
 			WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			  AND COALESCE(e.experience_type, 'user_original')='user_original'
-			  AND COALESCE(e.visibility, CASE WHEN e.is_private THEN 'private' ELSE 'public' END)='public'
+			  AND e.visibility='public'
 			  AND COALESCE(e.lifecycle_status, 'active')='active'
 			  AND e.deleted_at IS NULL
 		),

@@ -569,6 +569,7 @@ Behavior:
 - `change` returns chat topics, clearer count, and chat-derived experiences.
 - `recent-harvest` supports `7d`, `30d`, and `all`; it returns note-created experiences, chat-derived experiences, new inspired users, and new collections in the selected range.
 - `recent-responded-experiences` returns public user-original experiences with real response data. Cards include content, star rating, domain/sub_domain, inspiration count, collection count, and latest response time.
+- App-facing stats use V4 `visibility` facts for public/private and contribution eligibility; legacy `is_private` must not be used as a runtime fallback.
 - Stats failures must not be shown as zero in the App.
 
 ### 8.3 Account Actions
