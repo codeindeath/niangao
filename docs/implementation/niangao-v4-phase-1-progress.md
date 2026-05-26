@@ -475,7 +475,7 @@ Current result:
     - `git diff --check`
 - Simulator runtime checks resumed after mac interaction access was enabled:
   - heartbeat automation `niangao-v4-overnight-continuation` is active at `FREQ=MINUTELY;INTERVAL=30`; the cadence is only for interruption recovery, and normal work should continue task-to-task without waiting
-  - earlier active-thread authorization allowed production migrations, deployments, or data mutations for this checkpoint; this has since been superseded by the current rule requiring explicit active-thread confirmation for each future production action
+  - current standing rule: autonomous production deployments within the active V4 App/backend plan are authorized when needed, with build/test, backup or rollback readiness, smoke checks, temporary-data cleanup, and backend/AI log-scan gates
   - iOS Simulator can be controlled through direct CGEvent taps and screenshots
   - Metro/dev build launches the App and renders the selected login page
   - login page copy/actions are present: `年糕`, `生活有态度`, `Apple登录`, `先看看`, and dev-only `开发模拟登录`
@@ -581,7 +581,7 @@ Current result:
     - `git diff --check`
 - Production V4 backend/AI deployment checks pass:
   - production V4 backend/AI deployment has already been applied in a previous checkpoint
-  - this checkpoint used earlier active-thread authorization for production deployment/mutation; this has since been superseded by the current rule requiring explicit active-thread confirmation for each future production action
+  - current standing rule: autonomous production deployments within the active V4 App/backend plan are authorized when needed, with build/test, backup or rollback readiness, smoke checks, temporary-data cleanup, and backend/AI log-scan gates
   - built Linux backend artifact on this Mac and uploaded it to `/root/niangao/deployments/20260526123834/server`
   - created production backups before applying changes:
     - `/root/niangao/backups/server.before-v4.20260526123834`
