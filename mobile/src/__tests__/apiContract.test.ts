@@ -108,4 +108,19 @@ describe('App V4 API contract', () => {
 
     expect(uiSources).not.toMatch(/\btopics\b/);
   });
+
+  it('keeps legacy experience aliases out of the exported App experience type', () => {
+    const apiSource = read('src/services/api.ts');
+    const start = apiSource.indexOf('export interface Experience {');
+    const end = apiSource.indexOf('export interface ExperienceCard {');
+    const experienceType = apiSource.slice(start, end);
+
+    expect(experienceType).not.toMatch(/\bauthor_id\b/);
+    expect(experienceType).not.toMatch(/\bauthor_name\b/);
+    expect(experienceType).not.toMatch(/\bcreator_name\b/);
+    expect(experienceType).not.toMatch(/\bis_private\b/);
+    expect(experienceType).not.toMatch(/\breview_status\b/);
+    expect(experienceType).not.toMatch(/\bis_official\b/);
+    expect(experienceType).not.toMatch(/\bsource_type\b/);
+  });
 });

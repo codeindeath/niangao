@@ -1048,6 +1048,19 @@ Current result:
     - `git diff --check`
     - production public and authenticated temporary JWT smoke checks
     - backend/AI `journalctl` error scans
+- Mobile API V4 experience type-boundary cleanup checks pass:
+  - exported App `Experience` type no longer includes legacy aliases such as `author_id`, `is_private`, `review_status`, `source_type`, `is_official`, `creator_name`, or `author_name`
+  - `normalizeExperience` still accepts old backend response aliases as compatibility input, but returns only V4-shaped fields to App screens
+  - feed-card normalization now passes V4 `owner_user_id`, `experience_type`, `visibility`, `lifecycle_status`, `creator_display_name`, and `quality_tier` into the App shape instead of constructing legacy aliases first
+  - regression coverage verifies legacy response aliases normalize into V4 fields without leaking old properties back to App callers
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- apiContract.test.ts apiFeed.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- --runInBand` (22 suites, 98 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "\\bauthor_id\\b|\\bauthor_name\\b|\\bcreator_name\\b|\\bis_private\\b|\\breview_status\\b|\\bis_official\\b|\\bsource_type\\b" mobile/src --glob '!mobile/src/services/api.ts' -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 

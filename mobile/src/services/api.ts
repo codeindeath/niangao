@@ -6,31 +6,25 @@ import {reportHandledError} from '../utils/logging';
 // ============================================================
 export interface Experience {
   id: string;
-  author_id: string;
   owner_user_id?: string;
   content: string;
   interpretation?: string;
   domain: string;
   sub_domain?: string;
   topic?: string;
-  is_private?: boolean;
-  is_official?: boolean;
   experience_type?: string;
   visibility?: string;
-  source_type?: string;
+  lifecycle_status?: string;
   source_label?: string;
-  creator_name?: string;
   creator_display_name?: string;
   score_reason?: string;
   inspiration_count: number;
   collection_count: number;
-  author_name?: string;
   author_avatar?: string;
   author_title?: string;
   is_inspired: boolean;
   is_collected: boolean;
-  review_status?: string;
-  review_reason?: string;
+  quality_tier?: string;
   quality_score?: number;
   score_details?: string;
   original_text?: string;
@@ -90,27 +84,29 @@ function normalizeExperience(raw: any): Experience {
   const starRating = rest.star_rating ?? 0;
 
   return {
-    ...rest,
     id: rest.id || '',
-    author_id: rest.author_id || rest.owner_user_id || '',
     owner_user_id: rest.owner_user_id || rest.author_id || undefined,
     content: rest.content || '',
+    interpretation: rest.interpretation || undefined,
     domain: rest.domain || '',
     sub_domain: rest.sub_domain || undefined,
     topic: topic || topics || '',
-    is_private: rest.is_private ?? visibility === 'private',
-    is_official: Boolean(rest.is_official ?? experienceType === 'platform_selected'),
     experience_type: experienceType,
     visibility,
-    source_type: rest.source_type || (experienceType === 'platform_selected' ? 'platform' : 'user'),
-    creator_name: rest.creator_name || creatorName || undefined,
+    lifecycle_status: rest.lifecycle_status || undefined,
+    source_label: rest.source_label || undefined,
     creator_display_name: rest.creator_display_name || creatorName || undefined,
-    author_name: rest.author_name || creatorName || undefined,
+    score_reason: rest.score_reason || undefined,
     inspiration_count: numberOrZero(rest.inspiration_count ?? like_count),
     collection_count: numberOrZero(rest.collection_count ?? bookmark_count),
+    author_avatar: rest.author_avatar || undefined,
+    author_title: rest.author_title || undefined,
     is_inspired: Boolean(rest.is_inspired ?? is_liked),
     is_collected: Boolean(rest.is_collected ?? is_bookmarked),
+    quality_tier: rest.quality_tier || undefined,
     quality_score: rest.quality_score ?? (starRating > 0 ? starRating * 2 : undefined),
+    score_details: rest.score_details || undefined,
+    original_text: rest.original_text || undefined,
     created_at: rest.created_at || '',
   };
 }
@@ -119,22 +115,20 @@ function normalizeFeedCard(card: ExperienceCard): Experience {
   const starRating = card.star_rating ?? 0;
   return normalizeExperience({
     id: card.id,
-    author_id: card.owner_user_id || '',
     owner_user_id: card.owner_user_id,
     content: card.content || '',
     domain: card.domain || '',
     sub_domain: card.sub_domain || undefined,
     topic: card.topic || '',
-    is_private: card.visibility === 'private',
-    is_official: card.experience_type === 'platform_selected',
-    source_type: card.experience_type === 'platform_selected' ? 'platform' : 'user',
-    creator_name: card.creator_display_name || undefined,
-    author_name: card.creator_display_name || undefined,
+    visibility: card.visibility,
+    experience_type: card.experience_type,
+    lifecycle_status: card.lifecycle_status,
+    creator_display_name: card.creator_display_name || undefined,
     inspiration_count: card.inspiration_count || 0,
     collection_count: card.collection_count || 0,
     is_inspired: Boolean(card.is_inspired),
     is_collected: Boolean(card.is_collected),
-    review_status: card.lifecycle_status,
+    quality_tier: card.quality_tier,
     quality_score: starRating > 0 ? starRating * 2 : undefined,
     created_at: '',
   });
