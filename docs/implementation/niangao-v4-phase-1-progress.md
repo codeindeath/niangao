@@ -977,6 +977,20 @@ Current result:
     - `git diff --check`
     - `rg -n "\\bauthor_id\\b|\\bauthor_name\\b|\\bcreator_name\\b" mobile/src/components/ExperienceCard.tsx mobile/src/screens/DetailScreen.tsx mobile/src/screens/SearchPage.tsx`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- iOS production network config hardening checks pass:
+  - Expo source config now owns the iOS ATS exception for the current production HTTP API host `115.190.177.146` instead of relying only on generated native files
+  - `NSAllowsArbitraryLoads` remains `false`; the exception is scoped to the current backend host, and local networking stays enabled for simulator/dev workflows
+  - Apple Sign In plugin, bundle identifier, and the dynamic iOS Metro URL config plugin are covered by regression tests
+  - no server redeploy is required for this slice because only mobile App source configuration changed
+  - residual production risk: the cleaner long-term target is still a real HTTPS domain/certificate before broader App Store scale, but the current HTTP-IP path is now explicitly reproducible by Expo config
+  - verification:
+    - `npm run test -- appConfig.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- appConfig.test.ts configBaseUrl.test.ts LoginScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (21 suites, 93 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 

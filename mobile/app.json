@@ -15,7 +15,18 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.swt.niangaogao",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSAllowsLocalNetworking": true,
+          "NSExceptionDomains": {
+            "115.190.177.146": {
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            }
+          }
+        }
+      }
     },
     "plugins": [
       "expo-apple-authentication",
