@@ -24,6 +24,30 @@ func TestExperienceSelectColsExposeV4DetailOwnershipFields(t *testing.T) {
 	}
 }
 
+func TestExperienceListUsesSharedV4Scanner(t *testing.T) {
+	source, err := os.ReadFile("experience.go")
+	if err != nil {
+		t.Fatalf("read experience.go: %v", err)
+	}
+	text := string(source)
+	listStart := strings.Index(text, "func (r *ExperienceRepo) List(")
+	if listStart < 0 {
+		t.Fatal("ExperienceRepo.List not found")
+	}
+	listEnd := strings.Index(text[listStart:], "// TODO: 推荐系统")
+	if listEnd < 0 {
+		t.Fatal("ExperienceRepo.List end marker not found")
+	}
+	listBody := text[listStart : listStart+listEnd]
+
+	if !strings.Contains(listBody, "scanExperience(rows, &e)") {
+		t.Fatal("ExperienceRepo.List should reuse scanExperience so V4 select columns and scan order cannot drift")
+	}
+	if strings.Contains(listBody, "rows.Scan(") {
+		t.Fatal("ExperienceRepo.List should not maintain a separate manual rows.Scan field list")
+	}
+}
+
 func TestSoftDeleteSynchronizesV4LifecycleFacts(t *testing.T) {
 	source, err := os.ReadFile("experience.go")
 	if err != nil {

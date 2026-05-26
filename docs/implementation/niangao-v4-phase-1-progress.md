@@ -939,6 +939,16 @@ Current result:
     - `git diff --check`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
     - `rg -n "\\bsource_type\\b|\\bis_official\\b" mobile/src -g '!mobile/src/services/api.ts'` (match remains only in the API compatibility regression fixture)
+- Backend experience list scanner drift hardening checks pass:
+  - `ExperienceRepo.List` now reuses the shared `scanExperience` helper instead of maintaining a separate manual `rows.Scan` field list
+  - this fixes a real drift risk where the legacy `/api/v1/experiences` list query selected the expanded V4 `experienceSelectCols` but scanned an older field order
+  - added repository regression coverage so future V4 detail/list field additions cannot silently leave list scanning behind
+  - a Linux backend artifact was built locally at `/tmp/niangao-backend-v4-list-scanner` for verification only; no production deployment was performed in this slice
+  - verification:
+    - `go test ./internal/repository -run TestExperienceListUsesSharedV4Scanner -count=1 -v`
+    - `go test ./internal/repository -count=1`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-list-scanner`
 
 Not verified yet:
 

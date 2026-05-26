@@ -358,14 +358,7 @@ func (r *ExperienceRepo) List(ctx context.Context, query model.ExperienceListQue
 	var experiences []model.Experience
 	for rows.Next() {
 		var e model.Experience
-		if err := rows.Scan(
-			&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
-			&e.SubDomain, &e.Topics, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
-			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
-			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
-			&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.RandomSort,
-			&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
-		); err != nil {
+		if err := scanExperience(rows, &e); err != nil {
 			return nil, 0, fmt.Errorf("scan: %w", err)
 		}
 		experiences = append(experiences, e)
