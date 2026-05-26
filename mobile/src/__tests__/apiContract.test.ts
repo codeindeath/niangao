@@ -124,4 +124,27 @@ describe('App V4 API contract', () => {
     expect(experienceType).not.toMatch(/\bis_official\b/);
     expect(experienceType).not.toMatch(/\bsource_type\b/);
   });
+
+  it('keeps legacy detail/create aliases out of mobile API normalization', () => {
+    const apiSource = read('src/services/api.ts');
+    const start = apiSource.indexOf('function normalizeExperience(');
+    const end = apiSource.indexOf('function normalizeFeedCard(');
+    const normalizeSource = apiSource.slice(start, end);
+
+    for (const legacy of [
+      'author_id',
+      'author_name',
+      'creator_name',
+      'topics',
+      'is_private',
+      'is_official',
+      'source_type',
+      'like_count',
+      'bookmark_count',
+      'is_liked',
+      'is_bookmarked',
+    ]) {
+      expect(normalizeSource).not.toMatch(new RegExp(`\\b${legacy}\\b`));
+    }
+  });
 });

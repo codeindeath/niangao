@@ -67,42 +67,29 @@ function numberOrZero(value: unknown): number {
 }
 
 function normalizeExperience(raw: any): Experience {
-  const {
-    like_count,
-    bookmark_count,
-    is_liked,
-    is_bookmarked,
-    topic,
-    topics,
-    ...rest
-  } = raw || {};
-  const experienceType = rest.experience_type
-    || (rest.is_official || rest.source_type === 'platform' ? 'platform_selected' : undefined)
-    || (rest.source_type === 'user' ? 'user_original' : undefined);
-  const visibility = rest.visibility || (rest.is_private ? 'private' : undefined);
-  const creatorName = rest.creator_display_name || rest.creator_name || rest.author_name;
+  const rest = raw || {};
   const starRating = rest.star_rating ?? 0;
 
   return {
     id: rest.id || '',
-    owner_user_id: rest.owner_user_id || rest.author_id || undefined,
+    owner_user_id: rest.owner_user_id || undefined,
     content: rest.content || '',
     interpretation: rest.interpretation || undefined,
     domain: rest.domain || '',
     sub_domain: rest.sub_domain || undefined,
-    topic: topic || topics || '',
-    experience_type: experienceType,
-    visibility,
+    topic: rest.topic || '',
+    experience_type: rest.experience_type || undefined,
+    visibility: rest.visibility || undefined,
     lifecycle_status: rest.lifecycle_status || undefined,
     source_label: rest.source_label || undefined,
-    creator_display_name: rest.creator_display_name || creatorName || undefined,
+    creator_display_name: rest.creator_display_name || undefined,
     score_reason: rest.score_reason || undefined,
-    inspiration_count: numberOrZero(rest.inspiration_count ?? like_count),
-    collection_count: numberOrZero(rest.collection_count ?? bookmark_count),
+    inspiration_count: numberOrZero(rest.inspiration_count),
+    collection_count: numberOrZero(rest.collection_count),
     author_avatar: rest.author_avatar || undefined,
     author_title: rest.author_title || undefined,
-    is_inspired: Boolean(rest.is_inspired ?? is_liked),
-    is_collected: Boolean(rest.is_collected ?? is_bookmarked),
+    is_inspired: Boolean(rest.is_inspired),
+    is_collected: Boolean(rest.is_collected),
     quality_tier: rest.quality_tier || undefined,
     quality_score: rest.quality_score ?? (starRating > 0 ? starRating * 2 : undefined),
     score_details: rest.score_details || undefined,

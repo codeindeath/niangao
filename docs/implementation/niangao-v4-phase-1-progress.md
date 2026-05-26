@@ -1466,6 +1466,16 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-detail-response-contract`
     - production public and authenticated temporary JWT smoke checks
     - backend/AI `journalctl` severe-error scans after the corrected smoke window
+- Mobile experience normalization V4-only contract checks pass:
+  - mobile `normalizeExperience` now consumes the deployed V4 detail/create response shape directly instead of translating legacy detail aliases
+  - removed compatibility fallback for `author_id`, `author_name`, `creator_name`, `topics`, `is_private`, `is_official`, `source_type`, `like_count`, `bookmark_count`, `is_liked`, and `is_bookmarked`
+  - feed cards were already V4-shaped and continue to normalize through the same App `Experience` type
+  - no production deployment was needed for this mobile-only source cleanup; it relies on the already-deployed backend V4 detail/create response contract
+  - verification:
+    - `npm run test -- apiContract.test.ts apiFeed.test.ts --runInBand --no-cache` (RED confirmed before implementation, then GREEN after implementation)
+    - `npm run test -- --runInBand` (22 suites, 106 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 
