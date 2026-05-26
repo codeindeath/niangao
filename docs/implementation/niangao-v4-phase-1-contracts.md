@@ -445,16 +445,27 @@ Behavior:
 - Build context from summary, recent messages, relevant user info, lightweight memory, and 3-5 candidate experiences.
 - Call AI Gateway `function_type=chat`.
 - Save assistant message and `chat_citations`.
+- For temp-session messages, backend then calls AI Gateway `function_type=chat_topic_classify`.
+- If `chat_topic_classify` returns `should_create_topic=true` and `clarity_score >= 0.65`, backend creates a stable `chat_topics` row, moves all messages from `temp_session_id` to `topic_id`, marks the temp session `promoted`, and returns `promoted_topic`.
+- If topic classification fails or score is below threshold, chat reply still succeeds and the session remains `temp_session`.
 - If AI fails, keep user message and return retryable error.
+- Candidate experience retrieval is non-fatal; it must use currently deployed V4 fields only. Until content-production fields land, `source_derivation_type` is emitted as a compatible fallback rather than read from `experiences`.
 
 Response:
 
 ```json
 {
+  "user_message": {
+    "id": "uuid",
+    "role": "user",
+    "content": "最近有什么想不清的",
+    "topic_id": "uuid-if-promoted"
+  },
   "message": {
     "id": "uuid",
     "role": "assistant",
-    "content": "自然回复"
+    "content": "自然回复",
+    "topic_id": "uuid-if-promoted"
   },
   "reference_cards": [
     {
@@ -467,9 +478,25 @@ Response:
     "should_show": true,
     "suggested_text": "先做一小步，再用结果修正判断。",
     "source_message_ids": ["user-message-id", "assistant-message-id"]
+  },
+  "session_state": "temp_session | stable_topic",
+  "promoted_topic": {
+    "id": "uuid",
+    "status": "active",
+    "title": "工作里的不甘心",
+    "domain": "work",
+    "sub_domain": "work-comm",
+    "topic": "和上级沟通",
+    "clarity_score": 0.78
   }
 }
 ```
+
+App behavior:
+
+- If `promoted_topic` is present, Chat switches from `tempSessionId` to `activeTopic`.
+- Follow-up messages use `POST /api/v1/chat/topics/:id/messages`.
+- Citation show/click events after promotion use `topic_id`, not the old `temp_session_id`.
 
 ### 7.3 Save Chat Note Suggestion
 

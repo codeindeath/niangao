@@ -185,20 +185,27 @@ export default function ChatScreen({navigation}: any) {
     return sendTempChatMessage(tempSessionId, text, clientMessageId);
   };
 
-  const citationMetadata = (messageId: string) => ({
+  const citationMetadata = (messageId: string, topicOverride?: ChatTopic | null) => ({
     message_id: messageId,
-    ...(activeTopic ? {topic_id: activeTopic.id} : {temp_session_id: tempSessionId}),
+    ...(topicOverride?.id ? {topic_id: topicOverride.id} : activeTopic ? {topic_id: activeTopic.id} : {temp_session_id: tempSessionId}),
   });
 
-  const recordCitationShows = (messageId: string, cards: ChatReferenceCard[] = []) => {
+  const recordCitationShows = (messageId: string, cards: ChatReferenceCard[] = [], topicOverride?: ChatTopic | null) => {
     cards.forEach(card => {
-      recordExperienceEvent(card.experience_id, 'chat_citation_show', 'chat', citationMetadata(messageId));
+      recordExperienceEvent(card.experience_id, 'chat_citation_show', 'chat', citationMetadata(messageId, topicOverride));
     });
   };
 
   const handleReferencePress = (messageId: string, experienceId: string) => {
     recordExperienceEvent(experienceId, 'chat_citation_click', 'chat', citationMetadata(messageId));
     navigation.navigate('detail', {id: experienceId, from: 'chat'});
+  };
+
+  const applyPromotedTopic = (topic?: ChatTopic) => {
+    if (!topic?.id) return null;
+    setActiveTopic(topic);
+    setTempSessionId('');
+    return topic;
   };
 
   const openNoteSuggestion = (item: MessageBubble) => {
@@ -240,7 +247,8 @@ export default function ChatScreen({navigation}: any) {
     try {
       const result = await sendToCurrentScope(text, clientMessageId);
       const referenceCards = result.reference_cards || [];
-      recordCitationShows(result.message.id || aiId, referenceCards);
+      const promotedTopic = applyPromotedTopic(result.promoted_topic);
+      recordCitationShows(result.message.id || aiId, referenceCards, promotedTopic);
 
       setMessages(prev =>
         prev.map(m =>
@@ -293,7 +301,8 @@ export default function ChatScreen({navigation}: any) {
     try {
       const result = await sendToCurrentScope(item.retryText, item.clientMessageId || `retry-${Date.now()}`);
       const referenceCards = result.reference_cards || [];
-      recordCitationShows(result.message.id || item.id, referenceCards);
+      const promotedTopic = applyPromotedTopic(result.promoted_topic);
+      recordCitationShows(result.message.id || item.id, referenceCards, promotedTopic);
       setMessages(prev =>
         prev.map(m =>
           m.id === item.id

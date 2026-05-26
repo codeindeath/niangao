@@ -46,6 +46,23 @@ type gatewayCallResponse struct {
 	Warnings   []string `json:"warnings"`
 }
 
+type topicClassifyGatewayCallResponse struct {
+	Result struct {
+		ClarityScore             float64 `json:"clarity_score"`
+		ShouldCreateTopic        bool    `json:"should_create_topic"`
+		Title                    string  `json:"title"`
+		Domain                   string  `json:"domain"`
+		SubDomain                string  `json:"sub_domain"`
+		TopicKeyword             string  `json:"topic_keyword"`
+		CandidateExistingTopicID *string `json:"candidate_existing_topic_id"`
+		ShouldBindExistingTopic  bool    `json:"should_bind_existing_topic"`
+		DiscardIfUserLeaves      bool    `json:"discard_if_user_leaves"`
+		Reason                   string  `json:"reason"`
+	} `json:"result"`
+	Confidence float64  `json:"confidence"`
+	Warnings   []string `json:"warnings"`
+}
+
 func (g *Gateway) GenerateChatReply(ctx context.Context, req model.ChatGatewayRequest) (*model.ChatGatewayResponse, error) {
 	if g == nil || g.baseURL == "" {
 		return nil, fmt.Errorf("ai gateway base url is empty")
@@ -103,6 +120,66 @@ func (g *Gateway) GenerateChatReply(ctx context.Context, req model.ChatGatewayRe
 		Confidence:     gatewayResp.Confidence,
 		Warnings:       gatewayResp.Warnings,
 	}, nil
+}
+
+func (g *Gateway) ClassifyChatTopic(ctx context.Context, req model.ChatTopicClassificationRequest) (*model.ChatTopicClassificationResponse, error) {
+	if g == nil || g.baseURL == "" {
+		return nil, fmt.Errorf("ai gateway base url is empty")
+	}
+	body, err := json.Marshal(gatewayCallRequest{
+		FunctionType: "chat_topic_classify",
+		Payload:      req,
+		UserID:       req.UserID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("marshal topic classify gateway request: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, g.baseURL+"/api/v1/ai-gateway/call", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("create topic classify gateway request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := g.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("call topic classify gateway: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read topic classify gateway response: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("topic classify gateway returned %d: %s", resp.StatusCode, string(respBytes))
+	}
+
+	var gatewayResp topicClassifyGatewayCallResponse
+	if err := json.Unmarshal(respBytes, &gatewayResp); err != nil {
+		return nil, fmt.Errorf("parse topic classify gateway response: %w", err)
+	}
+	return &model.ChatTopicClassificationResponse{
+		ClarityScore:             gatewayResp.Result.ClarityScore,
+		ShouldCreateTopic:        gatewayResp.Result.ShouldCreateTopic,
+		Title:                    strings.TrimSpace(gatewayResp.Result.Title),
+		Domain:                   gatewayResp.Result.Domain,
+		SubDomain:                gatewayResp.Result.SubDomain,
+		TopicKeyword:             gatewayResp.Result.TopicKeyword,
+		CandidateExistingTopicID: topicClassifyStringValue(gatewayResp.Result.CandidateExistingTopicID),
+		ShouldBindExistingTopic:  gatewayResp.Result.ShouldBindExistingTopic,
+		DiscardIfUserLeaves:      gatewayResp.Result.DiscardIfUserLeaves,
+		Reason:                   gatewayResp.Result.Reason,
+		Confidence:               gatewayResp.Confidence,
+		Warnings:                 gatewayResp.Warnings,
+	}, nil
+}
+
+func topicClassifyStringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
 }
 
 type rewriteGatewayCallResponse struct {

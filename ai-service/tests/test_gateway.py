@@ -134,6 +134,67 @@ def test_gateway_chat_strips_markdown_json_fence():
     assert response.json()["result"]["reply_text"] == "我们先把这事放慢一点看。"
 
 
+def topic_classify_payload():
+    return {
+        "function_type": "chat_topic_classify",
+        "user_id": "user-1",
+        "payload": {
+            "user_id": "user-1",
+            "temp_session_id": "temp-1",
+            "messages": [
+                {"role": "user", "content": "我觉得在会上被上级当众否定这事过不去"},
+                {"role": "assistant", "content": "先别急着把这件事变成一个结论。"},
+            ],
+            "recent_topics": [
+                {"id": "topic-old", "title": "工作里的不甘心", "updated_at": "2026-05-26T00:00:00Z"}
+            ],
+            "user_clicked_new_topic": False,
+            "domain_taxonomy": {
+                "work": ["jobhunt", "promotion", "startup", "work-comm", "management", "productivity"]
+            },
+        },
+    }
+
+
+def test_gateway_topic_classify_returns_structured_result_and_prompt_contract():
+    fake_response = json.dumps(
+        {
+            "schema_version": "1.0",
+            "function_type": "chat_topic_classify",
+            "result": {
+                "clarity_score": 0.78,
+                "should_create_topic": True,
+                "title": "工作里的不甘心",
+                "domain": "work",
+                "sub_domain": "work-comm",
+                "topic_keyword": "和上级沟通",
+                "candidate_existing_topic_id": None,
+                "should_bind_existing_topic": False,
+                "discard_if_user_leaves": False,
+                "reason": "用户已经围绕同一件工作冲突表达了明确困扰",
+            },
+            "confidence": 0.84,
+            "warnings": [],
+        },
+        ensure_ascii=False,
+    )
+    client, fake_llm = make_client(FakeLLM(fake_response))
+
+    response = client.post("/api/v1/ai-gateway/call", json=topic_classify_payload())
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["result"]["should_create_topic"] is True
+    assert body["result"]["title"] == "工作里的不甘心"
+    assert body["result"]["domain"] == "work"
+    assert body["result"]["sub_domain"] == "work-comm"
+    assert "判断这段临时聊天是否已经形成" in fake_llm.messages[0]["content"]
+    assert "领域和子领域只能使用代码" in fake_llm.messages[0]["content"]
+    assert "temp_session_id" in fake_llm.messages[-1]["content"]
+    assert fake_llm.kwargs["response_format"] == {"type": "json_object"}
+    assert fake_llm.kwargs["temperature"] == 0.1
+
+
 def test_gateway_rejects_unsupported_function_type():
     client, _ = make_client(FakeLLM("{}"))
     payload = chat_payload()

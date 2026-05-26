@@ -24,12 +24,14 @@ type V4ChatStore interface {
 	VerifyChatScope(ctx context.Context, userID string, scope model.ChatMessageScope) (*model.ChatScopeContext, error)
 	AddChatMessage(ctx context.Context, userID string, req model.SaveChatMessageRequest) (*model.ChatMessage, error)
 	RecentChatMessages(ctx context.Context, userID string, scope model.ChatMessageScope, limit int) ([]model.ChatMessage, error)
+	PromoteTempSession(ctx context.Context, userID string, tempSessionID string, req model.PromoteChatTempSessionRequest) (*model.ChatTopic, error)
 	CandidateExperiencesForChat(ctx context.Context, userID string, scope model.ChatScopeContext, userMessage string, riskLevel string, limit int) ([]model.ChatCandidateExperience, error)
 	SaveChatCitations(ctx context.Context, assistantMessageID string, cards []model.ChatReferenceCard) error
 }
 
 type ChatGateway interface {
 	GenerateChatReply(ctx context.Context, req model.ChatGatewayRequest) (*model.ChatGatewayResponse, error)
+	ClassifyChatTopic(ctx context.Context, req model.ChatTopicClassificationRequest) (*model.ChatTopicClassificationResponse, error)
 }
 
 type ChatV4Handler struct {
@@ -323,6 +325,16 @@ func (h *ChatV4Handler) sendMessage(c *gin.Context, scope model.ChatMessageScope
 		}
 	}
 
+	promotedTopic := h.promoteTempSessionIfClear(c.Request.Context(), userID, scopeContext, scope)
+	sessionState := scopeContext.SessionState
+	if promotedTopic != nil {
+		sessionState = "stable_topic"
+		userMsg.TopicID = &promotedTopic.ID
+		userMsg.TempSessionID = nil
+		assistantMsg.TopicID = &promotedTopic.ID
+		assistantMsg.TempSessionID = nil
+	}
+
 	noteSuggestion := model.ChatNoteSuggestion{ShouldShow: false, SourceMessageIDs: []string{}}
 	if aiResp.NoteSuggestion != nil {
 		noteSuggestion = *aiResp.NoteSuggestion
@@ -332,7 +344,135 @@ func (h *ChatV4Handler) sendMessage(c *gin.Context, scope model.ChatMessageScope
 		Message:        *assistantMsg,
 		ReferenceCards: cards,
 		NoteSuggestion: noteSuggestion,
+		SessionState:   sessionState,
+		PromotedTopic:  promotedTopic,
 	})
+}
+
+func (h *ChatV4Handler) promoteTempSessionIfClear(ctx context.Context, userID string, scopeContext *model.ChatScopeContext, scope model.ChatMessageScope) *model.ChatTopic {
+	if h.gateway == nil || scopeContext == nil || scope.Kind != model.ChatScopeTempSession || scopeContext.TempSession == nil {
+		return nil
+	}
+	messages, err := h.store.RecentChatMessages(ctx, userID, scope, 12)
+	if err != nil {
+		log.Printf("v4 load temp messages for topic classification failed user=%s temp=%s: %v", userID, scope.ID, err)
+		return nil
+	}
+	if countChatMessagesByRole(messages, "user") == 0 {
+		return nil
+	}
+	recentTopics, err := h.store.RecentChatTopics(ctx, userID, 5)
+	if err != nil {
+		log.Printf("v4 load recent topics for topic classification failed user=%s temp=%s: %v", userID, scope.ID, err)
+		recentTopics = []model.ChatTopic{}
+	}
+	classification, err := h.gateway.ClassifyChatTopic(ctx, model.ChatTopicClassificationRequest{
+		UserID:              userID,
+		TempSessionID:       scope.ID,
+		Messages:            messages,
+		RecentTopics:        recentTopics,
+		UserClickedNewTopic: scopeContext.TempSession.ForcedNewTopic,
+		DomainTaxonomy:      chatDomainTaxonomy(),
+	})
+	if err != nil || classification == nil {
+		log.Printf("v4 chat topic classification skipped user=%s temp=%s: %v", userID, scope.ID, err)
+		return nil
+	}
+	if !classification.ShouldCreateTopic || classification.ClarityScore < 0.65 {
+		return nil
+	}
+
+	req := promoteRequestFromClassification(*classification, messages)
+	topic, err := h.store.PromoteTempSession(ctx, userID, scope.ID, req)
+	if err != nil {
+		log.Printf("v4 promote temp session failed user=%s temp=%s: %v", userID, scope.ID, err)
+		return nil
+	}
+	return topic
+}
+
+func promoteRequestFromClassification(classification model.ChatTopicClassificationResponse, messages []model.ChatMessage) model.PromoteChatTempSessionRequest {
+	domain := strings.TrimSpace(classification.Domain)
+	subDomain := strings.TrimSpace(classification.SubDomain)
+	if !model.IsValidDomain(model.Domain(domain)) {
+		domain = ""
+		subDomain = ""
+	}
+	if subDomain != "" {
+		if !model.IsValidSubDomain(model.SubDomain(subDomain)) ||
+			(domain != "" && !model.SubDomainBelongsToParent(model.Domain(domain), model.SubDomain(subDomain))) {
+			subDomain = ""
+		}
+	}
+	title := truncateRunes(strings.TrimSpace(classification.Title), 100)
+	if title == "" {
+		title = fallbackChatTopicTitle(messages)
+	}
+	return model.PromoteChatTempSessionRequest{
+		Title:                title,
+		Domain:               domain,
+		SubDomain:            subDomain,
+		Topic:                truncateRunes(strings.TrimSpace(classification.TopicKeyword), 200),
+		ClarityScore:         clampFloat(classification.ClarityScore, 0, 1),
+		ClassificationReason: strings.TrimSpace(classification.Reason),
+	}
+}
+
+func fallbackChatTopicTitle(messages []model.ChatMessage) string {
+	for _, message := range messages {
+		if message.Role != "user" {
+			continue
+		}
+		content := strings.TrimSpace(message.Content)
+		if content == "" {
+			continue
+		}
+		return truncateRunes(content, 18)
+	}
+	return "新的心事"
+}
+
+func countChatMessagesByRole(messages []model.ChatMessage, role string) int {
+	count := 0
+	for _, message := range messages {
+		if message.Role == role {
+			count++
+		}
+	}
+	return count
+}
+
+func chatDomainTaxonomy() map[string][]string {
+	taxonomy := make(map[string][]string, len(model.SubDomainsByParent))
+	for domain, subDomains := range model.SubDomainsByParent {
+		values := make([]string, 0, len(subDomains))
+		for _, subDomain := range subDomains {
+			values = append(values, string(subDomain))
+		}
+		taxonomy[string(domain)] = values
+	}
+	return taxonomy
+}
+
+func truncateRunes(value string, max int) string {
+	if max <= 0 {
+		return ""
+	}
+	runes := []rune(value)
+	if len(runes) <= max {
+		return value
+	}
+	return string(runes[:max])
+}
+
+func clampFloat(value float64, min float64, max float64) float64 {
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+	return value
 }
 
 func classifyChatMessage(content string) model.ChatPreClassification {

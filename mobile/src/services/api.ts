@@ -420,6 +420,8 @@ export interface SendChatMessageResult {
   message: ChatMessageItem;
   reference_cards: ChatReferenceCard[];
   note_suggestion: ChatNoteSuggestion;
+  session_state?: 'temp_session' | 'stable_topic' | 'history_continue' | string;
+  promoted_topic?: ChatTopic;
   retryable?: boolean;
 }
 

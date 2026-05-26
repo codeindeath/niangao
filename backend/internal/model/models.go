@@ -674,11 +674,46 @@ type ChatGatewayResponse struct {
 	Warnings       []string               `json:"warnings,omitempty"`
 }
 
+type ChatTopicClassificationRequest struct {
+	UserID              string              `json:"user_id"`
+	TempSessionID       string              `json:"temp_session_id"`
+	Messages            []ChatMessage       `json:"messages"`
+	RecentTopics        []ChatTopic         `json:"recent_topics"`
+	UserClickedNewTopic bool                `json:"user_clicked_new_topic"`
+	DomainTaxonomy      map[string][]string `json:"domain_taxonomy"`
+}
+
+type ChatTopicClassificationResponse struct {
+	ClarityScore             float64  `json:"clarity_score"`
+	ShouldCreateTopic        bool     `json:"should_create_topic"`
+	Title                    string   `json:"title"`
+	Domain                   string   `json:"domain,omitempty"`
+	SubDomain                string   `json:"sub_domain,omitempty"`
+	TopicKeyword             string   `json:"topic_keyword,omitempty"`
+	CandidateExistingTopicID string   `json:"candidate_existing_topic_id,omitempty"`
+	ShouldBindExistingTopic  bool     `json:"should_bind_existing_topic"`
+	DiscardIfUserLeaves      bool     `json:"discard_if_user_leaves"`
+	Reason                   string   `json:"reason,omitempty"`
+	Confidence               float64  `json:"confidence,omitempty"`
+	Warnings                 []string `json:"warnings,omitempty"`
+}
+
+type PromoteChatTempSessionRequest struct {
+	Title                string  `json:"title"`
+	Domain               string  `json:"domain,omitempty"`
+	SubDomain            string  `json:"sub_domain,omitempty"`
+	Topic                string  `json:"topic,omitempty"`
+	ClarityScore         float64 `json:"clarity_score"`
+	ClassificationReason string  `json:"classification_reason,omitempty"`
+}
+
 type SendChatMessageResponse struct {
 	UserMessage    ChatMessage         `json:"user_message"`
 	Message        ChatMessage         `json:"message"`
 	ReferenceCards []ChatReferenceCard `json:"reference_cards"`
 	NoteSuggestion ChatNoteSuggestion  `json:"note_suggestion"`
+	SessionState   string              `json:"session_state"`
+	PromotedTopic  *ChatTopic          `json:"promoted_topic,omitempty"`
 	Retryable      bool                `json:"retryable,omitempty"`
 }
 

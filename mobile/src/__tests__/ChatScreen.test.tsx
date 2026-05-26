@@ -146,6 +146,93 @@ describe('ChatScreen', () => {
     });
   });
 
+  it('switches to the promoted stable topic after a temp-session reply is classified', async () => {
+    const navigation = makeNavigation();
+    (api.sendTempChatMessage as jest.Mock).mockResolvedValueOnce({
+      user_message: {
+        id: 'user-1',
+        topic_id: 'topic-promoted',
+        role: 'user',
+        content: '我觉得在会上被上级当众否定这事过不去',
+        created_at: '2026-05-26T00:00:00Z',
+      },
+      message: {
+        id: 'assistant-1',
+        topic_id: 'topic-promoted',
+        role: 'assistant',
+        content: '这听起来不是一句评价那么简单，更像是边界被当众推开了。',
+        created_at: '2026-05-26T00:00:01Z',
+      },
+      reference_cards: [
+        {
+          experience_id: 'exp-1',
+          content: '公开场合被评价时，先分清事实和被侵犯的边界。',
+          is_collected: false,
+        },
+      ],
+      note_suggestion: {should_show: false, source_message_ids: []},
+      session_state: 'stable_topic',
+      promoted_topic: {
+        id: 'topic-promoted',
+        status: 'active',
+        title: '工作里的不甘心',
+        domain: 'work',
+        sub_domain: 'work-comm',
+        topic: '和上级沟通',
+      },
+    });
+    (api.sendChatTopicMessage as jest.Mock).mockResolvedValueOnce({
+      user_message: {
+        id: 'user-2',
+        topic_id: 'topic-promoted',
+        role: 'user',
+        content: '后来我一直在想同事怎么看我',
+        created_at: '2026-05-26T00:00:02Z',
+      },
+      message: {
+        id: 'assistant-2',
+        topic_id: 'topic-promoted',
+        role: 'assistant',
+        content: '那种反复猜测，可能是被公开评价后留下的紧绷。',
+        created_at: '2026-05-26T00:00:03Z',
+      },
+      reference_cards: [],
+      note_suggestion: {should_show: false, source_message_ids: []},
+    });
+
+    const {findByText, getByPlaceholderText, getByText} = render(<ChatScreen navigation={navigation} />);
+    expect(await findByText('我在。你可以从任何一点开始说，不用先想清楚。')).toBeTruthy();
+
+    fireEvent.changeText(getByPlaceholderText('输入你想聊的...'), '我觉得在会上被上级当众否定这事过不去');
+    fireEvent.press(getByText('发送'));
+
+    expect(await findByText('这听起来不是一句评价那么简单，更像是边界被当众推开了。')).toBeTruthy();
+    expect(await findByText('工作里的不甘心')).toBeTruthy();
+    await waitFor(() => {
+      expect(api.recordExperienceEvent).toHaveBeenCalledWith(
+        'exp-1',
+        'chat_citation_show',
+        'chat',
+        expect.objectContaining({
+          message_id: 'assistant-1',
+          topic_id: 'topic-promoted',
+        }),
+      );
+    });
+
+    fireEvent.changeText(getByPlaceholderText('输入你想聊的...'), '后来我一直在想同事怎么看我');
+    fireEvent.press(getByText('发送'));
+
+    await waitFor(() => {
+      expect(api.sendChatTopicMessage).toHaveBeenCalledWith(
+        'topic-promoted',
+        '后来我一直在想同事怎么看我',
+        expect.any(String),
+      );
+    });
+    expect(api.sendTempChatMessage).toHaveBeenCalledTimes(1);
+  });
+
   it('restores historical unavailable reference cards without leaking content', async () => {
     const navigation = makeNavigation();
     (api.fetchRecentChatTopics as jest.Mock).mockResolvedValue({

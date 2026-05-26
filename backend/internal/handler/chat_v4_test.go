@@ -23,6 +23,8 @@ type fakeV4ChatStore struct {
 	candidates       []model.ChatCandidateExperience
 	recentMessages   []model.ChatMessage
 	assistantMessage *model.ChatMessage
+	promotedTopic    *model.ChatTopic
+	promoteRequests  []model.PromoteChatTempSessionRequest
 }
 
 func stringPtr(s string) *string {
@@ -94,6 +96,18 @@ func (f *fakeV4ChatStore) VerifyChatScope(ctx context.Context, userID string, sc
 	if f.fail {
 		return nil, errors.New("store failed")
 	}
+	if scope.Kind == model.ChatScopeTempSession {
+		return &model.ChatScopeContext{
+			Scope:        scope,
+			SessionState: "temp_session",
+			TempSession: &model.ChatTempSession{
+				ID:             scope.ID,
+				Status:         "active",
+				ForcedNewTopic: false,
+				UpdatedAt:      time.Now(),
+			},
+		}, nil
+	}
 	return &model.ChatScopeContext{
 		Scope:        scope,
 		SessionState: "stable_topic",
@@ -136,7 +150,54 @@ func (f *fakeV4ChatStore) RecentChatMessages(ctx context.Context, userID string,
 	if f.fail {
 		return nil, errors.New("store failed")
 	}
+	if f.recentMessages == nil {
+		messages := make([]model.ChatMessage, 0, len(f.addedMessages))
+		for i, req := range f.addedMessages {
+			message := model.ChatMessage{
+				ID:                      "msg-user",
+				UserID:                  userID,
+				Role:                    req.Role,
+				Content:                 req.Content,
+				Status:                  "sent",
+				RiskLevel:               req.RiskLevel,
+				ReferencedExperienceIDs: req.ReferencedExperienceIDs,
+				CreatedAt:               time.Now().Add(time.Duration(i) * time.Second),
+			}
+			if req.Role == "assistant" {
+				message.ID = "msg-ai"
+			}
+			if req.Scope.Kind == model.ChatScopeTopic {
+				message.TopicID = &req.Scope.ID
+			} else {
+				message.TempSessionID = &req.Scope.ID
+			}
+			messages = append(messages, message)
+		}
+		return messages, nil
+	}
 	return f.recentMessages, nil
+}
+
+func (f *fakeV4ChatStore) PromoteTempSession(ctx context.Context, userID string, tempSessionID string, req model.PromoteChatTempSessionRequest) (*model.ChatTopic, error) {
+	f.gotUserID = userID
+	f.gotID = tempSessionID
+	if f.fail {
+		return nil, errors.New("store failed")
+	}
+	f.promoteRequests = append(f.promoteRequests, req)
+	if f.promotedTopic != nil {
+		return f.promotedTopic, nil
+	}
+	return &model.ChatTopic{
+		ID:           "topic-promoted",
+		Status:       "active",
+		Title:        req.Title,
+		Domain:       req.Domain,
+		SubDomain:    req.SubDomain,
+		Topic:        req.Topic,
+		ClarityScore: &req.ClarityScore,
+		UpdatedAt:    time.Now(),
+	}, nil
 }
 
 func (f *fakeV4ChatStore) CandidateExperiencesForChat(ctx context.Context, userID string, scope model.ChatScopeContext, userMessage string, riskLevel string, limit int) ([]model.ChatCandidateExperience, error) {
@@ -173,6 +234,8 @@ type fakeChatGateway struct {
 	citations   []model.ChatCitationDecision
 	replyText   string
 	noteSuggest *model.ChatNoteSuggestion
+	classResult *model.ChatTopicClassificationResponse
+	gotClassify *model.ChatTopicClassificationRequest
 }
 
 func (f *fakeChatGateway) GenerateChatReply(ctx context.Context, req model.ChatGatewayRequest) (*model.ChatGatewayResponse, error) {
@@ -191,6 +254,17 @@ func (f *fakeChatGateway) GenerateChatReply(ctx context.Context, req model.ChatG
 		EmotionLevel:   "medium",
 		RiskLevel:      "normal",
 	}, nil
+}
+
+func (f *fakeChatGateway) ClassifyChatTopic(ctx context.Context, req model.ChatTopicClassificationRequest) (*model.ChatTopicClassificationResponse, error) {
+	f.gotClassify = &req
+	if f.fail {
+		return nil, errors.New("gateway failed")
+	}
+	if f.classResult != nil {
+		return f.classResult, nil
+	}
+	return &model.ChatTopicClassificationResponse{ClarityScore: 0.4, ShouldCreateTopic: false}, nil
 }
 
 func TestV4ChatTopicRoutesRequireAuth(t *testing.T) {
@@ -408,6 +482,79 @@ func TestV4ChatSendTempMessageUsesTempScope(t *testing.T) {
 	}
 	if len(store.addedMessages) == 0 || store.addedMessages[0].Scope.Kind != model.ChatScopeTempSession {
 		t.Fatalf("first saved message scope = %+v, want temp session", store.addedMessages)
+	}
+}
+
+func TestV4ChatSendTempMessageReturnsPromotedTopicWhenClassified(t *testing.T) {
+	r := gin.New()
+	clarity := 0.78
+	store := &fakeV4ChatStore{
+		promotedTopic: &model.ChatTopic{
+			ID:           "topic-promoted",
+			Status:       "active",
+			Title:        "工作里的不甘心",
+			Domain:       string(model.DomainWork),
+			SubDomain:    string(model.SubWorkComm),
+			Topic:        "和上级沟通",
+			ClarityScore: &clarity,
+			UpdatedAt:    time.Now(),
+		},
+	}
+	gateway := &fakeChatGateway{
+		classResult: &model.ChatTopicClassificationResponse{
+			ClarityScore:      clarity,
+			ShouldCreateTopic: true,
+			Title:             "工作里的不甘心",
+			Domain:            string(model.DomainWork),
+			SubDomain:         string(model.SubWorkComm),
+			TopicKeyword:      "和上级沟通",
+			Confidence:        0.82,
+		},
+	}
+	v1 := r.Group("/api/v1", func(c *gin.Context) {
+		c.Set("user_id", "user-1")
+	})
+	RegisterChatV4Routes(v1, store, gateway)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/api/v1/chat/temp-sessions/temp-1/messages", strings.NewReader(`{"content":"我觉得在会上被上级当众否定这事过不去"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", w.Code, w.Body.String())
+	}
+	if gateway.gotClassify == nil {
+		t.Fatal("topic classification was not called for temp-session reply")
+	}
+	if gateway.gotClassify.TempSessionID != "temp-1" || gateway.gotClassify.UserClickedNewTopic {
+		t.Fatalf("classify request = %+v, want temp-1 without forced new-topic bind", gateway.gotClassify)
+	}
+	if len(store.promoteRequests) != 1 {
+		t.Fatalf("promote requests = %d, want 1", len(store.promoteRequests))
+	}
+	if store.promoteRequests[0].Title != "工作里的不甘心" {
+		t.Fatalf("promote title = %q", store.promoteRequests[0].Title)
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body["session_state"] != "stable_topic" {
+		t.Fatalf("session_state = %+v, want stable_topic", body["session_state"])
+	}
+	promoted, ok := body["promoted_topic"].(map[string]any)
+	if !ok || promoted["id"] != "topic-promoted" {
+		t.Fatalf("promoted_topic = %+v, want topic-promoted", body["promoted_topic"])
+	}
+	assistant, ok := body["message"].(map[string]any)
+	if !ok || assistant["topic_id"] != "topic-promoted" || assistant["temp_session_id"] != nil {
+		t.Fatalf("assistant message scope = %+v, want promoted topic scope", body["message"])
+	}
+	userMessage, ok := body["user_message"].(map[string]any)
+	if !ok || userMessage["topic_id"] != "topic-promoted" || userMessage["temp_session_id"] != nil {
+		t.Fatalf("user message scope = %+v, want promoted topic scope", body["user_message"])
 	}
 }
 

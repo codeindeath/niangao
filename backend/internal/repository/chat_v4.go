@@ -418,6 +418,10 @@ func (r *ConversationRepo) AddChatMessage(ctx context.Context, userID string, re
 	if err != nil {
 		return nil, fmt.Errorf("marshal chat metadata: %w", err)
 	}
+	referencedExperienceIDs := req.ReferencedExperienceIDs
+	if referencedExperienceIDs == nil {
+		referencedExperienceIDs = []string{}
+	}
 
 	var topicID *string
 	var tempSessionID *string
@@ -448,7 +452,7 @@ func (r *ConversationRepo) AddChatMessage(ctx context.Context, userID string, re
 		status,
 		riskLevel,
 		strings.TrimSpace(req.ClientMessageID),
-		req.ReferencedExperienceIDs,
+		referencedExperienceIDs,
 		string(metadataBytes),
 	).Scan(
 		&message.ID,
@@ -510,6 +514,87 @@ func (r *ConversationRepo) RecentChatMessages(ctx context.Context, userID string
 	return descMessages, nil
 }
 
+func (r *ConversationRepo) PromoteTempSession(ctx context.Context, userID string, tempSessionID string, req model.PromoteChatTempSessionRequest) (*model.ChatTopic, error) {
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		title = "新的心事"
+	}
+	topicKeyword := strings.TrimSpace(req.Topic)
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin promote temp session: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var lockedID string
+	err = tx.QueryRow(ctx, `
+		SELECT id
+		FROM chat_temp_sessions
+		WHERE id=$1::uuid AND user_id=$2::uuid AND status='active'
+		FOR UPDATE`,
+		tempSessionID, userID,
+	).Scan(&lockedID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrExperienceUnavailable
+		}
+		return nil, fmt.Errorf("lock temp session for promotion: %w", err)
+	}
+
+	topic := &model.ChatTopic{}
+	err = tx.QueryRow(ctx, `
+		INSERT INTO chat_topics (
+		  user_id, title, domain, sub_domain, topic, clarity_score,
+		  last_opened_at, created_at, updated_at
+		)
+		VALUES ($1::uuid, $2, NULLIF($3, ''), NULLIF($4, ''), $5, $6, NOW(), NOW(), NOW())
+		RETURNING id, status, COALESCE(title, ''), COALESCE(domain, ''), COALESCE(sub_domain, ''),
+		          COALESCE(topic, ''), clarity_score, COALESCE(summary, ''), last_opened_at, created_at, updated_at`,
+		userID, title, strings.TrimSpace(req.Domain), strings.TrimSpace(req.SubDomain), topicKeyword, req.ClarityScore,
+	).Scan(
+		&topic.ID,
+		&topic.Status,
+		&topic.Title,
+		&topic.Domain,
+		&topic.SubDomain,
+		&topic.Topic,
+		&topic.ClarityScore,
+		&topic.Summary,
+		&topic.LastOpenedAt,
+		&topic.CreatedAt,
+		&topic.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create promoted chat topic: %w", err)
+	}
+
+	if _, err := tx.Exec(ctx, `
+		UPDATE chat_messages
+		SET topic_id=$3::uuid, temp_session_id=NULL
+		WHERE user_id=$1::uuid AND temp_session_id=$2::uuid`,
+		userID, tempSessionID, topic.ID); err != nil {
+		return nil, fmt.Errorf("move temp messages to topic: %w", err)
+	}
+
+	result, err := tx.Exec(ctx, `
+		UPDATE chat_temp_sessions
+		SET status='promoted', promoted_topic_id=$3::uuid, updated_at=NOW()
+		WHERE id=$1::uuid AND user_id=$2::uuid AND status='active'`,
+		tempSessionID, userID, topic.ID)
+	if err != nil {
+		return nil, fmt.Errorf("mark temp session promoted: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return nil, ErrExperienceUnavailable
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit promote temp session: %w", err)
+	}
+	return topic, nil
+}
+
 func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, userID string, scope model.ChatScopeContext, userMessage string, riskLevel string, limit int) ([]model.ChatCandidateExperience, error) {
 	if limit < 1 || limit > 10 {
 		limit = 5
@@ -528,7 +613,7 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 		         'collected'::text AS source_relation, COALESCE(e.visibility, 'public') AS visibility,
 		         COALESCE(e.quality_tier, 'public_visible') AS quality_tier,
 		         COALESCE(e.source_reliability, '') AS source_reliability,
-		         COALESCE(e.source_derivation_type, '') AS source_derivation_type,
+		         '' AS source_derivation_type,
 		         TRUE AS is_collected,
 		         c.created_at AS relation_time,
 		         2 AS source_priority,
@@ -538,7 +623,7 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 		  FROM experience_collections c
 		  JOIN experiences e ON e.id=c.experience_id
 		  LEFT JOIN users u ON u.id=e.owner_user_id
-		  WHERE c.user_id=$1::uuid AND c.deleted_at IS NULL
+		  WHERE c.user_id=$1::uuid AND c.status='active'
 		    AND COALESCE(e.lifecycle_status, 'active')='active'
 		    AND e.deleted_at IS NULL
 		  ORDER BY c.created_at DESC
@@ -549,10 +634,10 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 		         'own'::text AS source_relation, COALESCE(e.visibility, 'private') AS visibility,
 		         COALESCE(e.quality_tier, 'private_only') AS quality_tier,
 		         COALESCE(e.source_reliability, '') AS source_reliability,
-		         COALESCE(e.source_derivation_type, 'user_original') AS source_derivation_type,
+		         'user_original' AS source_derivation_type,
 		         EXISTS (
 		           SELECT 1 FROM experience_collections c
-		           WHERE c.user_id=$1::uuid AND c.experience_id=e.id AND c.deleted_at IS NULL
+		           WHERE c.user_id=$1::uuid AND c.experience_id=e.id AND c.status='active'
 		         ) AS is_collected,
 		         e.updated_at AS relation_time,
 		         1 AS source_priority,
@@ -573,7 +658,7 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 		         COALESCE(e.visibility, 'public') AS visibility,
 		         COALESCE(e.quality_tier, 'ai_citable') AS quality_tier,
 		         COALESCE(e.source_reliability, '') AS source_reliability,
-		         COALESCE(e.source_derivation_type, '') AS source_derivation_type,
+		         '' AS source_derivation_type,
 		         FALSE AS is_collected,
 		         e.updated_at AS relation_time,
 		         3 AS source_priority,

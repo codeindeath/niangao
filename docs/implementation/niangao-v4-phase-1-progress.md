@@ -1678,6 +1678,55 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-recommendation-session-cursor`
     - `git diff --check`
     - production SQL parse, public smoke, guest/authenticated recommendation cursor smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Chat temp-session promotion checks pass:
+  - AI service now supports `function_type=chat_topic_classify` with schema validation, taxonomy cleanup, low-score suppression, and `user_clicked_new_topic` bind prevention
+  - backend `SendChatMessageResponse` now returns `session_state` and optional `promoted_topic`
+  - after a temp-session assistant reply, backend calls `chat_topic_classify`; when `should_create_topic=true` and `clarity_score >= 0.65`, it creates a stable `chat_topics` row, moves all temp-session messages to `topic_id`, marks `chat_temp_sessions.status='promoted'`, and returns the promoted topic
+  - App Chat switches from `tempSessionId` to `activeTopic` when `promoted_topic` is present, sends follow-up messages through `/api/v1/chat/topics/:id/messages`, and records immediate citation show events with `topic_id`
+  - production smoke exposed and fixed three drift bugs before acceptance:
+    - citation-free chat messages now persist `referenced_experience_ids` as an empty `uuid[]` instead of NULL
+    - chat candidate retrieval no longer requires future `experiences.source_derivation_type`
+    - chat candidate retrieval now uses V4 `experience_collections.status='active'` instead of legacy `deleted_at`
+  - Linux backend artifact `/tmp/niangao-backend-v4-chat-topic-promotion` was deployed to production after the final drift fix at `/root/niangao/deployments/20260527045328/server`
+  - production backend binary hash now matches the final local chat-topic-promotion artifact:
+    - `b41b889888fb237dbdbaa6f230b0b66403e136358673e5035777f951e9eafce3`
+  - production backups were created before replacement:
+    - `/root/niangao/backups/ai-service.before-v4-chat-topic-promotion.20260527044024.tgz`
+    - `/root/niangao/backups/server.before-v4-chat-topic-promotion.20260527044024.backend`
+    - `/root/niangao/backups/server.before-v4-chat-message-empty-refs.20260527044645.backend`
+    - `/root/niangao/backups/server.before-v4-chat-candidate-schema-drift.20260527045034.backend`
+    - `/root/niangao/backups/server.before-v4-chat-candidate-collection-status.20260527045328.backend`
+  - production SQL parse checks passed for the temp-session promotion lock/create/move/mark statements
+  - production AI Gateway direct `chat_topic_classify` smoke returned 200 with `function_type=chat_topic_classify`, `clarity_score=0.7`, `should_create_topic=True`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/ai/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410
+  - post-deploy authenticated chat promotion smoke passed with a temporary JWT user:
+    - create temp session -> 201
+    - first focused temp-session message -> 200, `session_state=stable_topic`, `promoted_topic` present
+    - database promotion verification -> `1|2|0|promoted` for topic row, moved messages, no remaining temp-scoped messages, promoted temp session
+    - cleanup verification -> `0` temporary smoke users remaining
+  - post-deploy backend/AI journal scans after the final smoke window found no panic, fatal error, permission-denied error, traceback, failed candidate-query drift, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestV4ChatSendTempMessageReturnsPromotedTopicWhenClassified' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestPromoteTempSessionCreatesTopicAndMovesMessages' -count=1 -v` (RED confirmed before implementation)
+    - `cd ai-service && ./venv/bin/python -m pytest tests/test_gateway.py -q -k topic_classify` (RED confirmed before implementation)
+    - `cd mobile && npm run test -- ChatScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/ai -run TestClassifyChatTopicAcceptsNullCandidateTopicID -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestAddChatMessageStoresEmptyReferenceArrayForMessagesWithoutCitations|TestChatCandidateQueryDoesNotRequireFutureSourceDerivationColumn|TestChatCandidateQueryUsesV4CollectionStatus' -count=1 -v` (RED confirmed for each production-smoke drift)
+    - `./scripts/backend-test.sh`
+    - `cd ai-service && ./venv/bin/python -m pytest -q`
+    - `cd ai-service && ./venv/bin/ruff check .`
+    - `cd mobile && npm run test -- --runInBand` (23 suites, 113 tests)
+    - `cd mobile && npm run typecheck`
+    - `cd mobile && env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `cd scripts && python3 -m unittest test_ai_golden_set.py test_eval_deepseek_prompts.py`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-chat-topic-promotion`
+    - `git diff --check`
+    - production SQL parse, AI Gateway classify smoke, public smoke, authenticated temporary JWT chat-promotion smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

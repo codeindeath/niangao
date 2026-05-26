@@ -256,6 +256,93 @@ Run repo helper scripts from `/Users/swt/projects/niangao`, or use paths relativ
 **Logged**: 2026-05-27T00:18:00+08:00
 **Priority**: medium
 **Status**: resolved
+## [ERR-20260527-010] production_chat_message_nil_reference_array
+
+**Logged**: 2026-05-27T04:45:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Production chat smoke exposed that user chat messages without citations passed a nil Go slice into `referenced_experience_ids`, violating the production NOT NULL `uuid[]` column.
+
+### Error
+```
+ERROR: null value in column "referenced_experience_ids" of relation "chat_messages" violates not-null constraint (SQLSTATE 23502)
+```
+
+### Context
+- `POST /api/v1/chat/temp-sessions/:id/messages` saved a user message with no referenced experiences.
+- `AddChatMessage` passed `req.ReferencedExperienceIDs` directly to `$9::uuid[]`; when nil, PostgreSQL received NULL instead of the default empty array.
+- The table definition requires `referenced_experience_ids UUID[] NOT NULL DEFAULT '{}'`.
+
+### Suggested Fix
+Normalize nil `ReferencedExperienceIDs` to `[]string{}` before executing the insert, and keep a regression test so citation-free chat messages persist an empty UUID array.
+
+### Metadata
+- Reproducible: yes
+- Related Files: backend/internal/repository/chat_v4.go, backend/migrations/017_v4_core_foundation.sql
+
+---
+
+## [ERR-20260527-011] production_chat_candidate_future_column_drift
+
+**Logged**: 2026-05-27T04:49:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Production chat smoke showed the chat candidate query referenced a future content-production field that is not present in the deployed V4 schema.
+
+### Error
+```
+ERROR: column e.source_derivation_type does not exist (SQLSTATE 42703)
+```
+
+### Context
+- The chat reply still degraded and returned 200 because candidate retrieval errors are non-fatal.
+- Missing candidates would prevent 聊聊 from citing relevant reference experiences.
+- Migration 017 includes `source_reliability` but does not add `experiences.source_derivation_type`.
+
+### Suggested Fix
+Do not directly reference future columns in active App-facing queries. Emit a compatible fallback value in the candidate payload until the content-production schema is introduced.
+
+### Metadata
+- Reproducible: yes
+- Related Files: backend/internal/repository/chat_v4.go, backend/migrations/017_v4_core_foundation.sql
+
+---
+
+## [ERR-20260527-012] production_chat_candidate_collection_status_drift
+
+**Logged**: 2026-05-27T04:52:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Production chat candidate retrieval used a legacy soft-delete predicate on `experience_collections`, but the V4 collection table uses `status`.
+
+### Error
+```
+ERROR: column c.deleted_at does not exist (SQLSTATE 42703)
+```
+
+### Context
+- The authenticated chat promotion smoke returned 200 because candidate retrieval is non-fatal.
+- Backend logs showed the candidate query failed before AI citation candidates could be passed into the chat gateway.
+- Migration 017 defines `experience_collections.status` with values `active` and `removed`, plus `removed_at`.
+
+### Suggested Fix
+Use `experience_collections.status='active'` in App-facing V4 queries. Avoid legacy `deleted_at` assumptions for V4 interaction tables.
+
+### Metadata
+- Reproducible: yes
+- Related Files: backend/internal/repository/chat_v4.go, backend/migrations/017_v4_core_foundation.sql
+
+---
+
 **Area**: deployment
 
 ### Summary
