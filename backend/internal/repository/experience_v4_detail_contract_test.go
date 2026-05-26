@@ -62,8 +62,9 @@ func TestExperienceDetailUsesV4VisibilityLifecycleGate(t *testing.T) {
 	body := text[start : start+end]
 
 	for _, want := range []string{
-		"COALESCE(e.visibility, CASE WHEN e.is_private THEN 'private' ELSE 'public' END) = 'public'",
-		"COALESCE(e.lifecycle_status, CASE WHEN e.deleted_at IS NOT NULL THEN 'deleted' WHEN e.review_status = 'pending' THEN 'needs_review' ELSE 'active' END) = 'active'",
+		"e.visibility = 'public'",
+		"e.lifecycle_status = 'active'",
+		"e.lifecycle_status <> 'deleted'",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("GetByID public visibility gate should use V4 condition %q", want)
@@ -71,6 +72,8 @@ func TestExperienceDetailUsesV4VisibilityLifecycleGate(t *testing.T) {
 	}
 	for _, legacy := range []string{
 		"e.status = 'published' AND e.review_status = 'approved' AND e.is_private = FALSE",
+		"COALESCE(e.visibility, CASE WHEN e.is_private THEN 'private' ELSE 'public' END) = 'public'",
+		"COALESCE(e.lifecycle_status, CASE WHEN e.deleted_at IS NOT NULL THEN 'deleted' WHEN e.review_status = 'pending' THEN 'needs_review' ELSE 'active' END) = 'active'",
 	} {
 		if strings.Contains(body, legacy) {
 			t.Fatalf("GetByID public visibility gate should not use legacy condition %q", legacy)

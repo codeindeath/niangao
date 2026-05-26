@@ -1912,6 +1912,31 @@ Current result:
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-me-stats-lifecycle`
     - production SQL parse, authenticated temporary JWT 我的 smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Detail V4 canonical visibility/lifecycle gate checks pass:
+  - `GET /api/v1/experiences/:id` now uses V4 `e.visibility='public'` and `e.lifecycle_status='active'` for guest/public access instead of deriving public/active from legacy fields
+  - owner detail access now requires `e.lifecycle_status <> 'deleted'`, so lifecycle-deleted rows are not readable even when `deleted_at` is still null
+  - repository contract coverage now prevents `GetByID` from reintroducing legacy visibility/lifecycle fallback conditions
+  - the Phase 1 contract doc now records V4 canonical detail visibility semantics for guests and logged-in owners
+  - Linux backend artifact `/tmp/niangao-backend-v4-detail-gate-canonical` was deployed to production at `/root/niangao/deployments/20260527060734/server`
+  - production backend binary hash now matches the local detail-gate-canonical artifact:
+    - `0453126c83390626dad12546bb0d992c452e11391abe754ff46fb3c0e5d86370`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-detail-gate-canonical.20260527060734.backend`
+  - production SQL parse check passed for the updated detail visibility gate
+  - post-deploy detail smoke passed with temporary JWT users and cleanup:
+    - public active detail as guest -> 200
+    - private active detail as guest -> 404
+    - private active detail as owner -> 200
+    - lifecycle-deleted detail as owner -> 404
+    - cleanup verification -> `0|0` for temporary users and temporary experiences
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, detail failure, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestExperienceDetailUsesV4VisibilityLifecycleGate -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestExperienceDetailUsesV4VisibilityLifecycleGate -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -count=1`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-detail-gate-canonical`
+    - production SQL parse, authenticated temporary JWT detail smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

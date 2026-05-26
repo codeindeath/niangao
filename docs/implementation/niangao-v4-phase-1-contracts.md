@@ -171,8 +171,8 @@ GET /api/v1/experiences/:id
 Auth:
 
 - Optional.
-- Guests can read public active approved experiences.
-- Logged-in users can read their own experiences by `COALESCE(owner_user_id, author_id)=current_user`, including private and needs-review items.
+- Guests can read V4 `visibility=public` and `lifecycle_status=active` experiences.
+- Logged-in users can read their own non-deleted experiences by `COALESCE(owner_user_id, author_id)=current_user`, including private and needs-review items.
 
 Response behavior:
 
