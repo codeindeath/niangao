@@ -475,7 +475,7 @@ Current result:
     - `git diff --check`
 - Simulator runtime checks resumed after mac interaction access was enabled:
   - heartbeat automation `niangao-v4-overnight-continuation` is active at `FREQ=MINUTELY;INTERVAL=30`; the cadence is only for interruption recovery, and normal work should continue task-to-task without waiting
-  - production migrations, deployments, or data mutations are authorized for the active development plan; they still require backup, migration, deploy, smoke, cleanup, and rollback gates
+  - earlier active-thread authorization allowed production migrations, deployments, or data mutations for this checkpoint; this has since been superseded by the current rule requiring explicit active-thread confirmation for each future production action
   - iOS Simulator can be controlled through direct CGEvent taps and screenshots
   - Metro/dev build launches the App and renders the selected login page
   - login page copy/actions are present: `年糕`, `生活有态度`, `Apple登录`, `先看看`, and dev-only `开发模拟登录`
@@ -581,7 +581,7 @@ Current result:
     - `git diff --check`
 - Production V4 backend/AI deployment checks pass:
   - production V4 backend/AI deployment has already been applied in a previous checkpoint
-  - the active thread now authorizes continuing production deployment/mutation as needed to complete the App/backend plan; each mutation still needs backups, repeatable migration checks, deployment gates, smoke checks, cleanup, and rollback readiness
+  - this checkpoint used earlier active-thread authorization for production deployment/mutation; this has since been superseded by the current rule requiring explicit active-thread confirmation for each future production action
   - built Linux backend artifact on this Mac and uploaded it to `/root/niangao/deployments/20260526123834/server`
   - created production backups before applying changes:
     - `/root/niangao/backups/server.before-v4.20260526123834`
@@ -1040,12 +1040,12 @@ Not verified yet:
 Next implementation slice should be:
 
 1. Continue App/backend production hardening after authenticated runtime smoke, focusing on remaining weak-network/empty/error states and any App/backend contract mismatches found by static scans or simulator checks.
-2. Prepare or deploy the next backend checkpoint after hardening changes pass backend, mobile, AI, and smoke gates.
+2. Prepare the next deployable backend checkpoint after hardening changes pass backend, mobile, AI, and smoke gates; deploy only after explicit active-thread confirmation for that exact action.
 3. Continue the development plan task-to-task until the App/backend plan and deployment are complete.
 
 ## 5. Remaining Risks
 
-- Migration 017 has been applied to production and application-role grants have been fixed after smoke testing exposed missing grants. Production migrations, deployments, and temporary production data mutations are authorized within the active V4 App/backend plan when needed, but each must include backup or rollback readiness, repeatable migration/deploy gates, smoke checks, cleanup of temporary data, and backend/AI log scans.
+- Migration 017 has been applied to production and application-role grants have been fixed after smoke testing exposed missing grants; do not apply any further production migrations, deployments, or production data mutations without explicit active-thread user confirmation for that exact action. If confirmed, use backup or rollback readiness, repeatable migration/deploy gates, smoke checks, cleanup of temporary data, and backend/AI log scans.
 - New model fields are present, and active legacy experience readers now share V4 select/scan coverage. `SearchByEmbedding` still has a narrow manual scanner but remains a TODO path because pgvector embedding search is unavailable.
 - V4 feed and related App endpoints are now deployed; production `dev-login` remains unavailable by design because the backend is running in production mode.
 - Legacy `likes` and `bookmarks` still exist; they are compatibility sources until the new interaction endpoints are implemented and data parity is confirmed.
