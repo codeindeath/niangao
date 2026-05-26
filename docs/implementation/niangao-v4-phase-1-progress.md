@@ -1417,6 +1417,16 @@ Current result:
     - `git diff --check`
     - production public and authenticated temporary JWT smoke checks
     - backend/AI `journalctl` severe-error scans
+- Chat retry expired-auth weak-state hardening checks pass:
+  - when an assistant retry hits a 401 after the original AI reply failed, the failed assistant bubble is no longer left blank with only an ellipsis
+  - the App now clears expired auth, routes to login, and replaces the retry bubble with `登录状态过期了，重新登录后可以继续聊。`
+  - this was a mobile-only runtime-state fix; no backend artifact or production deployment was needed
+  - verification:
+    - `npm run test -- ChatScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation, then GREEN after implementation)
+    - `npm run test -- ChatScreen.test.tsx authGate.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (22 suites, 105 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 

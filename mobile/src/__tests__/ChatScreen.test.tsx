@@ -209,4 +209,30 @@ describe('ChatScreen', () => {
     expect(await findByText('抱歉，对话服务暂时不可用，请稍后再试。')).toBeTruthy();
     expect(await findByText('重试')).toBeTruthy();
   });
+
+  it('replaces a failed retry bubble with expired-auth copy when retry returns 401', async () => {
+    const parentNavigation = {navigate: jest.fn()};
+    const navigation = {
+      ...makeNavigation(),
+      getParent: jest.fn(() => parentNavigation),
+    };
+    (api.sendTempChatMessage as jest.Mock)
+      .mockRejectedValueOnce(new Error('gateway timeout'))
+      .mockRejectedValueOnce({status: 401});
+
+    const {findByText, getByPlaceholderText, getByText} = render(<ChatScreen navigation={navigation} />);
+    expect(await findByText('我在。你可以从任何一点开始说，不用先想清楚。')).toBeTruthy();
+
+    fireEvent.changeText(getByPlaceholderText('输入你想聊的...'), '我今天很乱');
+    fireEvent.press(getByText('发送'));
+
+    expect(await findByText('抱歉，对话服务暂时不可用，请稍后再试。')).toBeTruthy();
+    fireEvent.press(getByText('重试'));
+
+    await waitFor(() => {
+      expect(config.clearToken).toHaveBeenCalled();
+      expect(parentNavigation.navigate).toHaveBeenCalledWith('login');
+    });
+    expect(await findByText('登录状态过期了，重新登录后可以继续聊。')).toBeTruthy();
+  });
 });

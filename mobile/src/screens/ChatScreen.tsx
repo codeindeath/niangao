@@ -292,7 +292,16 @@ export default function ChatScreen({navigation}: any) {
         ),
       );
     } catch (err: any) {
-      if (handleAuthExpired(err)) return;
+      if (handleAuthExpired(err)) {
+        setMessages(prev => prev.map(m => m.id === item.id ? {
+          ...m,
+          content: '登录状态过期了，重新登录后可以继续聊。',
+          failed: false,
+          retryText: undefined,
+          clientMessageId: undefined,
+        } : m));
+        return;
+      }
       setMessages(prev => prev.map(m => m.id === item.id ? {
         ...m,
         content: '还是没连上。你这条消息已经保留了，可以稍后再试。',
