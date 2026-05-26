@@ -71,6 +71,33 @@ func TestV4RecommendQueryKeepsPublicRecommendFilterIndexable(t *testing.T) {
 	}
 }
 
+func TestV4SearchQueryUsesV4VisibilityLifecycleGate(t *testing.T) {
+	required := []string{
+		"e.visibility = 'public'",
+		"e.lifecycle_status = 'active'",
+		"e.quality_tier IN ('public_visible', 'recommend_candidate', 'ai_citable', 'high_trust')",
+		"COALESCE(e.owner_user_id, e.author_id) = NULLIF($1, '')::uuid",
+		"e.lifecycle_status <> 'deleted'",
+	}
+
+	for _, fragment := range required {
+		if !strings.Contains(searchExperiencesQuery, fragment) {
+			t.Fatalf("search query should include V4 visibility/lifecycle gate fragment %q", fragment)
+		}
+	}
+
+	forbidden := []string{
+		"COALESCE(e.visibility, 'public') = 'public'",
+		"COALESCE(e.lifecycle_status, 'active') = 'active'",
+		"COALESCE(e.lifecycle_status, 'active') <> 'deleted'",
+	}
+	for _, fragment := range forbidden {
+		if strings.Contains(searchExperiencesQuery, fragment) {
+			t.Fatalf("search query should not use fallback V4 gate fragment %q", fragment)
+		}
+	}
+}
+
 func TestRecommendationCursorRoundTrip(t *testing.T) {
 	cursor := formatRecommendationCursor("11111111-1111-4111-8111-111111111111", 20)
 	sessionID, offset, ok := parseRecommendationCursor(cursor)

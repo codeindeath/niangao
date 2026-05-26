@@ -1775,6 +1775,34 @@ Current result:
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-me-stats-visibility`
     - production SQL parse, public smoke, authenticated temporary JWT 我的 stats smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Search V4 visibility/lifecycle gate checks pass:
+  - `GET /api/v1/search/experiences` public eligibility now uses V4 `e.visibility='public'`, `e.lifecycle_status='active'`, and V4 `quality_tier` directly instead of fallback `COALESCE` public/active predicates
+  - authenticated owner search still allows the user's own non-deleted private experiences through an explicit owner branch guarded by `e.lifecycle_status <> 'deleted'`
+  - repository contract coverage now prevents search from reintroducing fallback public/lifecycle gate fragments
+  - Linux backend artifact `/tmp/niangao-backend-v4-search-gate` was deployed to production at `/root/niangao/deployments/20260527052556/server`
+  - production backend binary hash now matches the local search-gate artifact:
+    - `4b73368d3c8102be98c4f5c4f5cf6e4ca5f7d9eadf82043a238f494a84eb01e0`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-search-gate.20260527052556.backend`
+  - production SQL parse check passed for the updated search query
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410
+  - post-deploy authenticated search smoke passed with a temporary JWT user and cleanup:
+    - private temp experience create -> 201
+    - public search for the unique private content -> 200 and did not include the private experience
+    - authenticated owner search for the same unique content -> 200 and included the private experience
+    - cleanup verification -> `0|0` for temporary user and temp experience content
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, search failure, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestV4SearchQueryUsesV4VisibilityLifecycleGate -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestV4SearchQueryUsesV4VisibilityLifecycleGate -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -count=1`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-search-gate`
+    - production SQL parse, public smoke, authenticated temporary JWT search visibility smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

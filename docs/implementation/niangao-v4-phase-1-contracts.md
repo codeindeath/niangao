@@ -397,6 +397,7 @@ Behavior:
 - Search dimensions: content, creator_display_name, domain/sub_domain, topic, situation words.
 - Public search returns public_visible and above.
 - User-owned private search is allowed only in own scope when logged in.
+- Public search eligibility uses V4 `visibility`, `lifecycle_status`, and `quality_tier` facts directly; legacy fallback predicates must not drive the public gate.
 - Empty result does not show hot search or suggestions.
 
 ## 7. 聊聊

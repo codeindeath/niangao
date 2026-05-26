@@ -48,11 +48,14 @@ const searchExperiencesQuery = `
   WHERE e.deleted_at IS NULL
     AND (
       (
-        COALESCE(e.visibility, 'public') = 'public'
-        AND COALESCE(e.lifecycle_status, 'active') = 'active'
-        AND COALESCE(e.quality_tier, 'public_visible') IN ('public_visible', 'recommend_candidate', 'ai_citable', 'high_trust')
+        e.visibility = 'public'
+        AND e.lifecycle_status = 'active'
+        AND e.quality_tier IN ('public_visible', 'recommend_candidate', 'ai_citable', 'high_trust')
       )
-      OR COALESCE(e.owner_user_id, e.author_id) = NULLIF($1, '')::uuid
+      OR (
+        COALESCE(e.owner_user_id, e.author_id) = NULLIF($1, '')::uuid
+        AND e.lifecycle_status <> 'deleted'
+      )
     )
     AND (
       e.content ILIKE $2

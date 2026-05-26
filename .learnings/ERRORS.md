@@ -623,9 +623,10 @@ go: cannot find main module, but found .git/config in /Users/swt/projects/nianga
 - The backend Go module lives under `/Users/swt/projects/niangao/backend`.
 - `go test ./internal/repository ...` must be run from `backend/`, while repo-root paths are only valid for shell scripts that handle their own working directory.
 - Rerunning the same command from `backend/` passed.
+- The same path rule applies to `gofmt`: use repo-root paths from the repository root, or backend-relative paths from `backend/`.
 
 ### Suggested Fix
-Run raw backend Go package tests with `workdir=/Users/swt/projects/niangao/backend`. Use repo root only for project scripts such as `./scripts/backend-test.sh`.
+Run raw backend Go package tests with `workdir=/Users/swt/projects/niangao/backend`. For `gofmt`, keep paths aligned with the selected working directory. Use repo root only for project scripts such as `./scripts/backend-test.sh`.
 
 ### Metadata
 - Reproducible: yes
