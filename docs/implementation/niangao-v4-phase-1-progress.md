@@ -1301,6 +1301,64 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `rg -n "/api/v1/experiences/\\$\\{experienceId\\}/view|/api/v1/experiences/.*/view|console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
     - `git diff --check`
+- Backend detail interaction state and legacy list-route cleanup checks pass:
+  - V4 detail responses now derive `is_liked` / `is_bookmarked` from `experience_inspirations` and active `experience_collections`, so App-normalized `is_inspired` / `is_collected` matches the V4 action tables
+  - old `GET /api/v1/experiences` App-facing list route now returns `410 deprecated_endpoint` instead of serving the legacy list/query path
+  - removed unused backend legacy list code:
+    - `ExperienceHandler.List`
+    - `interleaveByCreator`
+    - `ExperienceRepo.List`
+    - stale `ExperienceListQuery`
+    - stale legacy repository integration test file that still referenced removed old list/recommend/author methods
+  - removed unused mobile `fetchExperiences`, and contract coverage now prevents mobile source from calling `/api/v1/experiences?`
+  - Linux backend artifact `/tmp/niangao-backend-v4-detail-interaction-cleanup` was deployed to production at `/root/niangao/deployments/20260527021210/server`
+  - production backend binary hash now matches the local detail-interaction-cleanup artifact:
+    - `bc8289495479bfb9c5666e16977cdf66edcddbb59208a4381584ed8d30b346a2`
+  - production binary backups were created before replacement:
+    - `/root/niangao/backups/server.before-v4-detail-interaction-cleanup.20260527021210`
+    - `/root/niangao/backups/server.before-v4-detail-interaction-cleanup.20260527021210.backend`
+  - deployment note:
+    - systemd runs `/root/niangao/backend/server`, so the verified artifact must be installed there, not only `/root/niangao/server`
+    - replacing the running binary should use `/root/niangao/backend/server.new`, stop service, `mv -f`, then start service to avoid `Text file busy`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences/recommend` -> 410 `deprecated_endpoint`
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410 `deprecated_endpoint`
+  - post-deploy authenticated V4 smoke passed with temporary JWT users and cleanup:
+    - `GET /api/v1/me/profile` -> 200
+    - `GET /api/v1/me/stats/assets` -> 200
+    - `GET /api/v1/feed/mine?limit=1` -> 200
+    - `POST /api/v1/chat/temp-sessions` -> 201
+    - create private temp experience -> 201
+    - inspire temp experience -> 200
+    - collect temp experience -> 200
+    - detail temp experience -> 200 with `is_liked=true` and `is_bookmarked=true`
+    - cleanup verification -> `0|0` for temporary users/sessions/experiences
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, or 5xx matches
+  - workflow hardening from this slice:
+    - production backend deploy target must be confirmed from `systemctl cat niangao-backend`
+    - production smoke cleanup should run DELETE statements and remaining-row SELECT verification as separate SQL statements
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestExperienceDetailUsesV4InteractionTables -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestDeprecatedExperienceAppRoutesReturnGone|TestDeprecatedExperienceHandlerMethodsAreRemoved' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestDeprecatedExperienceRepositoryMethodsAreRemoved -count=1 -v` (RED confirmed before implementation)
+    - `npm run test -- apiContract.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestDeprecatedExperienceAppRoutesReturnGone|TestDeprecatedExperienceHandlerMethodsAreRemoved|TestV4ExperienceRewrite|TestExperienceCreateRequiresAuth' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestDeprecatedExperienceRepositoryMethodsAreRemoved|TestExperienceDetailUsesV4InteractionTables|TestExperienceSelectColsExposeV4DetailOwnershipFields|TestV4FeedQueriesExposeOwnerUserID|TestV4RecommendQuery' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/model -run 'TestV4|TestChatRequestValidation|TestMessageRoleValues' -count=1 -v`
+    - `npm run test -- apiContract.test.ts apiFeed.test.ts --runInBand --no-cache`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-detail-interaction-cleanup`
+    - `npm run test -- --runInBand` (22 suites, 104 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `rg -n "func \\(h \\*ExperienceHandler\\) List\\(|func interleaveByCreator\\(|func \\(r \\*ExperienceRepo\\) List\\(|ExperienceListQuery|fetchExperiences\\(|/api/v1/experiences\\?" backend/internal mobile/src mobile/App.tsx --glob '!**/*_test.go' --glob '!mobile/src/__tests__/**' --glob '!**/*.test.ts'`
+    - `rg -n "/api/v1/experiences/recommend|/api/v1/me/bookmarks|/api/v1/me/experiences|/api/v1/user/profile|/api/v1/user/stats|/api/v1/chat/send|/api/v1/experiences/\\$\\{id\\}/(view|like|bookmark)|/api/v1/experiences\\?" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+    - `git diff --check`
+    - production public and authenticated temporary JWT smoke checks
+    - backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

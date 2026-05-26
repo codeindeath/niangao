@@ -24,27 +24,24 @@ func TestExperienceSelectColsExposeV4DetailOwnershipFields(t *testing.T) {
 	}
 }
 
-func TestExperienceListUsesSharedV4Scanner(t *testing.T) {
-	source, err := os.ReadFile("experience.go")
-	if err != nil {
-		t.Fatalf("read experience.go: %v", err)
+func TestExperienceDetailUsesV4InteractionTables(t *testing.T) {
+	for _, want := range []string{
+		"experience_collections",
+		"experience_inspirations",
+		"ec.status = 'active'",
+	} {
+		if !strings.Contains(experienceLikedBookmark, want) {
+			t.Fatalf("detail interaction state should use V4 table/query fragment %q", want)
+		}
 	}
-	text := string(source)
-	listStart := strings.Index(text, "func (r *ExperienceRepo) List(")
-	if listStart < 0 {
-		t.Fatal("ExperienceRepo.List not found")
-	}
-	listEnd := strings.Index(text[listStart:], "func (r *ExperienceRepo) Update(")
-	if listEnd < 0 {
-		t.Fatal("ExperienceRepo.List end marker not found")
-	}
-	listBody := text[listStart : listStart+listEnd]
 
-	if !strings.Contains(listBody, "scanExperience(rows, &e)") {
-		t.Fatal("ExperienceRepo.List should reuse scanExperience so V4 select columns and scan order cannot drift")
-	}
-	if strings.Contains(listBody, "rows.Scan(") {
-		t.Fatal("ExperienceRepo.List should not maintain a separate manual rows.Scan field list")
+	for _, legacy := range []string{
+		" FROM likes ",
+		" FROM bookmarks ",
+	} {
+		if strings.Contains(experienceLikedBookmark, legacy) {
+			t.Fatalf("detail interaction state should not use legacy interaction table fragment %q", legacy)
+		}
 	}
 }
 

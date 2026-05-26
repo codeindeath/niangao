@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"log"
-	"math/rand"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/niangao/backend/internal/middleware"
@@ -33,7 +31,7 @@ func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.Experience
 
 	exp := r.Group("/experiences")
 	{
-		exp.GET("", h.List)
+		exp.GET("", deprecatedMobileEndpoint)
 		exp.GET("/recommend", deprecatedMobileEndpoint)
 		exp.GET("/:id", h.Get)
 		exp.POST("/rewrite", middleware.RequireAuth(), h.Rewrite)
@@ -136,34 +134,6 @@ func (h *ExperienceHandler) Rewrite(c *gin.Context) {
 		"reason":              result.Reason,
 		"confidence":          result.Confidence,
 		"warnings":            result.Warnings,
-	})
-}
-
-func (h *ExperienceHandler) List(c *gin.Context) {
-	var query model.ExperienceListQuery
-	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "查询参数错误"})
-		return
-	}
-
-	viewerStr := getOptionalUserID(c)
-
-	experiences, total, err := h.repo.List(c.Request.Context(), query, viewerStr)
-	if err != nil {
-		log.Printf("ERROR List: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list experiences"})
-		return
-	}
-
-	// Round-robin to break creator clustering (only for default/latest sort)
-	if query.Sort == "" || query.Sort == "latest" {
-		experiences = interleaveByCreator(experiences)
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"data":  experiences,
-		"total": total,
-		"page":  query.Page,
 	})
 }
 
@@ -377,57 +347,4 @@ func (h *ExperienceHandler) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
-}
-
-// interleaveByCreator distributes experiences round-robin by creator.
-// Items are grouped by creator, then taken one from each bucket in random order.
-// Within each bucket, items keep their original order (already sorted by score).
-func interleaveByCreator(experiences []model.Experience) []model.Experience {
-	if len(experiences) <= 1 {
-		return experiences
-	}
-
-	// 1. Group by creator
-	buckets := make(map[string][]model.Experience)
-	var creatorOrder []string
-	for _, e := range experiences {
-		creator := ""
-		if e.CreatorName != nil {
-			creator = *e.CreatorName
-		}
-		if _, ok := buckets[creator]; !ok {
-			creatorOrder = append(creatorOrder, creator)
-		}
-		buckets[creator] = append(buckets[creator], e)
-	}
-
-	if len(buckets) <= 1 {
-		return experiences
-	}
-
-	// 2. Shuffle creator order for variety
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	rng.Shuffle(len(creatorOrder), func(i, j int) {
-		creatorOrder[i], creatorOrder[j] = creatorOrder[j], creatorOrder[i]
-	})
-
-	// 3. Round-robin: take one from each bucket
-	result := make([]model.Experience, 0, len(experiences))
-	indices := make(map[string]int)
-	for {
-		added := false
-		for _, creator := range creatorOrder {
-			bucket := buckets[creator]
-			if indices[creator] < len(bucket) {
-				result = append(result, bucket[indices[creator]])
-				indices[creator]++
-				added = true
-			}
-		}
-		if !added {
-			break
-		}
-	}
-
-	return result
 }

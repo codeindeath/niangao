@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -188,8 +187,8 @@ const experienceSelectCols = `e.id, e.author_id, COALESCE(e.owner_user_id, e.aut
 		e.status, e.created_at, e.updated_at, e.random_sort,
 		u.nickname, u.avatar_url, u.title as author_title`
 
-const experienceLikedBookmark = `EXISTS(SELECT 1 FROM likes WHERE user_id=$2 AND experience_id=e.id) as is_liked,
-		EXISTS(SELECT 1 FROM bookmarks WHERE user_id=$2 AND experience_id=e.id) as is_bookmarked`
+const experienceLikedBookmark = `EXISTS(SELECT 1 FROM experience_inspirations ei WHERE ei.user_id=$2 AND ei.experience_id=e.id) as is_liked,
+		EXISTS(SELECT 1 FROM experience_collections ec WHERE ec.user_id=$2 AND ec.experience_id=e.id AND ec.status = 'active') as is_bookmarked`
 
 const updateExperienceQuery = `UPDATE experiences
 		 SET content=$1,
@@ -252,78 +251,6 @@ func (r *ExperienceRepo) GetByIDForAdmin(ctx context.Context, id string) (*model
 		return nil, fmt.Errorf("get admin experience: %w", err)
 	}
 	return exp, nil
-}
-
-func (r *ExperienceRepo) List(ctx context.Context, query model.ExperienceListQuery, viewerID string) ([]model.Experience, int, error) {
-	if query.Page < 1 {
-		query.Page = 1
-	}
-	if query.PageSize < 1 || query.PageSize > 50 {
-		query.PageSize = 20
-	}
-
-	var conditions []string
-	var args []interface{}
-	idx := 1
-
-	conditions = append(conditions, "e.status = 'published' AND e.review_status = 'approved' AND e.is_private = FALSE AND e.deleted_at IS NULL")
-	if query.Domain != "" {
-		conditions = append(conditions, fmt.Sprintf("e.domain = $%d", idx))
-		args = append(args, string(query.Domain))
-		idx++
-	}
-	if query.Search != "" {
-		conditions = append(conditions, fmt.Sprintf("(e.content ILIKE $%d OR e.creator_name ILIKE $%d OR u.nickname ILIKE $%d)", idx, idx+1, idx+2))
-		args = append(args, "%"+query.Search+"%", "%"+query.Search+"%", "%"+query.Search+"%")
-		idx += 3
-	}
-
-	whereClause := strings.Join(conditions, " AND ")
-
-	// Count
-	var total int
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM experiences e LEFT JOIN users u ON u.id = e.author_id WHERE %s", whereClause)
-	if err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("count: %w", err)
-	}
-
-	// Order
-	orderClause := "e.created_at DESC"
-	if query.Sort == "popular" {
-		orderClause = "e.like_count DESC, e.created_at DESC"
-	}
-
-	selectQuery := fmt.Sprintf(
-		`SELECT %s, %s
-		 FROM experiences e
-		 LEFT JOIN users u ON u.id = e.author_id
-		 WHERE %s ORDER BY %s LIMIT $%d OFFSET $%d`,
-		experienceSelectCols, fmt.Sprintf(`EXISTS(SELECT 1 FROM likes WHERE user_id=$%d AND experience_id=e.id) as is_liked,
-		EXISTS(SELECT 1 FROM bookmarks WHERE user_id=$%d AND experience_id=e.id) as is_bookmarked`, idx, idx+1),
-		whereClause, orderClause, idx+2, idx+3,
-	)
-
-	if viewerID == "" {
-		viewerID = nilUUID
-	}
-	args = append(args, viewerID, viewerID, query.PageSize, (query.Page-1)*query.PageSize)
-
-	rows, err := r.db.Query(ctx, selectQuery, args...)
-	if err != nil {
-		return nil, 0, fmt.Errorf("list: %w", err)
-	}
-	defer rows.Close()
-
-	var experiences []model.Experience
-	for rows.Next() {
-		var e model.Experience
-		if err := scanExperience(rows, &e); err != nil {
-			return nil, 0, fmt.Errorf("scan: %w", err)
-		}
-		experiences = append(experiences, e)
-	}
-
-	return experiences, total, nil
 }
 
 func (r *ExperienceRepo) Update(ctx context.Context, id, authorID string, req model.CreateExperienceRequest) error {

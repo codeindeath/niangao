@@ -372,21 +372,6 @@ func TestMessageRoleValues(t *testing.T) {
 	}
 }
 
-func TestExperienceListQueryDefaults(t *testing.T) {
-	q := ExperienceListQuery{}
-
-	// Default values should be sensible
-	if q.Page != 0 {
-		t.Log("page defaults to 0, handler should treat 0 as 1")
-	}
-	if q.PageSize != 0 {
-		t.Log("page_size defaults to 0, handler should treat 0 as 20")
-	}
-	if q.Sort != "" {
-		t.Log("sort defaults to empty, handler should default to 'latest'")
-	}
-}
-
 func TestChatRequestValidation(t *testing.T) {
 	tests := []struct {
 		name    string

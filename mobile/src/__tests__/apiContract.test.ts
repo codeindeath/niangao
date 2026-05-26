@@ -33,6 +33,7 @@ describe('App V4 API contract', () => {
 
     const deprecatedPaths = [
       '/api/v1/experiences/recommend',
+      '/api/v1/experiences?',
       '/api/v1/me/bookmarks',
       '/api/v1/me/experiences',
       '/api/v1/user/profile',

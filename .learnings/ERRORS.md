@@ -280,6 +280,65 @@ For production smoke cleanup, run `DELETE ...` as its own statement, then run a 
 
 ---
 
+## [ERR-20260527-004] production_backend_wrong_binary_path
+
+**Logged**: 2026-05-27T02:20:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: deployment
+
+### Summary
+Production deploy initially copied the verified backend artifact to `/root/niangao/server`, but systemd runs `/root/niangao/backend/server`.
+
+### Error
+```
+deprecated-list 200
+```
+
+### Context
+- The service `niangao-backend` has `WorkingDirectory=/root/niangao/backend` and `ExecStart=/root/niangao/backend/server`.
+- Copying the artifact to `/root/niangao/server` and restarting the service left production behavior unchanged.
+- Directly copying over `/root/niangao/backend/server` while running failed with `Text file busy`.
+- The successful pattern was to copy the artifact to `/root/niangao/backend/server.new`, stop the service, `mv -f` it into place, then start the service and verify the running binary SHA.
+
+### Suggested Fix
+For backend production deploys, deploy to the actual systemd `ExecStart` path: `/root/niangao/backend/server`. Use `server.new` plus stop/move/start instead of overwriting the running binary in place.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /etc/systemd/system/niangao-backend.service
+
+---
+
+## [ERR-20260527-005] production_smoke_cleanup_same_statement_snapshot
+
+**Logged**: 2026-05-27T02:22:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: deployment
+
+### Summary
+Production smoke cleanup verified remaining rows in the same PostgreSQL statement as data-modifying CTEs, so the SELECT observed the pre-delete snapshot.
+
+### Error
+```
+1|1
+```
+
+### Context
+- Authenticated smoke cleanup used a single `WITH ... DELETE ... SELECT count(...)` statement.
+- The temporary user and chat temp session were actually verified clean only after rerunning explicit DELETE statements followed by a separate SELECT statement.
+- The correct cleanup verification returned `0|0`.
+
+### Suggested Fix
+Keep smoke cleanup as explicit DELETE statements, then run a separate SQL statement for remaining-row verification. Avoid relying on same-statement visibility for post-delete counts.
+
+### Metadata
+- Reproducible: yes
+- Related Files: None
+
+---
+
 ## [ERR-20260527-002] production_smoke_cleanup_wrong_chat_citation_column
 
 **Logged**: 2026-05-27T01:03:00+08:00

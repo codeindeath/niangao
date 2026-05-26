@@ -731,15 +731,6 @@ type CreateExperienceRequest struct {
 	IsPrivate                 bool       `json:"is_private"`
 }
 
-type ExperienceListQuery struct {
-	Domain    Domain `form:"domain"`
-	SubDomain string `form:"sub_domain"`
-	Sort      string `form:"sort"`
-	Page      int    `form:"page"`
-	PageSize  int    `form:"page_size"`
-	Search    string `form:"search"`
-}
-
 type Conversation struct {
 	ID        string    `json:"id"`
 	UserID    string    `json:"user_id"`

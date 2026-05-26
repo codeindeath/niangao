@@ -17,6 +17,7 @@ func TestDeprecatedExperienceAppRoutesReturnGone(t *testing.T) {
 		method string
 		path   string
 	}{
+		{http.MethodGet, "/api/v1/experiences"},
 		{http.MethodGet, "/api/v1/experiences/recommend"},
 		{http.MethodPost, "/api/v1/experiences/exp-1/like"},
 		{http.MethodPost, "/api/v1/experiences/exp-1/bookmark"},
@@ -98,9 +99,11 @@ func TestDeprecatedExperienceHandlerMethodsAreRemoved(t *testing.T) {
 	experienceSource := string(source)
 
 	for _, symbol := range []string{
+		"func (h *ExperienceHandler) List(",
 		"func (h *ExperienceHandler) MyExperiences(",
 		"func (h *ExperienceHandler) MyBookmarks(",
 		"func (h *ExperienceHandler) GetRecommendations(",
+		"func interleaveByCreator(",
 		"func parseIntParam(",
 	} {
 		if strings.Contains(experienceSource, symbol) {

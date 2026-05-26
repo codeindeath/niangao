@@ -177,24 +177,6 @@ export interface ChatMessage {
 // 经验 API (Go 后端 :8080)
 // ============================================================
 
-export async function fetchExperiences(
-  page: number = 1,
-  domain?: string,
-  sort: string = 'latest',
-): Promise<{data: Experience[]; total: number; page: number}> {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    page_size: '20',
-    sort,
-  });
-  if (domain) params.set('domain', domain);
-  const result = await apiGet(`/api/v1/experiences?${params}`);
-  return {
-    ...result,
-    data: Array.isArray(result?.data) ? result.data.map(normalizeExperience) : [],
-  };
-}
-
 export async function searchExperiences(
   keyword: string,
   page: number = 1,

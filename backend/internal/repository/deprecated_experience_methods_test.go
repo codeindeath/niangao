@@ -15,6 +15,7 @@ func TestDeprecatedExperienceRepositoryMethodsAreRemoved(t *testing.T) {
 
 	for _, symbol := range []string{
 		"func (r *ExperienceRepo) CreateOfficial(",
+		"func (r *ExperienceRepo) List(",
 		"func (r *ExperienceRepo) Recommend(",
 		"func (r *ExperienceRepo) ListByAuthor(",
 		"func (r *ExperienceRepo) ListBookmarked(",
