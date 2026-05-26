@@ -27,8 +27,11 @@ func (r *ExperienceRepo) InspireExperience(ctx context.Context, userID string, e
     WHERE e.id = $2::uuid
       AND e.deleted_at IS NULL
       AND (
-        (COALESCE(e.visibility, 'public') = 'public' AND COALESCE(e.lifecycle_status, 'active') = 'active')
-        OR COALESCE(e.owner_user_id, e.author_id) = $1::uuid
+        (e.visibility = 'public' AND e.lifecycle_status = 'active')
+        OR (
+          COALESCE(e.owner_user_id, e.author_id) = $1::uuid
+          AND e.lifecycle_status <> 'deleted'
+        )
       )
     ON CONFLICT (user_id, experience_id) DO NOTHING
     RETURNING id`,
@@ -101,8 +104,11 @@ func (r *ExperienceRepo) CollectExperience(ctx context.Context, userID string, e
       WHERE e.id=$2::uuid
         AND e.deleted_at IS NULL
         AND (
-          (COALESCE(e.visibility, 'public') = 'public' AND COALESCE(e.lifecycle_status, 'active') = 'active')
-          OR COALESCE(e.owner_user_id, e.author_id) = $1::uuid
+          (e.visibility = 'public' AND e.lifecycle_status = 'active')
+          OR (
+            COALESCE(e.owner_user_id, e.author_id) = $1::uuid
+            AND e.lifecycle_status <> 'deleted'
+          )
         )
     )`,
 		userID, experienceID).Scan(&visible); err != nil {
@@ -205,10 +211,11 @@ func (r *ExperienceRepo) RecordExperienceEvent(ctx context.Context, userID strin
     WHERE e.id = $2::uuid
       AND e.deleted_at IS NULL
       AND (
-        (COALESCE(e.visibility, 'public') = 'public' AND COALESCE(e.lifecycle_status, 'active') = 'active')
+        (e.visibility = 'public' AND e.lifecycle_status = 'active')
         OR (
           NULLIF($1, '') IS NOT NULL
           AND COALESCE(e.owner_user_id, e.author_id) = NULLIF($1, '')::uuid
+          AND e.lifecycle_status <> 'deleted'
         )
       )
     RETURNING id`,
@@ -231,8 +238,11 @@ func (r *ExperienceRepo) recordDedupedExposeEvent(ctx context.Context, userID st
       WHERE e.id = $2::uuid
         AND e.deleted_at IS NULL
         AND (
-          (COALESCE(e.visibility, 'public') = 'public' AND COALESCE(e.lifecycle_status, 'active') = 'active')
-          OR COALESCE(e.owner_user_id, e.author_id) = $1::uuid
+          (e.visibility = 'public' AND e.lifecycle_status = 'active')
+          OR (
+            COALESCE(e.owner_user_id, e.author_id) = $1::uuid
+            AND e.lifecycle_status <> 'deleted'
+          )
         )
     ),
     updated AS (

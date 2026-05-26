@@ -1803,6 +1803,34 @@ Current result:
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-search-gate`
     - production SQL parse, public smoke, authenticated temporary JWT search visibility smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Experience action/event V4 visibility/lifecycle gate checks pass:
+  - App-facing `inspire`, `collect`, passive experience event, and authenticated expose-dedupe eligibility now use V4 `e.visibility='public'` and `e.lifecycle_status='active'` for public access instead of fallback public/active predicates
+  - owner access for action/event writes remains available only for the owner's own non-deleted experiences through `e.lifecycle_status <> 'deleted'`
+  - repository contract coverage now prevents `experience_actions_v4.go` from reintroducing fallback public/lifecycle gate fragments
+  - the Phase 1 contract doc now records the canonical V4 visibility/lifecycle action and passive-event eligibility contract
+  - Linux backend artifact `/tmp/niangao-backend-v4-action-gate` was deployed to production at `/root/niangao/deployments/20260527053138/server`
+  - production backend binary hash now matches the local action-gate artifact:
+    - `730ed2017c8ed13f39c45cd57619eab89b85d25c6ff986ea93e4a6e7adf83e17`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-action-gate.20260527053138.backend`
+  - production SQL parse checks passed for the inspire gate, collect gate, generic passive event gate, and authenticated expose-dedupe gate
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410
+  - post-deploy authenticated action/event smoke passed with temporary JWT users and cleanup:
+    - non-owner actor on a public active temporary experience: `POST /inspire` -> 200, `POST /collect` -> 200, `POST /events` with `expose` -> 204
+    - owner on a private temporary experience: `POST /collect` -> 200, `POST /events` with `search_click` -> 204
+    - cleanup verification -> `0|0|0` for temporary users, temporary experiences, and action-gate smoke events
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestExperienceActionGatesUseV4VisibilityLifecycleFacts -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestExperienceActionGatesUseV4VisibilityLifecycleFacts|TestRecordExperienceEventDedupesAuthenticatedExposeWithinWindow' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -count=1`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-action-gate`
+    - production SQL parse, public smoke, authenticated temporary JWT action/event smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

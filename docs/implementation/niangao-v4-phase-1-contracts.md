@@ -322,6 +322,7 @@ Behavior:
 - Insert into `experience_inspirations`.
 - Write `experience_events` with `event_type=inspire`.
 - Same user can inspire the same experience only once.
+- Eligibility uses canonical V4 `visibility` and `lifecycle_status`: public active experiences are eligible, and owners can act on their own non-deleted experiences.
 - Public experiences update public metric counters.
 - Private experiences only affect personal history.
 
@@ -343,6 +344,7 @@ DELETE /api/v1/experiences/:id/collect
 Behavior:
 
 - Auth is required. App prompts guest users to log in before the optimistic 收藏/取消收藏 update is applied.
+- Eligibility uses canonical V4 `visibility` and `lifecycle_status`: public active experiences are eligible, and owners can collect their own non-deleted experiences.
 - Active collection lives in `experience_collections`.
 - Removing collection sets `status=removed`; do not hard delete.
 - Write `experience_events.collect` or `experience_events.uncollect`.
@@ -377,6 +379,7 @@ Behavior:
 - Allowed passive event types are `expose`, `flip`, `search_click`, `chat_citation_show`, and `chat_citation_click`.
 - Action events `collect`, `uncollect`, and `inspire` must use their dedicated authenticated endpoints and are rejected here.
 - Invisible or deleted experiences return `404`.
+- Eligibility uses canonical V4 `visibility` and `lifecycle_status`; fallback public/active predicates must not drive passive event eligibility.
 - Response is `204 No Content`.
 
 ## 6. Search
