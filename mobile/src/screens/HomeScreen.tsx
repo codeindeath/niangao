@@ -306,7 +306,6 @@ export default function HomeScreen() {
         );
         patchExperienceInCurrentTab(item.id, {
           visibility: 'private',
-          review_status: 'private',
         });
       } catch (e: any) {
         if (await handleAuthExpired(navigation, e)) return;

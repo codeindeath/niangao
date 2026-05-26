@@ -991,6 +991,20 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- Mobile V4 privacy lifecycle field cleanup checks pass:
+  - turn-private UI paths in 看看、详情、搜索卡片 now update local card/detail state only through canonical `visibility='private'`
+  - UI runtime source no longer writes legacy `review_status='private'`; review/lifecycle compatibility remains outside the App UI layer
+  - API contract coverage now blocks `review_status` and `is_private` from leaking into mobile UI privacy decisions
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- apiContract.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- apiContract.test.ts HomeScreen.test.tsx DetailScreen.test.tsx SearchCardScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (21 suites, 93 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "review_status|is_private|is_liked|is_bookmarked|like_count|bookmark_count|source_type|is_official|author_name|creator_name" mobile/src/components/ExperienceCard.tsx mobile/src/screens/HomeScreen.tsx mobile/src/screens/DetailScreen.tsx mobile/src/screens/SearchCardScreen.tsx mobile/src/screens/SearchPage.tsx mobile/src/screens/CreateScreen.tsx`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 

@@ -111,7 +111,6 @@ export default function DetailScreen({route, navigation}: any) {
       setExp(prev => prev ? {
         ...prev,
         visibility: 'private',
-        review_status: 'private',
       } : prev);
     } catch (e: any) {
       if (await handleAuthExpired(navigation, e)) return;

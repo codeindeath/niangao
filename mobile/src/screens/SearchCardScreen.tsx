@@ -91,7 +91,6 @@ export default function SearchCardScreen({route, navigation}: any) {
         );
         updateCard(card.id, {
           visibility: 'private',
-          review_status: 'private',
         });
       } catch (e: any) {
         if (await handleAuthExpired(navigation, e)) return;

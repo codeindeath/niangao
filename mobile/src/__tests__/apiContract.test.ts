@@ -83,6 +83,7 @@ describe('App V4 API contract', () => {
     ].join('\n');
 
     expect(uiSources).not.toMatch(/\bis_private\b/);
+    expect(uiSources).not.toMatch(/\breview_status\b/);
   });
 
   it('keeps legacy creator and owner aliases out of mobile UI runtime source', () => {
