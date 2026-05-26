@@ -484,4 +484,26 @@ describe('ChatScreen', () => {
     });
     expect(await findByText('登录状态过期了，重新登录后可以继续聊。')).toBeTruthy();
   });
+
+  it('uses the backend quota message when retrying an AI reply returns 429', async () => {
+    const navigation = makeNavigation();
+    (api.sendTempChatMessage as jest.Mock)
+      .mockRejectedValueOnce(new Error('gateway timeout'))
+      .mockRejectedValueOnce({
+        status: 429,
+        message: '今日对话已达上限（50轮），明天再来聊吧。',
+      });
+
+    const {findByText, getByPlaceholderText, getByText, queryByText} = render(<ChatScreen navigation={navigation} />);
+    expect(await findByText('我在。你可以从任何一点开始说，不用先想清楚。')).toBeTruthy();
+
+    fireEvent.changeText(getByPlaceholderText('输入你想聊的...'), '我今天很乱');
+    fireEvent.press(getByText('发送'));
+
+    expect(await findByText('抱歉，对话服务暂时不可用，请稍后再试。')).toBeTruthy();
+    fireEvent.press(getByText('重试'));
+
+    expect(await findByText('今日对话已达上限（50轮），明天再来聊吧。')).toBeTruthy();
+    expect(queryByText('还是没连上。你这条消息已经保留了，可以稍后再试。')).toBeNull();
+  });
 });

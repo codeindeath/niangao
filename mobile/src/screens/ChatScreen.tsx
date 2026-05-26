@@ -56,6 +56,11 @@ const AUTH_EXPIRED_MESSAGE: MessageBubble = {
   content: '登录状态过期了，重新登录后可以继续聊。',
 };
 
+function chatQuotaMessage(err: any): string | null {
+  if (err?.status !== 429) return null;
+  return err?.message || '今日对话已达上限，明天再来聊吧。';
+}
+
 function isRecentlyActiveTopic(topic: ChatTopic): boolean {
   if (!topic?.id || (topic.status && topic.status !== 'active')) return false;
   const rawTime = topic.last_opened_at || topic.updated_at || topic.created_at;
@@ -337,10 +342,7 @@ export default function ChatScreen({navigation}: any) {
         );
         return;
       }
-      let errMsg = '抱歉，对话服务暂时不可用，请稍后再试。';
-      if (e?.status === 429) {
-        errMsg = e?.message || '今日对话已达上限，明天再来聊吧。';
-      }
+      const errMsg = chatQuotaMessage(e) || '抱歉，对话服务暂时不可用，请稍后再试。';
       setMessages(prev =>
         prev.map(m =>
           m.id === aiId ? {...m, content: errMsg, failed: true, retryText: text, clientMessageId} : m,
@@ -387,9 +389,10 @@ export default function ChatScreen({navigation}: any) {
         } : m));
         return;
       }
+      const errMsg = chatQuotaMessage(err) || '还是没连上。你这条消息已经保留了，可以稍后再试。';
       setMessages(prev => prev.map(m => m.id === item.id ? {
         ...m,
-        content: '还是没连上。你这条消息已经保留了，可以稍后再试。',
+        content: errMsg,
         failed: true,
       } : m));
     } finally {

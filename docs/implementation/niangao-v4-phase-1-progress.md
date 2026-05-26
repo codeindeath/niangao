@@ -1990,14 +1990,14 @@ Current result:
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 - Chat quota-message contract checks pass:
-  - Chat no longer hard-codes the daily quota copy as `100轮`; `429` failures now show the backend-provided message when present, with a no-number fallback if it is missing
+  - Chat no longer hard-codes the daily quota copy as `100轮`; initial-send and retry `429` failures now show the backend-provided message when present, with a no-number fallback if it is missing
   - this prevents App copy from drifting from backend/AI quota configuration
   - the Phase 1 contract doc now records that App quota copy is backend-owned
   - no production backend deployment was needed for this App-only slice
   - verification:
     - `npm run test -- ChatScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
     - `npm run test -- ChatScreen.test.tsx --runInBand --no-cache`
-    - `npm run test -- --runInBand` (23 suites, 123 tests)
+    - `npm run test -- --runInBand` (23 suites, 124 tests)
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
