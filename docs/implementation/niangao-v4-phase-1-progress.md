@@ -2036,6 +2036,17 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-chat-quota`
     - `git diff --check`
     - production migration/index verification, public feed smoke, authenticated quota smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- First-public-note display-name length alignment checks pass:
+  - the first public note display-name gate now mirrors the backend `/me/profile` contract and profile-edit screen by allowing up to 30 characters instead of blocking valid 21-30 character names
+  - the modal input `maxLength` and validation copy now use the same 30-character limit
+  - the Phase 1 contract doc now records that all App entry points setting `display_name` must mirror the backend 30-character limit
+  - no production backend deployment was needed for this App-only slice
+  - verification:
+    - `npm run test -- CreateScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- CreateScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (23 suites, 125 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 

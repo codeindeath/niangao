@@ -333,8 +333,8 @@ export default function CreateScreen({navigation, route}: any) {
       Alert.alert('提示', '请输入名字');
       return;
     }
-    if (Array.from(name).length > 20) {
-      Alert.alert('提示', '名字最多 20 个字');
+    if (Array.from(name).length > 30) {
+      Alert.alert('提示', '名字最多 30 个字');
       return;
     }
 
@@ -627,7 +627,7 @@ export default function CreateScreen({navigation, route}: any) {
               onChangeText={setDisplayNameDraft}
               placeholder="别人会在经验卡上看到这个名字"
               placeholderTextColor="#b5b0a8"
-              maxLength={20}
+              maxLength={30}
               autoFocus
             />
             <View style={styles.rewriteModalActions}>

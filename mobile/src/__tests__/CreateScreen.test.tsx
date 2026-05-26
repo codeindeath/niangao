@@ -200,6 +200,37 @@ describe('CreateScreen', () => {
     });
   });
 
+  it('allows a 30-character display name in the first public note gate', async () => {
+    const displayName = 'abcdefghijklmnopqrstuvwxy12345';
+    (api.createExperience as jest.Mock)
+      .mockRejectedValueOnce({
+        status: 400,
+        code: 'display_name_required',
+        message: '需要先设置展示名',
+      })
+      .mockResolvedValueOnce({id: 'exp-1'});
+    (api.updateProfile as jest.Mock).mockResolvedValue({
+      id: 'user-1',
+      display_name: displayName,
+    });
+
+    const {getByPlaceholderText, getByText} = render(
+      <CreateScreen navigation={makeNavigation()} route={{params: {}}} />,
+    );
+
+    fireEvent.changeText(getByPlaceholderText('此刻你有什么想说的？'), '今天先把事情做小一点');
+    fireEvent.press(getByText('保存'));
+    expect(await waitFor(() => getByText('先取个名字'))).toBeTruthy();
+
+    fireEvent.changeText(getByPlaceholderText('别人会在经验卡上看到这个名字'), displayName);
+    fireEvent.press(getByText('保存并继续'));
+
+    await waitFor(() => {
+      expect(api.updateProfile).toHaveBeenCalledWith({display_name: displayName});
+      expect(api.createExperience).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('keeps the draft editable when display-name setup is cancelled', async () => {
     (api.createExperience as jest.Mock).mockRejectedValueOnce({
       status: 400,

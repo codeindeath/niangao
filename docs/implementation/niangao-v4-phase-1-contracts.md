@@ -563,6 +563,7 @@ Auth:
 Behavior:
 
 - `display_name` is the user-facing creator name for user-original experiences.
+- `display_name` accepts up to 30 characters; App entry points that set it, including the first-public-note gate, must mirror this limit.
 - Patch can update `display_name`, `free_description`, and lightweight profile fields.
 - When `display_name` changes, backend syncs `creator_display_name` on the user's non-deleted original experiences.
 
