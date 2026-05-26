@@ -1727,6 +1727,20 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-chat-topic-promotion`
     - `git diff --check`
     - production SQL parse, AI Gateway classify smoke, public smoke, authenticated temporary JWT chat-promotion smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Chat entry recent-topic resume checks pass:
+  - App `ChatScreen` now checks `GET /api/v1/chat/recent-topics` on entry before creating a temp session
+  - if the newest active stable topic has `last_opened_at`, `updated_at`, or `created_at` within 2 hours, App restores its history through `GET /api/v1/chat/topics/:id/messages`, shows that topic title, clears `tempSessionId`, and avoids creating a temp session
+  - stale, timestampless, missing, or failed recent-topic lookup falls back to the normal temp-session welcome path without user-facing warning overlays
+  - expired auth during entry or recent-topic modal fetch clears the token and routes to login
+  - `换个事聊` now starts a forced new temp session with `forced_new_topic=true`, preserving the backend/AI bind-prevention contract from chat topic classification
+  - mobile `ChatTopic` typing now includes backend `last_opened_at`, `created_at`, and `updated_at`
+  - verification:
+    - `npm run test -- ChatScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- ChatScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (23 suites, 116 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
 
 Not verified yet:
 

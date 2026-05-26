@@ -417,6 +417,8 @@ DELETE /api/v1/chat/topics/:id
 Behavior:
 
 - New chat starts as `chat_temp_sessions` unless recent active topic rules choose a stable topic.
+- App entry resumes the most recent active stable topic only when `last_opened_at` / `updated_at` / `created_at` is within 2 hours; stale or timestampless topics fall back to a normal temp session.
+- User-clicked `换个事聊` creates a temp session with `forced_new_topic=true` and must not auto-bind to an existing topic.
 - First message in a temp session does not create a stable topic.
 - `chat_topic_classify` can promote temp session to topic when `clarity_score >= 0.65`.
 - Deleted topics stop contributing to AI context.

@@ -399,6 +399,9 @@ export interface ChatTopic {
   sub_domain?: string;
   topic?: string;
   summary?: string;
+  last_opened_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ChatReferenceCard {

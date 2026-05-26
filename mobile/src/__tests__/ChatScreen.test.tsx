@@ -18,12 +18,18 @@ describe('ChatScreen', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    Object.values(api).forEach((mockFn: unknown) => {
+      if (jest.isMockFunction(mockFn)) mockFn.mockReset();
+    });
+    (config.clearToken as jest.Mock).mockReset();
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     (api.createChatTempSession as jest.Mock).mockResolvedValue({
       id: 'temp-1',
       status: 'active',
       forced_new_topic: false,
     });
+    (api.fetchRecentChatTopics as jest.Mock).mockResolvedValue({data: []});
+    (api.fetchChatTopicMessages as jest.Mock).mockResolvedValue({data: []});
     (config.clearToken as jest.Mock).mockResolvedValue(undefined);
   });
 
@@ -32,14 +38,59 @@ describe('ChatScreen', () => {
   });
 
   it('starts with a temp session and a low-pressure welcome message', async () => {
+    (api.fetchRecentChatTopics as jest.Mock).mockResolvedValueOnce({data: []});
     const navigation = makeNavigation();
     const {findByText} = render(<ChatScreen navigation={navigation} />);
 
-    await waitFor(() => {
-      expect(api.createChatTempSession).toHaveBeenCalledWith(false);
-    });
-    expect(await findByText('我在。你可以从任何一点开始说，不用先想清楚。')).toBeTruthy();
+    expect(await findByText('我在。你可以从任何一点开始说，不用先想清楚。', {}, {timeout: 10000})).toBeTruthy();
+    expect(api.createChatTempSession).toHaveBeenCalledWith(false);
   }, 10000);
+
+  it('resumes a recently active stable topic when entering chat', async () => {
+    (api.fetchRecentChatTopics as jest.Mock).mockResolvedValueOnce({
+      data: [{
+        id: 'topic-recent',
+        status: 'active',
+        title: '工作里的不甘心',
+        domain: 'work',
+        updated_at: new Date().toISOString(),
+      }],
+    });
+    (api.fetchChatTopicMessages as jest.Mock).mockResolvedValueOnce({
+      data: [{
+        id: 'assistant-history',
+        topic_id: 'topic-recent',
+        role: 'assistant',
+        content: '上次我们聊到，被当众否定之后你一直有点过不去。',
+        created_at: '2026-05-26T00:00:01Z',
+      }],
+    });
+
+    const navigation = makeNavigation();
+    const {findByText} = render(<ChatScreen navigation={navigation} />);
+
+    expect(await findByText('上次我们聊到，被当众否定之后你一直有点过不去。')).toBeTruthy();
+    expect(await findByText('工作里的不甘心')).toBeTruthy();
+    expect(api.createChatTempSession).not.toHaveBeenCalled();
+  });
+
+  it('starts a temp session when the latest stable topic is stale', async () => {
+    (api.fetchRecentChatTopics as jest.Mock).mockResolvedValueOnce({
+      data: [{
+        id: 'topic-old',
+        status: 'active',
+        title: '很久以前的议题',
+        updated_at: '2026-01-01T00:00:00Z',
+      }],
+    });
+
+    const navigation = makeNavigation();
+    const {findByText} = render(<ChatScreen navigation={navigation} />);
+
+    expect(await findByText('我在。你可以从任何一点开始说，不用先想清楚。')).toBeTruthy();
+    expect(api.createChatTempSession).toHaveBeenCalledWith(false);
+    expect(api.fetchChatTopicMessages).not.toHaveBeenCalled();
+  });
 
   it('keeps recoverable chat initialization failures out of the warning overlay', async () => {
     (api.createChatTempSession as jest.Mock).mockRejectedValueOnce(new Error('gateway down'));
@@ -235,9 +286,11 @@ describe('ChatScreen', () => {
 
   it('restores historical unavailable reference cards without leaking content', async () => {
     const navigation = makeNavigation();
-    (api.fetchRecentChatTopics as jest.Mock).mockResolvedValue({
-      data: [{id: 'topic-1', title: '旧议题', domain: 'work'}],
-    });
+    (api.fetchRecentChatTopics as jest.Mock)
+      .mockResolvedValueOnce({data: []})
+      .mockResolvedValueOnce({
+        data: [{id: 'topic-1', title: '旧议题', domain: 'work'}],
+      });
     (api.fetchChatTopicMessages as jest.Mock).mockResolvedValue({
       data: [{
         id: 'assistant-history',
@@ -264,6 +317,30 @@ describe('ChatScreen', () => {
     expect(await findByText('它可能已经被删除、转为私密，或正在重新处理。')).toBeTruthy();
     expect(queryByText('这段历史引用原文不应该显示')).toBeNull();
     expect(queryByLabelText('收藏参考经验')).toBeNull();
+  });
+
+  it('starts a forced new temp session from the recent-topic panel', async () => {
+    const navigation = makeNavigation();
+    (api.fetchRecentChatTopics as jest.Mock)
+      .mockResolvedValueOnce({data: []})
+      .mockResolvedValueOnce({
+        data: [{
+          id: 'topic-1',
+          status: 'active',
+          title: '旧议题',
+          domain: 'work',
+        }],
+      });
+
+    const {findByLabelText, findByText} = render(<ChatScreen navigation={navigation} />);
+    expect(await findByText('我在。你可以从任何一点开始说，不用先想清楚。')).toBeTruthy();
+
+    fireEvent.press(await findByLabelText('打开议题列表'));
+    fireEvent.press(await findByText('换个事聊'));
+
+    await waitFor(() => {
+      expect(api.createChatTempSession).toHaveBeenLastCalledWith(true);
+    });
   });
 
   it('clears expired auth when collecting a reference card returns 401', async () => {
@@ -304,7 +381,9 @@ describe('ChatScreen', () => {
       ...makeNavigation(),
       getParent: jest.fn(() => parentNavigation),
     };
-    (api.fetchRecentChatTopics as jest.Mock).mockRejectedValueOnce({status: 401});
+    (api.fetchRecentChatTopics as jest.Mock)
+      .mockResolvedValueOnce({data: []})
+      .mockRejectedValueOnce({status: 401});
 
     const {findByLabelText, findByText} = render(<ChatScreen navigation={navigation} />);
     expect(await findByText('我在。你可以从任何一点开始说，不用先想清楚。')).toBeTruthy();

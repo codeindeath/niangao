@@ -42,6 +42,38 @@ interface MessageBubble {
   clientMessageId?: string;
 }
 
+const RECENT_TOPIC_RESUME_MS = 2 * 60 * 60 * 1000;
+const FUTURE_CLOCK_SKEW_MS = 5 * 60 * 1000;
+const WELCOME_MESSAGE: MessageBubble = {
+  id: 'welcome',
+  role: 'assistant',
+  content: '我在。你可以从任何一点开始说，不用先想清楚。',
+};
+const AUTH_EXPIRED_MESSAGE: MessageBubble = {
+  id: 'auth-expired',
+  role: 'assistant',
+  content: '登录状态过期了，重新登录后可以继续聊。',
+};
+
+function isRecentlyActiveTopic(topic: ChatTopic): boolean {
+  if (!topic?.id || (topic.status && topic.status !== 'active')) return false;
+  const rawTime = topic.last_opened_at || topic.updated_at || topic.created_at;
+  if (!rawTime) return false;
+  const timestamp = Date.parse(rawTime);
+  if (!Number.isFinite(timestamp)) return false;
+  const ageMs = Date.now() - timestamp;
+  return ageMs >= -FUTURE_CLOCK_SKEW_MS && ageMs <= RECENT_TOPIC_RESUME_MS;
+}
+
+function toBubble(message: ChatMessageItem): MessageBubble {
+  return {
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    referenceCards: message.reference_cards || [],
+  };
+}
+
 export default function ChatScreen({navigation}: any) {
   const [tempSessionId, setTempSessionId] = useState<string>('');
   const [activeTopic, setActiveTopic] = useState<ChatTopic | null>(null);
@@ -88,29 +120,17 @@ export default function ChatScreen({navigation}: any) {
     return unsub;
   }, [navigation, slideAnim]);
 
-  const startTempSession = useCallback(() => {
+  const startTempSession = useCallback((forcedNewTopic: boolean = false) => {
     setInitialLoading(true);
     setActiveTopic(null);
-    return createChatTempSession(false)
+    return createChatTempSession(forcedNewTopic)
       .then(session => {
         setTempSessionId(session.id);
-        setMessages([
-          {
-            id: 'welcome',
-            role: 'assistant',
-            content: '我在。你可以从任何一点开始说，不用先想清楚。',
-          },
-        ]);
+        setMessages([WELCOME_MESSAGE]);
       })
       .catch(err => {
         if (handleAuthExpired(err)) {
-          setMessages([
-            {
-              id: 'auth-expired',
-              role: 'assistant',
-              content: '登录状态过期了，重新登录后可以继续聊。',
-            },
-          ]);
+          setMessages([AUTH_EXPIRED_MESSAGE]);
           return;
         }
         reportHandledError('ChatScreen.startTempSession', err);
@@ -125,10 +145,53 @@ export default function ChatScreen({navigation}: any) {
       .finally(() => setInitialLoading(false));
   }, [handleAuthExpired]);
 
-  // 初始化：进入聊聊先创建临时会话；用户发消息后再判断是否形成稳定议题
+  const startChatEntry = useCallback(async () => {
+    setInitialLoading(true);
+    try {
+      const result = await fetchRecentChatTopics();
+      const recentTopic = (result.data || []).find(isRecentlyActiveTopic);
+      if (!recentTopic) {
+        await startTempSession(false);
+        return;
+      }
+
+      try {
+        const messagesResult = await fetchChatTopicMessages(recentTopic.id);
+        setActiveTopic(recentTopic);
+        setTempSessionId('');
+        const restoredMessages = (messagesResult.data || []).map(toBubble);
+        setMessages(restoredMessages.length > 0 ? restoredMessages : [WELCOME_MESSAGE]);
+      } catch (err: any) {
+        if (handleAuthExpired(err)) {
+          setMessages([AUTH_EXPIRED_MESSAGE]);
+          return;
+        }
+        reportHandledError('ChatScreen.startChatEntry.restoreTopic', err);
+        setActiveTopic(recentTopic);
+        setTempSessionId('');
+        setMessages([{
+          id: 'topic-load-failed',
+          role: 'assistant',
+          content: '这个议题的消息暂时没恢复出来，可以先接着说。',
+        }]);
+      } finally {
+        setInitialLoading(false);
+      }
+    } catch (err: any) {
+      if (handleAuthExpired(err)) {
+        setMessages([AUTH_EXPIRED_MESSAGE]);
+        setInitialLoading(false);
+        return;
+      }
+      reportHandledError('ChatScreen.startChatEntry.recentTopics', err);
+      await startTempSession(false);
+    }
+  }, [handleAuthExpired, startTempSession]);
+
+  // 初始化：优先恢复 2 小时内活跃的稳定议题，否则进入临时会话。
   useEffect(() => {
-    startTempSession();
-  }, [startTempSession]);
+    startChatEntry();
+  }, [startChatEntry]);
 
   const openTopicList = async () => {
     setTopicModalVisible(true);
@@ -168,15 +231,8 @@ export default function ChatScreen({navigation}: any) {
 
   const handleStartNewTopic = () => {
     setTopicModalVisible(false);
-    startTempSession();
+    startTempSession(true);
   };
-
-  const toBubble = (message: ChatMessageItem): MessageBubble => ({
-    id: message.id,
-    role: message.role,
-    content: message.content,
-    referenceCards: message.reference_cards || [],
-  });
 
   const sendToCurrentScope = async (text: string, clientMessageId: string) => {
     if (activeTopic) {
