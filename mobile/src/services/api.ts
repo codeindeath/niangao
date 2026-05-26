@@ -356,12 +356,16 @@ export async function submitFeedback(fields: {
 
 export async function fetchRecommendations(
   limit: number = 20,
-  offset: number = 0,
-): Promise<{data: Experience[]; total: number; has_more?: boolean}> {
+  cursor: number | string = 0,
+): Promise<FeedPage> {
   const params = new URLSearchParams({limit: limit.toString()});
-  if (offset > 0) params.set('cursor', offset.toString());
+  if (typeof cursor === 'string' && cursor !== '') {
+    params.set('cursor', cursor);
+  } else if (typeof cursor === 'number' && cursor > 0) {
+    params.set('cursor', cursor.toString());
+  }
   const result = await apiGet(`/api/v1/feed/recommend?${params.toString()}`);
-  return normalizeFeedPage(result, offset);
+  return normalizeFeedPage(result, typeof cursor === 'number' ? cursor : 0);
 }
 
 // ============================================================

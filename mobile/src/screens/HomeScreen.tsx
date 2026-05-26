@@ -77,8 +77,8 @@ export default function HomeScreen() {
   const tabOrder: TabName[] = ['recommend', 'bookmarks', 'my'];
   const [activeTab, setActiveTab] = useState<TabName>('recommend');
 
-  type TabCache = { items: Experience[]; offset: number; hasMore: boolean; loaded: boolean };
-  const defaultCache = (): TabCache => ({ items: [], offset: 0, hasMore: true, loaded: false });
+  type TabCache = { items: Experience[]; offset: number; nextCursor?: string; hasMore: boolean; loaded: boolean };
+  const defaultCache = (): TabCache => ({ items: [], offset: 0, nextCursor: undefined, hasMore: true, loaded: false });
   const [tabCaches, setTabCaches] = useState<Record<TabName, TabCache>>({
     recommend: defaultCache(), my: defaultCache(), bookmarks: defaultCache(),
   });
@@ -117,13 +117,14 @@ export default function HomeScreen() {
         _pendingTabRefresh = null;
         setTabCaches(prev => ({
           ...prev,
-          [tab]: { items: [], offset: 0, hasMore: true, loaded: false },
+          [tab]: defaultCache(),
         }));
       }
     }, [])
   );
 
-  const loadPage = useCallback(async (offset: number, append: boolean, tab: TabName) => {
+  const loadPage = useCallback(async (cursorOrOffset: number | string, append: boolean, tab: TabName) => {
+    const offset = typeof cursorOrOffset === 'number' ? cursorOrOffset : 0;
     let result;
     if (tab === 'bookmarks') {
       result = await fetchMyBookmarks(Math.floor(offset / PAGE_SIZE) + 1);
@@ -132,7 +133,7 @@ export default function HomeScreen() {
       result = await fetchMyExperiences(Math.floor(offset / PAGE_SIZE) + 1);
       setIsPersonalized(false);
     } else {
-      result = await fetchRecommendations(PAGE_SIZE, offset);
+      result = await fetchRecommendations(PAGE_SIZE, cursorOrOffset);
       setIsPersonalized(Boolean(tokenRef.current));
     }
     const data = Array.isArray(result?.data) ? result.data : [];
@@ -141,6 +142,7 @@ export default function HomeScreen() {
     setTabCaches(prev => {
       const cache = prev[tab];
       let items: Experience[];
+      const nextCursor = tab === 'recommend' ? (result as {next_cursor?: string})?.next_cursor || undefined : undefined;
       if (append) {
         const ids = new Set(cache.items.map(e => e.id));
         items = [...cache.items, ...data.filter((e: Experience) => !ids.has(e.id))];
@@ -149,7 +151,13 @@ export default function HomeScreen() {
       }
       return {
         ...prev,
-        [tab]: { items, offset: offset + data.length, hasMore: !noMore, loaded: true },
+        [tab]: {
+          items,
+          offset: offset + data.length,
+          nextCursor,
+          hasMore: !noMore,
+          loaded: true,
+        },
       };
     });
     setLoadMoreError(null);
@@ -181,7 +189,10 @@ export default function HomeScreen() {
     if (loadingMoreRef.current || !cache.hasMore) return;
     loadingMoreRef.current = true;
     setLoadingMore(true);
-    try { await loadPage(cache.offset, true, activeTab); }
+    const cursorOrOffset = activeTab === 'recommend'
+      ? (cache.nextCursor || cache.offset)
+      : cache.offset;
+    try { await loadPage(cursorOrOffset, true, activeTab); }
     catch (e) {
       if (await handleFeedAuthExpired(e, activeTab === 'recommend' ? undefined : 'recommend')) return;
       reportHandledError('HomeScreen.handleLoadMore', e);
@@ -195,7 +206,7 @@ export default function HomeScreen() {
     setLoadMoreError(null);
     setTabCaches(prev => ({
       ...prev,
-      [activeTab]: { items: [], offset: 0, hasMore: true, loaded: false },
+      [activeTab]: defaultCache(),
     }));
     setLoading(true);
     loadPage(0, false, activeTab)

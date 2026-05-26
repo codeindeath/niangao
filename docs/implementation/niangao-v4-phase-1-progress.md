@@ -1640,6 +1640,44 @@ Current result:
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
+- Recommendation session cursor checks pass:
+  - `GET /api/v1/feed/recommend` now creates a `recommendation_sessions` row for a fresh recommendation page and persists the ordered candidate ids for the session window
+  - backend `next_cursor` is now a server session cursor (`rec:<session_id>:<offset>`) instead of a client-reconstructed numeric offset
+  - cursor replay loads cards from the stored candidate order, preserves the same `session_id`, and rechecks the V4 public/active/recommendation eligibility gate before returning cards
+  - expired or invalid session cursors fall back to a fresh recommendation session
+  - if session persistence fails, the backend still returns a first page from immediate scoring but does not advertise a continuation cursor
+  - the App recommendation feed now stores backend `next_cursor` and uses it for load-more; 收藏 and 我的 feeds keep their existing offset pagination path
+  - Linux backend artifact `/tmp/niangao-backend-v4-recommendation-session-cursor` was deployed to production at `/root/niangao/deployments/20260527041900/server`
+  - production backend binary hash now matches the local recommendation-session-cursor artifact:
+    - `756f558ac1cc684c980bfb4115cdef49f116c8ff8ea6b13067f73046a2741a7c`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-recommendation-session-cursor.20260527041900.backend`
+  - production SQL parse checks passed before deploy using `PREPARE` against the production schema for recommendation session creation, existence, and cursor replay queries
+  - production candidate-count check found 244 eligible recommendation candidates, enough to verify cursor replay without seeding content
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410
+  - post-deploy recommendation cursor smoke passed:
+    - guest first page -> 200, one card, cursor present
+    - guest cursor page -> 200, one card, same session id
+    - authenticated temp user first page -> 200, one card, cursor present
+    - authenticated temp user cursor page -> 200, one card, same session id
+    - cleanup verification -> `0|0` for temporary users and smoke-tagged recommendation sessions
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestRecommendationCursorRoundTrip|TestRecommendFeedPersistsRecommendationSessions' -count=1 -v` (RED confirmed before implementation)
+    - `npm run test -- apiFeed.test.ts HomeScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestRecommendationCursorRoundTrip|TestRecommendFeedPersistsRecommendationSessions' -count=1 -v`
+    - `npm run test -- apiFeed.test.ts HomeScreen.test.tsx --runInBand --no-cache`
+    - `./scripts/backend-test.sh`
+    - `npm run test -- --runInBand` (23 suites, 112 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-recommendation-session-cursor`
+    - `git diff --check`
+    - production SQL parse, public smoke, guest/authenticated recommendation cursor smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

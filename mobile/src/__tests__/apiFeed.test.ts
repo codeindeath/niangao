@@ -1,4 +1,4 @@
-import {fetchExperience, fetchMyBookmarks, fetchMyExperiences} from '../services/api';
+import {fetchExperience, fetchMyBookmarks, fetchMyExperiences, fetchRecommendations} from '../services/api';
 import {apiGet} from '../services/config';
 
 jest.mock('../services/config', () => ({
@@ -102,6 +102,22 @@ describe('feed API normalization', () => {
       unavailable_reason: 'experience_unavailable',
       is_collected: true,
     }));
+  });
+
+  it('uses backend recommendation cursors instead of numeric offsets', async () => {
+    (apiGet as jest.Mock).mockResolvedValue({
+      data: [],
+      next_cursor: 'rec:11111111-1111-4111-8111-111111111111:20',
+      session_id: '11111111-1111-4111-8111-111111111111',
+      has_more: true,
+    });
+
+    const result = await fetchRecommendations(20, 'rec:11111111-1111-4111-8111-111111111111:20');
+
+    expect(apiGet).toHaveBeenCalledWith(
+      '/api/v1/feed/recommend?limit=20&cursor=rec%3A11111111-1111-4111-8111-111111111111%3A20',
+    );
+    expect(result.next_cursor).toBe('rec:11111111-1111-4111-8111-111111111111:20');
   });
 
 });

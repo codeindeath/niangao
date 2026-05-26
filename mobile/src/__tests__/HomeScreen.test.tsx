@@ -115,6 +115,7 @@ describe('HomeScreen', () => {
         data: Array.from({length: 20}, (_, index) => makeExperience(String(index + 1))),
         total: 40,
         has_more: true,
+        next_cursor: 'rec-session-20',
       })
       .mockRejectedValueOnce(new Error('Network error'));
 
@@ -125,7 +126,7 @@ describe('HomeScreen', () => {
 
     expect(await findByText('网络不稳，点一下重试')).toBeTruthy();
     expect(await findByText('第 1 条经验')).toBeTruthy();
-    expect(api.fetchRecommendations).toHaveBeenLastCalledWith(20, 20);
+    expect(api.fetchRecommendations).toHaveBeenLastCalledWith(20, 'rec-session-20');
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 

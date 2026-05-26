@@ -71,6 +71,44 @@ func TestV4RecommendQueryKeepsPublicRecommendFilterIndexable(t *testing.T) {
 	}
 }
 
+func TestRecommendationCursorRoundTrip(t *testing.T) {
+	cursor := formatRecommendationCursor("11111111-1111-4111-8111-111111111111", 20)
+	sessionID, offset, ok := parseRecommendationCursor(cursor)
+	if !ok {
+		t.Fatalf("parseRecommendationCursor(%q) ok=false, want true", cursor)
+	}
+	if sessionID != "11111111-1111-4111-8111-111111111111" || offset != 20 {
+		t.Fatalf("parsed cursor = %q %d, want session and offset", sessionID, offset)
+	}
+
+	for _, invalid := range []string{"", "20", "rec:not-a-uuid:20", "rec:11111111-1111-4111-8111-111111111111:-1"} {
+		if _, _, ok := parseRecommendationCursor(invalid); ok {
+			t.Fatalf("parseRecommendationCursor(%q) ok=true, want false", invalid)
+		}
+	}
+}
+
+func TestRecommendFeedPersistsRecommendationSessions(t *testing.T) {
+	sourceBytes, err := os.ReadFile("experience_v4.go")
+	if err != nil {
+		t.Fatalf("read experience_v4.go: %v", err)
+	}
+	source := string(sourceBytes)
+	required := []string{
+		"recommendation_sessions",
+		"candidate_ids",
+		"expires_at > NOW()",
+		"formatRecommendationCursor",
+		"parseRecommendationCursor",
+		"recommendSessionCardsQuery",
+	}
+	for _, fragment := range required {
+		if !strings.Contains(source, fragment) {
+			t.Fatalf("recommend feed should persist and replay session cursor with fragment %q", fragment)
+		}
+	}
+}
+
 func TestV4FeedQueriesExposeUnavailableReasonForScanner(t *testing.T) {
 	queries := map[string]string{
 		"recommend":   recommendFeedQuery,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/niangao/backend/internal/model"
@@ -121,6 +122,71 @@ const recommendFeedQuery = `
     e.id DESC
   LIMIT $2 OFFSET $3`
 
+const recommendSessionCardsQuery = `
+  WITH session AS (
+    SELECT candidate_ids
+    FROM recommendation_sessions
+    WHERE session_id = $2::uuid
+      AND expires_at > NOW()
+      AND (
+        (NULLIF($1::text, '') IS NULL AND user_id IS NULL)
+        OR user_id = NULLIF($1::text, '')::uuid
+      )
+  ),
+  candidate AS (
+    SELECT ids.candidate_id, ids.ordinality::int AS ord
+    FROM session,
+      unnest(session.candidate_ids) WITH ORDINALITY AS ids(candidate_id, ordinality)
+    ORDER BY ids.ordinality
+    LIMIT $3 OFFSET $4
+  )
+  SELECT
+    e.id,
+    COALESCE(e.owner_user_id, e.author_id),
+    e.content,
+    COALESCE(e.experience_type, 'platform_selected'),
+    COALESCE(e.visibility, 'public'),
+    COALESCE(e.lifecycle_status, 'active'),
+    COALESCE(e.domain::text, ''),
+    COALESCE(e.sub_domain, ''),
+    COALESCE(e.topic, e.topics, ''),
+    COALESCE(e.creator_display_name, e.creator_name, u.display_name, u.nickname, ''),
+    COALESCE(e.interpretation_status, CASE WHEN e.interpretation_generated THEN 'ready' ELSE 'none' END),
+    (e.interpretation IS NOT NULL AND e.interpretation <> ''),
+    COALESCE(e.quality_tier, 'public_visible'),
+    CASE COALESCE(e.quality_tier, 'public_visible')
+      WHEN 'high_trust' THEN 5
+      WHEN 'ai_citable' THEN 4
+      WHEN 'recommend_candidate' THEN 3
+      WHEN 'public_visible' THEN 2
+      ELSE 1
+    END AS star_rating,
+    COALESCE(e.inspiration_count, e.like_count, 0),
+    COALESCE(e.collection_count, e.bookmark_count, 0),
+    EXISTS(
+      SELECT 1 FROM experience_collections ec
+      WHERE ec.user_id = NULLIF($1::text, '')::uuid
+        AND ec.experience_id = e.id
+        AND ec.status = 'active'
+    ),
+    EXISTS(
+      SELECT 1 FROM experience_inspirations ei
+      WHERE ei.user_id = NULLIF($1::text, '')::uuid
+        AND ei.experience_id = e.id
+    ),
+    '' AS unavailable_reason
+  FROM candidate c
+  JOIN experiences e ON e.id = c.candidate_id
+  LEFT JOIN users u ON u.id = e.author_id
+  WHERE e.visibility = 'public'
+    AND e.lifecycle_status = 'active'
+    AND e.recommendation_status = 'eligible'
+    AND e.quality_tier IN ('recommend_candidate', 'ai_citable', 'high_trust')
+    AND e.deleted_at IS NULL
+  ORDER BY c.ord`
+
+const recommendSessionCandidateLimit = 160
+
 const collectionsFeedQuery = `
   WITH collected AS (
     SELECT
@@ -227,15 +293,36 @@ const mineFeedQuery = `
   LIMIT $2 OFFSET $3`
 
 func (r *ExperienceRepo) RecommendFeed(ctx context.Context, userID string, limit int, cursor string) (*model.FeedPage, error) {
-	offset := parseOffsetCursor(cursor)
+	if sessionID, offset, ok := parseRecommendationCursor(cursor); ok {
+		page, found, err := r.recommendFeedFromSession(ctx, userID, sessionID, limit, offset)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			return page, nil
+		}
+	}
+
 	rows, err := r.db.Query(ctx, recommendFeedQuery,
-		userID, limit+1, offset)
+		userID, recommendSessionCandidateLimit, 0)
 	if err != nil {
 		return nil, fmt.Errorf("v4 recommend feed: %w", err)
 	}
 	defer rows.Close()
 
-	return scanFeedPage(rows, limit, offset, "")
+	cards, err := scanFeedCards(rows, recommendSessionCandidateLimit)
+	if err != nil {
+		return nil, err
+	}
+	sessionID, err := r.createRecommendationSession(ctx, userID, cards)
+	if err != nil {
+		page := buildFeedPage(cards, limit, 0, "", func(int) string { return "" })
+		page.HasMore = false
+		return page, nil
+	}
+	return buildFeedPage(cards, limit, 0, sessionID, func(nextOffset int) string {
+		return formatRecommendationCursor(sessionID, nextOffset)
+	}), nil
 }
 
 func (r *ExperienceRepo) CollectionsFeed(ctx context.Context, userID string, limit int, cursor string) (*model.FeedPage, error) {
@@ -263,7 +350,20 @@ func (r *ExperienceRepo) MineFeed(ctx context.Context, userID string, limit int,
 }
 
 func scanFeedPage(rows pgx.Rows, limit int, offset int, sessionID string) (*model.FeedPage, error) {
-	cards := make([]model.ExperienceCard, 0, limit)
+	cards, err := scanFeedCards(rows, limit+1)
+	if err != nil {
+		return nil, err
+	}
+	return buildFeedPage(cards, limit, offset, sessionID, func(nextOffset int) string {
+		return strconv.Itoa(nextOffset)
+	}), nil
+}
+
+func scanFeedCards(rows pgx.Rows, capacity int) ([]model.ExperienceCard, error) {
+	if capacity < 0 {
+		capacity = 0
+	}
+	cards := make([]model.ExperienceCard, 0, capacity)
 	for rows.Next() {
 		var card model.ExperienceCard
 		if err := rows.Scan(
@@ -295,22 +395,139 @@ func scanFeedPage(rows pgx.Rows, limit int, offset int, sessionID string) (*mode
 		return nil, fmt.Errorf("iterate v4 feed cards: %w", err)
 	}
 
+	return cards, nil
+}
+
+func buildFeedPage(cards []model.ExperienceCard, limit int, offset int, sessionID string, nextCursorFor func(int) string) *model.FeedPage {
 	hasMore := len(cards) > limit
 	if hasMore {
 		cards = cards[:limit]
 	}
-
 	nextCursor := ""
-	if hasMore {
-		nextCursor = strconv.Itoa(offset + limit)
+	if hasMore && nextCursorFor != nil {
+		nextCursor = nextCursorFor(offset + limit)
 	}
-
 	return &model.FeedPage{
 		Data:       cards,
 		NextCursor: nextCursor,
 		SessionID:  sessionID,
 		HasMore:    hasMore,
-	}, nil
+	}
+}
+
+func (r *ExperienceRepo) recommendFeedFromSession(ctx context.Context, userID string, sessionID string, limit int, offset int) (*model.FeedPage, bool, error) {
+	exists, err := r.recommendationSessionExists(ctx, userID, sessionID)
+	if err != nil {
+		return nil, false, fmt.Errorf("check recommendation session: %w", err)
+	}
+	if !exists {
+		return nil, false, nil
+	}
+
+	rows, err := r.db.Query(ctx, recommendSessionCardsQuery, userID, sessionID, limit+1, offset)
+	if err != nil {
+		return nil, true, fmt.Errorf("v4 recommend session feed: %w", err)
+	}
+	defer rows.Close()
+
+	cards, err := scanFeedCards(rows, limit+1)
+	if err != nil {
+		return nil, true, err
+	}
+	page := buildFeedPage(cards, limit, offset, sessionID, func(nextOffset int) string {
+		return formatRecommendationCursor(sessionID, nextOffset)
+	})
+	r.markRecommendationSessionOffset(ctx, sessionID, offset+len(page.Data))
+	return page, true, nil
+}
+
+func (r *ExperienceRepo) recommendationSessionExists(ctx context.Context, userID string, sessionID string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx, `
+    SELECT EXISTS(
+      SELECT 1
+      FROM recommendation_sessions
+      WHERE session_id = $2::uuid
+        AND expires_at > NOW()
+        AND (
+          (NULLIF($1::text, '') IS NULL AND user_id IS NULL)
+          OR user_id = NULLIF($1::text, '')::uuid
+        )
+    )`,
+		userID, sessionID).Scan(&exists)
+	return exists, err
+}
+
+func (r *ExperienceRepo) createRecommendationSession(ctx context.Context, userID string, cards []model.ExperienceCard) (string, error) {
+	candidateIDs := make([]string, 0, len(cards))
+	for _, card := range cards {
+		if card.ID != "" {
+			candidateIDs = append(candidateIDs, card.ID)
+		}
+	}
+
+	var sessionID string
+	err := r.db.QueryRow(ctx, `
+    INSERT INTO recommendation_sessions (user_id, candidate_ids, metadata)
+    SELECT
+      NULLIF($1::text, '')::uuid,
+      ARRAY(SELECT unnest($2::text[])::uuid),
+      jsonb_build_object('source', 'v4_rule_recommend', 'candidate_count', cardinality($2::text[]))
+    RETURNING session_id`,
+		userID, candidateIDs).Scan(&sessionID)
+	if err != nil {
+		return "", fmt.Errorf("create recommendation session: %w", err)
+	}
+	return sessionID, nil
+}
+
+func (r *ExperienceRepo) markRecommendationSessionOffset(ctx context.Context, sessionID string, returnedOffset int) {
+	if sessionID == "" || returnedOffset < 0 {
+		return
+	}
+	_, _ = r.db.Exec(ctx, `
+    UPDATE recommendation_sessions
+    SET returned_offset = GREATEST(returned_offset, $2)
+    WHERE session_id = $1::uuid`,
+		sessionID, returnedOffset)
+}
+
+func formatRecommendationCursor(sessionID string, offset int) string {
+	if !isUUIDString(sessionID) || offset < 0 {
+		return ""
+	}
+	return "rec:" + sessionID + ":" + strconv.Itoa(offset)
+}
+
+func parseRecommendationCursor(cursor string) (string, int, bool) {
+	parts := strings.Split(cursor, ":")
+	if len(parts) != 3 || parts[0] != "rec" || !isUUIDString(parts[1]) {
+		return "", 0, false
+	}
+	offset, err := strconv.Atoi(parts[2])
+	if err != nil || offset < 0 {
+		return "", 0, false
+	}
+	return parts[1], offset, true
+}
+
+func isUUIDString(value string) bool {
+	if len(value) != 36 {
+		return false
+	}
+	for i, r := range value {
+		switch i {
+		case 8, 13, 18, 23:
+			if r != '-' {
+				return false
+			}
+		default:
+			if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func parseOffsetCursor(cursor string) int {
