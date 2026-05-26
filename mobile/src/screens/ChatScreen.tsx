@@ -137,6 +137,7 @@ export default function ChatScreen({navigation}: any) {
       const result = await fetchRecentChatTopics();
       setTopics(result.data || []);
     } catch (err: any) {
+      if (handleAuthExpired(err)) return;
       reportHandledError('ChatScreen.openTopicList', err);
       setTopics([]);
     } finally {
@@ -152,6 +153,7 @@ export default function ChatScreen({navigation}: any) {
       setActiveTopic(topic);
       setMessages((result.data || []).map(toBubble));
     } catch (err: any) {
+      if (handleAuthExpired(err)) return;
       reportHandledError('ChatScreen.selectTopic', err);
       setActiveTopic(topic);
       setMessages([{
@@ -289,7 +291,8 @@ export default function ChatScreen({navigation}: any) {
             : m,
         ),
       );
-    } catch {
+    } catch (err: any) {
+      if (handleAuthExpired(err)) return;
       setMessages(prev => prev.map(m => m.id === item.id ? {
         ...m,
         content: '还是没连上。你这条消息已经保留了，可以稍后再试。',
@@ -312,7 +315,7 @@ export default function ChatScreen({navigation}: any) {
     }));
     try {
       await setCollected(experienceId, true);
-    } catch {
+    } catch (err: any) {
       setMessages(prev => prev.map(message => {
         if (message.id !== messageId || !message.referenceCards) return message;
         return {
@@ -322,6 +325,7 @@ export default function ChatScreen({navigation}: any) {
           ),
         };
       }));
+      handleAuthExpired(err);
     }
   };
 

@@ -899,6 +899,18 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- Chat secondary expired-auth hardening checks pass:
+  - 聊聊 topic-list loading, topic-message restore, AI retry, and reference-card collection now route expired auth to login instead of silently staying in weak states
+  - reference-card collection still rolls back the optimistic collected state before handling auth expiry
+  - regression coverage now verifies expired auth on reference-card collection and recent-topic loading
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- ChatScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (20 suites, 86 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 
