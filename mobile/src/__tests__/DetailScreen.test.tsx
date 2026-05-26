@@ -8,6 +8,20 @@ import * as config from '../services/config';
 jest.mock('../services/api');
 jest.mock('../services/config');
 
+function collectText(node: any, out: string[] = []): string[] {
+  if (!node) return out;
+  if (typeof node === 'string') {
+    out.push(node);
+    return out;
+  }
+  if (Array.isArray(node)) {
+    node.forEach(child => collectText(child, out));
+    return out;
+  }
+  collectText(node.children, out);
+  return out;
+}
+
 describe('DetailScreen', () => {
   const mockExp = {
     id: '1',
@@ -40,10 +54,14 @@ describe('DetailScreen', () => {
 
   it('shows quality score as stars when available', async () => {
     (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);
-    const { findByText, getAllByText } = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
-    expect(await findByText('价值度')).toBeTruthy();
-    expect(getAllByText('★')).toHaveLength(4);
-    expect(getAllByText('☆')).toHaveLength(1);
+    const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
+    await waitFor(() => {
+      const text = collectText(rendered.toJSON()).join('');
+      expect(text).toContain('测试经验');
+      expect(text).toContain('价值度');
+      expect(text.match(/★/g)).toHaveLength(4);
+      expect(text.match(/☆/g)).toHaveLength(1);
+    });
   });
 
   it('shows private marker for private experiences', async () => {
@@ -56,6 +74,27 @@ describe('DetailScreen', () => {
     (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);
     const { findByText } = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
     expect(await findByText('自我')).toBeTruthy();
+  });
+
+  it('clears expired auth when detail loading returns 401', async () => {
+    (api.fetchExperience as jest.Mock).mockRejectedValueOnce({status: 401});
+    const navigation = {navigate: jest.fn(), getParent: jest.fn()};
+
+    const {queryByText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={navigation} />);
+
+    await waitFor(() => {
+      expect(config.clearToken).toHaveBeenCalledTimes(1);
+      expect(Alert.alert).toHaveBeenCalledWith(
+        '登录状态过期',
+        '重新登录后可以继续。',
+        expect.any(Array),
+      );
+    });
+    expect(queryByText('加载失败，请检查网络连接')).toBeNull();
+
+    const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
+    buttons.find((button: any) => button.text === 'Apple登录').onPress();
+    expect(navigation.navigate).toHaveBeenCalledWith('login');
   });
 
   it('marks an experience as inspiring once', async () => {

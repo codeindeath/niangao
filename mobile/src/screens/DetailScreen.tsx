@@ -54,6 +54,10 @@ export default function DetailScreen({route, navigation}: any) {
       setExp(data);
       setError(null);
     } catch (e) {
+      if (await handleAuthExpired(navigation, e)) {
+        setError(null);
+        return;
+      }
       setError('加载失败，请检查网络连接');
     } finally {
       setLoading(false);

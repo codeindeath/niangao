@@ -1087,6 +1087,19 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- Detail initial-load expired-auth hardening checks pass:
+  - experience detail still shows retryable weak-network copy for ordinary load failures
+  - when detail loading returns 401, the screen now clears expired auth and shows the unified `登录状态过期` path instead of mislabeling the failure as a network load error
+  - DetailScreen regression coverage now includes the initial detail-load 401 path; the score/star display test was stabilized to sample the rendered tree after the detail content is present
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- DetailScreen.test.tsx --runInBand` (RED confirmed before implementation)
+    - `npm run test -- DetailScreen.test.tsx authGate.test.ts --runInBand`
+    - `npm run test -- --runInBand` (22 suites, 102 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 
