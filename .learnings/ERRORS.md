@@ -280,6 +280,64 @@ For production smoke cleanup, run `DELETE ...` as its own statement, then run a 
 
 ---
 
+## [ERR-20260527-006] backend_subdir_path_prefix
+
+**Logged**: 2026-05-27T02:51:10+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+Ran `gofmt` from the `backend/` directory while still prefixing paths with `backend/`, causing a no-op path error.
+
+### Error
+```
+lstat backend/internal/handler/experience.go: no such file or directory
+```
+
+### Context
+- The command was executed with `workdir=/Users/swt/projects/niangao/backend`.
+- Repository-root paths such as `backend/internal/...` only work from `/Users/swt/projects/niangao`.
+- The corrected command used `internal/handler/...` paths from the `backend/` directory and passed.
+
+### Suggested Fix
+When `workdir` is `backend/`, use `internal/...` paths for Go package files. Use `backend/internal/...` only from the repository root.
+
+### Metadata
+- Reproducible: yes
+- Related Files: backend/internal/handler/experience.go
+
+---
+
+## [ERR-20260527-007] psql_returning_command_tag_in_smoke_user_id
+
+**Logged**: 2026-05-27T02:55:48+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: deployment
+
+### Summary
+Production smoke JWT generation captured both the `INSERT ... RETURNING id` row and the trailing `INSERT 0 1` command tag, producing a malformed JWT `user_id`.
+
+### Error
+```
+invalid input syntax for type uuid: "... INSERT 0 1"
+```
+
+### Context
+- The smoke script assigned `USER_ID=$(psql ... -c "INSERT ... RETURNING id")`.
+- The backend correctly returned 500 because the signed JWT contained a non-UUID `user_id`.
+- Temporary data from the failed smoke was cleaned up, then the script was rerun with `psql -XqAt ... | sed -n '1p'` and passed.
+
+### Suggested Fix
+When capturing PostgreSQL `RETURNING` values for smoke scripts, use quiet tuple-only output and explicitly keep the first row. Never sign a JWT from unsanitized multiline command output.
+
+### Metadata
+- Reproducible: yes
+- Related Files: None
+
+---
+
 ## [ERR-20260527-004] production_backend_wrong_binary_path
 
 **Logged**: 2026-05-27T02:20:00+08:00

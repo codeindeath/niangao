@@ -1436,6 +1436,36 @@ Current result:
     - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestDeprecatedExperienceRepositoryMethodsAreRemoved|TestExperienceDetailUsesV4InteractionTables|TestExperienceDetailUsesV4VisibilityLifecycleGate|TestSoftDeleteSynchronizesV4LifecycleFacts|TestUpdateExperienceQueryPreservesSourceSceneAndSynchronizesLifecycle' -count=1 -v`
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-repo-legacy-method-cleanup`
+- Backend App-facing detail/create V4 response contract checks pass:
+  - `GET /api/v1/experiences/:id` and `POST /api/v1/experiences` now return an App-facing V4 response shape instead of serializing the raw legacy-heavy `Experience` model
+  - response fields now include `owner_user_id`, singular `topic`, `inspiration_count`, `collection_count`, `is_inspired`, and `is_collected`
+  - legacy detail/create response fields such as `author_id`, `topics`, `is_private`, `is_official`, `source_type`, `review_status`, `like_count`, `bookmark_count`, `is_liked`, and `is_bookmarked` are not exposed from these App-facing responses
+  - Linux backend artifact `/tmp/niangao-backend-v4-detail-response-contract` was deployed to production at `/root/niangao/deployments/20260527025214/server`
+  - production backend binary hash now matches the local detail-response-contract artifact:
+    - `aed8187cd13e4e800a85a73d790de1327a55cf0da07e26569e2cf1a08fb2b84d`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-detail-response-contract.20260527025214.backend`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410
+  - post-deploy authenticated detail/create response-contract smoke passed with a temporary JWT user and cleanup:
+    - `GET /api/v1/me/profile` -> 200
+    - create private temp experience -> 201, with V4 response fields and no legacy response-field leak
+    - inspire temp experience -> 200
+    - collect temp experience -> 200
+    - owner detail for the temp experience -> 200, with `is_inspired=true`, `is_collected=true`, V4 response fields, and no legacy response-field leak
+    - cleanup verification -> `0|0|0|0` for temporary user, experience, collection, and inspiration rows
+  - initial authenticated smoke attempt returned one expected 500 because the smoke script captured a multiline `psql INSERT ... RETURNING` result into the JWT `user_id`; the temporary user was cleaned up, the script was corrected to capture only the UUID row, and the corrected smoke passed
+  - post-corrected-smoke backend/AI journal scans found no panic, fatal error, permission-denied error, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run TestExperienceDetailResponseUsesV4AppContract -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestExperienceDetailResponseUsesV4AppContract|TestV4ExperienceRewrite|TestExperienceCreateRequiresAuth|TestNormalizeCreateExperienceRequest|TestDeprecatedExperienceAppRoutesReturnGone' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-detail-response-contract`
+    - production public and authenticated temporary JWT smoke checks
+    - backend/AI `journalctl` severe-error scans after the corrected smoke window
 
 Not verified yet:
 

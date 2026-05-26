@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/niangao/backend/internal/middleware"
@@ -147,7 +148,88 @@ func (h *ExperienceHandler) Get(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, exp)
+	c.JSON(http.StatusOK, toExperienceDetailResponse(exp))
+}
+
+type experienceDetailResponse struct {
+	ID                      string     `json:"id"`
+	OwnerUserID             *string    `json:"owner_user_id,omitempty"`
+	Content                 string     `json:"content"`
+	Interpretation          *string    `json:"interpretation,omitempty"`
+	Domain                  string     `json:"domain"`
+	SubDomain               *string    `json:"sub_domain,omitempty"`
+	Topic                   string     `json:"topic,omitempty"`
+	ExperienceType          string     `json:"experience_type,omitempty"`
+	Visibility              string     `json:"visibility,omitempty"`
+	LifecycleStatus         string     `json:"lifecycle_status,omitempty"`
+	SourceLabel             *string    `json:"source_label,omitempty"`
+	CreatorDisplayName      string     `json:"creator_display_name,omitempty"`
+	ScoreReason             *string    `json:"score_reason,omitempty"`
+	InspirationCount        int        `json:"inspiration_count"`
+	CollectionCount         int        `json:"collection_count"`
+	AuthorAvatar            *string    `json:"author_avatar,omitempty"`
+	AuthorTitle             *string    `json:"author_title,omitempty"`
+	IsInspired              bool       `json:"is_inspired"`
+	IsCollected             bool       `json:"is_collected"`
+	QualityTier             string     `json:"quality_tier,omitempty"`
+	QualityScore            *float64   `json:"quality_score,omitempty"`
+	ScoreDetails            *string    `json:"score_details,omitempty"`
+	OriginalText            *string    `json:"original_text,omitempty"`
+	InterpretationGenerated bool       `json:"interpretation_generated"`
+	InterpretationStatus    string     `json:"interpretation_status,omitempty"`
+	CreatedAt               time.Time  `json:"created_at"`
+	UpdatedAt               *time.Time `json:"updated_at,omitempty"`
+}
+
+func toExperienceDetailResponse(exp *model.Experience) experienceDetailResponse {
+	topic := exp.Topic
+	if topic == "" {
+		topic = exp.Topics
+	}
+	creatorDisplayName := firstNonEmptyPtr(exp.CreatorDisplayName, exp.CreatorName, exp.AuthorName)
+
+	return experienceDetailResponse{
+		ID:                      exp.ID,
+		OwnerUserID:             exp.OwnerUserID,
+		Content:                 exp.Content,
+		Interpretation:          exp.Interpretation,
+		Domain:                  string(exp.Domain),
+		SubDomain:               exp.SubDomain,
+		Topic:                   topic,
+		ExperienceType:          exp.ExperienceType,
+		Visibility:              exp.Visibility,
+		LifecycleStatus:         exp.LifecycleStatus,
+		SourceLabel:             exp.SourceLabel,
+		CreatorDisplayName:      creatorDisplayName,
+		ScoreReason:             exp.ScoreReason,
+		InspirationCount:        exp.InspirationCount,
+		CollectionCount:         exp.CollectionCount,
+		AuthorAvatar:            exp.AuthorAvatar,
+		AuthorTitle:             exp.AuthorTitle,
+		IsInspired:              exp.IsLiked,
+		IsCollected:             exp.IsBookmarked,
+		QualityTier:             exp.QualityTier,
+		QualityScore:            exp.QualityScore,
+		ScoreDetails:            exp.ScoreDetails,
+		OriginalText:            exp.OriginalText,
+		InterpretationGenerated: exp.InterpretationGenerated,
+		InterpretationStatus:    exp.InterpretationStatus,
+		CreatedAt:               exp.CreatedAt,
+		UpdatedAt:               &exp.UpdatedAt,
+	}
+}
+
+func firstNonEmptyPtr(values ...*string) string {
+	for _, value := range values {
+		if value == nil {
+			continue
+		}
+		trimmed := strings.TrimSpace(*value)
+		if trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
 }
 
 func (h *ExperienceHandler) Create(c *gin.Context) {
@@ -195,7 +277,7 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"experience": exp})
+	c.JSON(http.StatusCreated, gin.H{"experience": toExperienceDetailResponse(exp)})
 }
 
 func normalizeCreateExperienceRequest(req *model.CreateExperienceRequest) error {
