@@ -1549,6 +1549,44 @@ Current result:
     - production SQL parse, public smoke, authenticated temporary JWT smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
   - workflow hardening from this slice:
     - avoid assigning curl fallback state to zsh's read-only `status` variable during smoke scripts; compare HTTP codes directly or use another variable name
+- Chat history reference-card restoration checks pass:
+  - `GET /api/v1/chat/topics/:id/messages` now hydrates assistant-message `reference_cards` from `chat_citations`, so reopened topics can restore the referenced experience cards instead of only exposing `referenced_experience_ids`
+  - hydrated chat reference cards use the same V4 visibility/lifecycle gate as App-visible content:
+    - public active experiences return normal reference card content
+    - owner-visible non-deleted experiences remain available to the owner
+    - non-owner hidden, deleted, or `needs_review` references return `unavailable_reason='experience_unavailable'` and no original content
+  - mobile `ChatScreen` now carries `reference_cards` through restored historical messages
+  - unavailable chat reference cards render `该经验已不可见` / `它可能已经被删除、转为私密，或正在重新处理。`, do not navigate to detail, do not show 收藏 action, and do not render original content
+  - Linux backend artifact `/tmp/niangao-backend-v4-chat-history-reference-cards` was deployed to production at `/root/niangao/deployments/20260527033700/server`
+  - production backend binary hash now matches the local chat-history-reference-cards artifact:
+    - `9fb49f43a840670f0ed65d2b77d68eceddd1701ffdffd5275495a6f9c8c67246`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-chat-history-reference-cards.20260527033700.backend`
+  - production SQL parse check passed before deploy using `PREPARE` against the production schema for the new `chat_citations` hydration query
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410
+  - post-deploy authenticated chat-history smoke passed with temporary JWT users and cleanup:
+    - owner public create -> 201 with `lifecycle_status=needs_review`
+    - direct V4 chat topic/message/citation setup for viewer succeeded
+    - viewer `GET /api/v1/chat/topics/:id/messages` -> 200 with one restored reference card
+    - restored reference card pointed to the temp experience, had `unavailable_reason='experience_unavailable'`, and had `content_len=0`
+    - cleanup verification -> `0|0|0|0` for temporary users, temp experience content, temp chat topic, and temp chat message
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository ./internal/handler -run 'TestChatMessagesHydratesReferenceCardsFromCitations|TestV4ChatMessagesIncludesReferenceCards' -count=1 -v` (RED confirmed before implementation)
+    - `npm run test -- ChatScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository ./internal/handler -run 'TestChatMessagesHydratesReferenceCardsFromCitations|TestV4ChatMessagesIncludesReferenceCards' -count=1 -v`
+    - `npm run test -- ChatScreen.test.tsx --runInBand --no-cache`
+    - `./scripts/backend-test.sh`
+    - `npm run test -- --runInBand` (23 suites, 110 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-chat-history-reference-cards`
+    - `git diff --check`
+    - production SQL parse, public smoke, authenticated temporary JWT smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

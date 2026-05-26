@@ -144,6 +144,39 @@ describe('ChatScreen', () => {
     });
   });
 
+  it('restores historical unavailable reference cards without leaking content', async () => {
+    const navigation = makeNavigation();
+    (api.fetchRecentChatTopics as jest.Mock).mockResolvedValue({
+      data: [{id: 'topic-1', title: '旧议题', domain: 'work'}],
+    });
+    (api.fetchChatTopicMessages as jest.Mock).mockResolvedValue({
+      data: [{
+        id: 'assistant-history',
+        role: 'assistant',
+        content: '当时我们说，可以先把第一步做小。',
+        created_at: '2026-05-26T00:00:01Z',
+        reference_cards: [{
+          experience_id: 'exp-hidden',
+          content: '这段历史引用原文不应该显示',
+          is_collected: false,
+          unavailable_reason: 'experience_unavailable',
+        }],
+      }],
+    });
+
+    const {findByLabelText, findByText, queryByLabelText, queryByText} = render(<ChatScreen navigation={navigation} />);
+    expect(await findByText('我在。你可以从任何一点开始说，不用先想清楚。')).toBeTruthy();
+
+    fireEvent.press(await findByLabelText('打开议题列表'));
+    fireEvent.press(await findByText('旧议题'));
+
+    expect(await findByText('当时我们说，可以先把第一步做小。')).toBeTruthy();
+    expect(await findByText('该经验已不可见')).toBeTruthy();
+    expect(await findByText('它可能已经被删除、转为私密，或正在重新处理。')).toBeTruthy();
+    expect(queryByText('这段历史引用原文不应该显示')).toBeNull();
+    expect(queryByLabelText('收藏参考经验')).toBeNull();
+  });
+
   it('clears expired auth when collecting a reference card returns 401', async () => {
     const parentNavigation = {navigate: jest.fn()};
     const navigation = {

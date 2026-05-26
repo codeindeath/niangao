@@ -25,6 +25,10 @@ type fakeV4ChatStore struct {
 	assistantMessage *model.ChatMessage
 }
 
+func stringPtr(s string) *string {
+	return &s
+}
+
 func (f *fakeV4ChatStore) RecentChatTopics(ctx context.Context, userID string, limit int) ([]model.ChatTopic, error) {
 	f.gotUserID = userID
 	if f.fail {
@@ -283,6 +287,58 @@ func TestV4ChatTopicRouteFailureReturnsServerError(t *testing.T) {
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want 500: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestV4ChatMessagesIncludesReferenceCards(t *testing.T) {
+	r := gin.New()
+	store := &fakeV4ChatStore{recentMessages: []model.ChatMessage{{
+		ID:        "assistant-1",
+		UserID:    "user-1",
+		TopicID:   stringPtr("topic-1"),
+		Role:      "assistant",
+		Content:   "当时我们说，可以先把第一步做小。",
+		Status:    "sent",
+		RiskLevel: "normal",
+		ReferenceCards: []model.ChatReferenceCard{{
+			ExperienceID:      "exp-hidden",
+			Content:           "",
+			IsCollected:       false,
+			UnavailableReason: "experience_unavailable",
+		}},
+		CreatedAt: time.Now(),
+	}}}
+	v1 := r.Group("/api/v1", func(c *gin.Context) {
+		c.Set("user_id", "user-1")
+	})
+	RegisterChatV4Routes(v1, store)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/api/v1/chat/topics/topic-1/messages", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", w.Code, w.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	data, ok := body["data"].([]any)
+	if !ok || len(data) != 1 {
+		t.Fatalf("data = %+v, want one message", body["data"])
+	}
+	message, ok := data[0].(map[string]any)
+	if !ok {
+		t.Fatalf("message = %+v, want object", data[0])
+	}
+	cards, ok := message["reference_cards"].([]any)
+	if !ok || len(cards) != 1 {
+		t.Fatalf("reference_cards = %+v, want one unavailable card", message["reference_cards"])
+	}
+	card := cards[0].(map[string]any)
+	if card["unavailable_reason"] != "experience_unavailable" || card["content"] != "" {
+		t.Fatalf("reference card = %+v, want unavailable placeholder without content", card)
 	}
 }
 

@@ -566,17 +566,18 @@ type ChatScopeContext struct {
 }
 
 type ChatMessage struct {
-	ID                      string    `json:"id"`
-	UserID                  string    `json:"user_id,omitempty"`
-	TopicID                 *string   `json:"topic_id,omitempty"`
-	TempSessionID           *string   `json:"temp_session_id,omitempty"`
-	Role                    string    `json:"role"`
-	Content                 string    `json:"content"`
-	Status                  string    `json:"status"`
-	RiskLevel               string    `json:"risk_level"`
-	ClientMessageID         *string   `json:"client_message_id,omitempty"`
-	ReferencedExperienceIDs []string  `json:"referenced_experience_ids"`
-	CreatedAt               time.Time `json:"created_at"`
+	ID                      string              `json:"id"`
+	UserID                  string              `json:"user_id,omitempty"`
+	TopicID                 *string             `json:"topic_id,omitempty"`
+	TempSessionID           *string             `json:"temp_session_id,omitempty"`
+	Role                    string              `json:"role"`
+	Content                 string              `json:"content"`
+	Status                  string              `json:"status"`
+	RiskLevel               string              `json:"risk_level"`
+	ClientMessageID         *string             `json:"client_message_id,omitempty"`
+	ReferencedExperienceIDs []string            `json:"referenced_experience_ids"`
+	ReferenceCards          []ChatReferenceCard `json:"reference_cards,omitempty"`
+	CreatedAt               time.Time           `json:"created_at"`
 }
 
 type ChatMessagePage struct {
@@ -633,12 +634,13 @@ type ChatCitationDecision struct {
 }
 
 type ChatReferenceCard struct {
-	ExperienceID     string `json:"experience_id"`
-	Content          string `json:"content"`
-	IsCollected      bool   `json:"is_collected"`
-	CitationType     string `json:"citation_type"`
-	CitationSentence string `json:"citation_sentence,omitempty"`
-	ReasonCode       string `json:"reason_code,omitempty"`
+	ExperienceID      string `json:"experience_id"`
+	Content           string `json:"content"`
+	IsCollected       bool   `json:"is_collected"`
+	CitationType      string `json:"citation_type"`
+	CitationSentence  string `json:"citation_sentence,omitempty"`
+	ReasonCode        string `json:"reason_code,omitempty"`
+	UnavailableReason string `json:"unavailable_reason,omitempty"`
 }
 
 type ChatNoteSuggestion struct {

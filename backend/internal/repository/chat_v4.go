@@ -245,11 +245,101 @@ func (r *ConversationRepo) ChatMessages(ctx context.Context, userID string, scop
 	if hasMore {
 		messages = messages[:limit]
 	}
+	if err := r.attachChatReferenceCards(ctx, userID, messages); err != nil {
+		return nil, err
+	}
 	nextCursor := ""
 	if hasMore {
 		nextCursor = strconv.Itoa(offset + limit)
 	}
 	return &model.ChatMessagePage{Data: messages, NextCursor: nextCursor, HasMore: hasMore}, nil
+}
+
+func (r *ConversationRepo) attachChatReferenceCards(ctx context.Context, userID string, messages []model.ChatMessage) error {
+	messageIndex := make(map[string]int)
+	messageIDs := make([]string, 0, len(messages))
+	for i := range messages {
+		if messages[i].Role != "assistant" || messages[i].ID == "" {
+			continue
+		}
+		messageIndex[messages[i].ID] = i
+		messageIDs = append(messageIDs, messages[i].ID)
+	}
+	if len(messageIDs) == 0 {
+		return nil
+	}
+
+	rows, err := r.db.Query(ctx, `
+		WITH cited AS (
+		  SELECT
+		    cc.id AS citation_id,
+		    cc.message_id,
+		    cc.experience_id,
+		    cc.citation_type,
+		    cc.shown_at,
+		    e.content,
+		    e.deleted_at,
+		    COALESCE(e.visibility, 'public') AS visibility,
+		    COALESCE(e.lifecycle_status, 'active') AS lifecycle_status,
+		    COALESCE(e.owner_user_id, e.author_id) AS owner_user_id,
+		    (
+		      e.deleted_at IS NULL
+		      AND (
+		        (
+		          COALESCE(e.visibility, 'public') = 'public'
+		          AND COALESCE(e.lifecycle_status, 'active') = 'active'
+		        )
+		        OR (
+		          COALESCE(e.owner_user_id, e.author_id) = $1::uuid
+		          AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+		        )
+		      )
+		    ) AS visible_to_viewer
+		  FROM chat_citations cc
+		  JOIN experiences e ON e.id = cc.experience_id
+		  WHERE cc.message_id = ANY($2::uuid[])
+		)
+		SELECT
+		  c.message_id,
+		  c.experience_id,
+		  CASE WHEN c.visible_to_viewer THEN c.content ELSE '' END AS content,
+		  EXISTS(
+		    SELECT 1 FROM experience_collections ec
+		    WHERE ec.user_id = $1::uuid
+		      AND ec.experience_id = c.experience_id
+		      AND ec.status = 'active'
+		  ) AS is_collected,
+		  c.citation_type,
+		  CASE WHEN c.visible_to_viewer THEN '' ELSE 'experience_unavailable' END AS unavailable_reason
+		FROM cited c
+		ORDER BY c.message_id, c.shown_at NULLS LAST, c.citation_id`,
+		userID, messageIDs)
+	if err != nil {
+		return fmt.Errorf("chat reference cards: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var messageID string
+		var card model.ChatReferenceCard
+		if err := rows.Scan(
+			&messageID,
+			&card.ExperienceID,
+			&card.Content,
+			&card.IsCollected,
+			&card.CitationType,
+			&card.UnavailableReason,
+		); err != nil {
+			return fmt.Errorf("scan chat reference card: %w", err)
+		}
+		if idx, ok := messageIndex[messageID]; ok {
+			messages[idx].ReferenceCards = append(messages[idx].ReferenceCards, card)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate chat reference cards: %w", err)
+	}
+	return nil
 }
 
 func (r *ConversationRepo) VerifyChatScope(ctx context.Context, userID string, scope model.ChatMessageScope) (*model.ChatScopeContext, error) {

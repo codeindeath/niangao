@@ -364,6 +364,7 @@ export interface ChatMessageItem {
   role: 'user' | 'assistant';
   content: string;
   referenced_experience_ids?: string[];
+  reference_cards?: ChatReferenceCard[];
   created_at: string;
 }
 
@@ -389,6 +390,7 @@ export interface ChatReferenceCard {
   content: string;
   is_collected: boolean;
   citation_sentence?: string;
+  unavailable_reason?: string;
 }
 
 export interface ChatNoteSuggestion {

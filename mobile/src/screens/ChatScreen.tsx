@@ -175,6 +175,7 @@ export default function ChatScreen({navigation}: any) {
     id: message.id,
     role: message.role,
     content: message.content,
+    referenceCards: message.reference_cards || [],
   });
 
   const sendToCurrentScope = async (text: string, clientMessageId: string) => {
@@ -384,29 +385,47 @@ export default function ChatScreen({navigation}: any) {
       {!isUser && item.referenceCards && item.referenceCards.length > 0 && (
         <View style={styles.referenceWrap}>
           <Text style={styles.referenceTitle}>参考经验</Text>
-          {item.referenceCards.map(card => (
-            <TouchableOpacity
-              key={card.experience_id}
-              style={styles.referenceCard}
-              onPress={() => handleReferencePress(item.id, card.experience_id)}
-              activeOpacity={0.76}>
-              <Text style={styles.referenceText}>{card.content}</Text>
+          {item.referenceCards.map(card => {
+            const isUnavailable = Boolean(card.unavailable_reason);
+            return (
               <TouchableOpacity
-                style={styles.referenceSaveBtn}
+                key={card.experience_id}
+                style={[styles.referenceCard, isUnavailable && styles.referenceCardUnavailable]}
                 onPress={() => {
-                  if (!card.is_collected) collectReferenceCard(item.id, card.experience_id);
+                  if (!isUnavailable) handleReferencePress(item.id, card.experience_id);
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={card.is_collected ? '已收藏参考经验' : '收藏参考经验'}
-                activeOpacity={0.72}>
-                <Ionicons
-                  name={card.is_collected ? 'bookmark' : 'bookmark-outline'}
-                  size={18}
-                  color={card.is_collected ? '#d59a3d' : '#8a8173'}
-                />
+                accessibilityLabel={isUnavailable ? '不可见参考经验' : '参考经验'}
+                activeOpacity={0.76}>
+                {isUnavailable ? (
+                  <View style={styles.referenceUnavailableBody}>
+                    <Text style={styles.referenceUnavailableTitle}>该经验已不可见</Text>
+                    <Text style={styles.referenceUnavailableText}>
+                      它可能已经被删除、转为私密，或正在重新处理。
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    <Text style={styles.referenceText}>{card.content}</Text>
+                    <TouchableOpacity
+                      style={styles.referenceSaveBtn}
+                      onPress={() => {
+                        if (!card.is_collected) collectReferenceCard(item.id, card.experience_id);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={card.is_collected ? '已收藏参考经验' : '收藏参考经验'}
+                      activeOpacity={0.72}>
+                      <Ionicons
+                        name={card.is_collected ? 'bookmark' : 'bookmark-outline'}
+                        size={18}
+                        color={card.is_collected ? '#d59a3d' : '#8a8173'}
+                      />
+                    </TouchableOpacity>
+                  </>
+                )}
               </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
+            );
+          })}
         </View>
       )}
       {!isUser && item.noteSuggestion?.should_show && (
@@ -713,6 +732,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  referenceCardUnavailable: {
+    borderColor: '#e6e2d8',
+    backgroundColor: '#f4f1ea',
+  },
+  referenceUnavailableBody: {
+    flex: 1,
+  },
+  referenceUnavailableTitle: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#4e5348',
+    fontWeight: '800',
+  },
+  referenceUnavailableText: {
+    marginTop: 3,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#7a7f72',
   },
   referenceText: {
     flex: 1,
