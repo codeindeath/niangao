@@ -4,6 +4,37 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260526-001] production_smoke_psql_variable_mismatch
+
+**Logged**: 2026-05-26T23:10:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: infra
+
+### Summary
+Production authenticated smoke script initially failed because it used stale user schema assumptions and unsafe `psql -c` variable handling.
+
+### Error
+```
+syntax error at or near ":"
+column "wechat_openid" of relation "users" does not exist
+invalid input syntax for type uuid
+```
+
+### Context
+- Command attempted: create a temporary production smoke user, generate a JWT without printing secrets, call authenticated V4 endpoints, then clean up the user.
+- Production `users` now uses `apple_user_id`; legacy `wechat_openid` has been removed by cleanup migrations.
+- `psql -c` did not interpolate `:'var'` as expected in this context, and non-quiet insert output polluted the captured UUID.
+
+### Suggested Fix
+For production smoke scripts, read current table columns first when schema may have drifted, use `apple_user_id` for temporary users, and capture IDs with `psql -X -qAt` plus a `WITH inserted AS (...) SELECT id FROM inserted` query.
+
+### Metadata
+- Reproducible: yes
+- Related Files: backend/migrations/006_cleanup_wechat.sql, backend/internal/handler/auth.go
+
+---
+
 ## [ERR-20260525-001] local_playwright_missing
 
 **Logged**: 2026-05-25T19:46:54+08:00

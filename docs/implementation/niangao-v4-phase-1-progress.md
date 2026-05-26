@@ -1023,13 +1023,31 @@ Current result:
   - legacy `Recommend`, `ListByAuthor`, and `ListBookmarked` now select the shared V4 `experienceSelectCols`
   - those readers now reuse `scanExperience`, so future V4 field additions cannot silently leave their select/scan order behind
   - regression coverage now blocks returning to separate manual field lists in active legacy readers
-  - a Linux backend artifact was built locally at `/tmp/niangao-backend-v4-scanner-check` for verification
+  - Linux backend artifact `/tmp/niangao-backend-v4-scanner-check` was deployed to production at `/root/niangao/deployments/20260526225516/server`
+  - production backend binary hash now matches the local scanner-hardened artifact:
+    - `2c80c8f9d7511a2af9065aab76b6d7e440502b5a5f38425f282ab2e0e6d8342b`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-scanner.20260526225516`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences/recommend` -> 410 `deprecated_endpoint`
+  - post-deploy authenticated V4 smoke passed with a temporary JWT user and cleanup:
+    - `GET /api/v1/me/profile` -> 200
+    - `GET /api/v1/me/stats/assets` -> 200
+    - `GET /api/v1/feed/mine?limit=1` -> 200
+    - `POST /api/v1/chat/temp-sessions` -> 201
+    - cleanup temporary users -> 0
+  - post-deploy backend/AI journal scans after a clean smoke window found no panic, fatal error, permission-denied error, traceback, or 5xx matches
   - verification:
     - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestLegacyExperienceReadersUseSharedV4Scanner|TestExperienceListUsesSharedV4Scanner' -count=1 -v` (RED confirmed before implementation)
     - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -count=1`
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-scanner-check`
     - `git diff --check`
+    - production public and authenticated temporary JWT smoke checks
+    - backend/AI `journalctl` error scans
 
 Not verified yet:
 
