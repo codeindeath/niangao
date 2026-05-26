@@ -14,7 +14,7 @@ export interface Experience {
   sub_domain?: string;
   topics?: string;
   is_private?: boolean;
-  is_official: boolean;
+  is_official?: boolean;
   experience_type?: string;
   visibility?: string;
   source_type?: string;

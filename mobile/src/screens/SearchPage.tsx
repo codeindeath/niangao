@@ -78,7 +78,7 @@ export default function SearchPage({navigation}: any) {
   };
 
   const renderResult = ({item, index}: {item: Experience; index: number}) => {
-    const isPlatform = item.source_type === 'platform';
+    const isPlatform = item.experience_type === 'platform_selected';
     const primaryDomain = DOMAIN_LABELS[item.domain] || item.domain;
     const subDomain = item.sub_domain ? SUB_LABELS[item.sub_domain] : null;
     const domainLabel = subDomain || primaryDomain;

@@ -62,4 +62,15 @@ describe('App V4 API contract', () => {
     expect(uiSources).not.toMatch(/\blike_count\b/);
     expect(uiSources).not.toMatch(/\bbookmark_count\b/);
   });
+
+  it('keeps legacy source classification aliases out of mobile UI runtime source', () => {
+    const uiSources = [
+      read('src/components/ExperienceCard.tsx'),
+      read('src/screens/DetailScreen.tsx'),
+      read('src/screens/SearchPage.tsx'),
+    ].join('\n');
+
+    expect(uiSources).not.toMatch(/\bsource_type\b/);
+    expect(uiSources).not.toMatch(/\bis_official\b/);
+  });
 });

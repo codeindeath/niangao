@@ -20,7 +20,6 @@ describe('DetailScreen', () => {
     collection_count: 3,
     is_inspired: false,
     is_collected: false,
-    is_official: false,
     is_private: false,
     review_status: 'approved',
     quality_score: 7.5,

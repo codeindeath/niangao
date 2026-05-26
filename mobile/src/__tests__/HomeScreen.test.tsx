@@ -23,7 +23,6 @@ describe('HomeScreen', () => {
     collection_count: 0,
     is_inspired: false,
     is_collected: false,
-    is_official: false,
     created_at: '2026-01-01T00:00:00Z',
   });
 
@@ -53,7 +52,6 @@ describe('HomeScreen', () => {
         collection_count: 0,
         is_inspired: false,
         is_collected: false,
-        is_official: false,
         created_at: '2026-01-01T00:00:00Z',
       }],
       total: 1,

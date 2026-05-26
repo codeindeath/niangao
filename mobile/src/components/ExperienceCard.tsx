@@ -49,7 +49,7 @@ export default function FlipCard({
   const [isFlipped, setIsFlipped] = useState(false);
   const MAX_INTERP_LINES = 15;
 
-  const isPlatform = item.source_type === 'platform';
+  const isPlatform = item.experience_type === 'platform_selected';
   const primaryDomain = DOMAIN_LABELS[item.domain] || item.domain;
   const subDomain = item.sub_domain ? SUB_LABELS[item.sub_domain] : null;
   const displayName = item.creator_name || item.author_name || '匿名';

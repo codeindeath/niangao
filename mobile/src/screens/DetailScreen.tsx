@@ -172,7 +172,7 @@ export default function DetailScreen({route, navigation}: any) {
     return <SafeAreaView style={s.container}><View style={s.center}><Text style={s.emptyText}>经验不存在或已被删除</Text></View></SafeAreaView>;
   }
 
-  const isPlatform = exp.experience_type === 'platform_selected' || exp.source_type === 'platform' || exp.is_official;
+  const isPlatform = exp.experience_type === 'platform_selected';
   const displayName = exp.creator_display_name || exp.creator_name || exp.author_name || '匿名';
   const domainLabel = (exp.sub_domain && SUB_DOMAIN_LABELS[exp.sub_domain]) || DOMAIN_LABELS[exp.domain] || exp.domain;
   const showScore = exp.quality_score != null && exp.quality_score > 0;

@@ -925,6 +925,20 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- Mobile V4 source classification naming cleanup checks pass:
+  - mobile UI runtime source now uses `experience_type === 'platform_selected'` for 精选 / 原创 display decisions
+  - legacy `source_type` and `is_official` no longer drive 看看卡片、详情页、搜索结果 UI classification; API normalization remains the compatibility boundary for old responses
+  - API contract coverage now blocks `source_type` and `is_official` from returning to mobile UI runtime source
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- apiContract.test.ts --runInBand --no-cache`
+    - `npm run test -- apiContract.test.ts HomeScreen.test.tsx DetailScreen.test.tsx SearchCardScreen.test.tsx SearchPage.test.tsx apiFeed.test.ts appRoutes.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (20 suites, 89 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+    - `rg -n "\\bsource_type\\b|\\bis_official\\b" mobile/src -g '!mobile/src/services/api.ts'` (match remains only in the API compatibility regression fixture)
 
 Not verified yet:
 
