@@ -1,4 +1,4 @@
-import {fetchMyExperiences} from '../services/api';
+import {fetchExperience, fetchMyExperiences} from '../services/api';
 import {apiGet} from '../services/config';
 
 jest.mock('../services/config', () => ({
@@ -37,6 +37,33 @@ describe('feed API normalization', () => {
     const result = await fetchMyExperiences(1);
 
     expect(result.data[0].owner_user_id).toBe('user-1');
+  });
+
+  it('normalizes legacy action aliases from detail responses into V4 fields', async () => {
+    (apiGet as jest.Mock).mockResolvedValue({
+      id: 'exp-legacy',
+      author_id: 'user-1',
+      content: '先把复杂事写成一句能行动的话',
+      domain: 'meaning',
+      sub_domain: 'self',
+      like_count: 4,
+      bookmark_count: 5,
+      is_liked: true,
+      is_bookmarked: false,
+      is_official: false,
+      created_at: '2026-05-26T00:00:00Z',
+    });
+
+    const result = await fetchExperience('exp-legacy');
+
+    expect(result.inspiration_count).toBe(4);
+    expect(result.collection_count).toBe(5);
+    expect(result.is_inspired).toBe(true);
+    expect(result.is_collected).toBe(false);
+    expect(result).not.toHaveProperty('like_count');
+    expect(result).not.toHaveProperty('bookmark_count');
+    expect(result).not.toHaveProperty('is_liked');
+    expect(result).not.toHaveProperty('is_bookmarked');
   });
 
 });

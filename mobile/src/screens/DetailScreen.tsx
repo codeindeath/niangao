@@ -62,9 +62,9 @@ export default function DetailScreen({route, navigation}: any) {
 
   const handleLike = async () => {
     if (!(await requireLogin(navigation, '登录后可以标记有启发，年糕也会更懂你的偏好。'))) return;
-    if (!exp || exp.is_liked) return;
+    if (!exp || exp.is_inspired) return;
     const previous = exp;
-    setExp({...exp, is_liked: true, like_count: exp.like_count + 1});
+    setExp({...exp, is_inspired: true, inspiration_count: exp.inspiration_count + 1});
     try { await markInspired(exp.id); } catch (e) {
       setExp(previous);
       await handleAuthExpired(navigation, e);
@@ -75,13 +75,13 @@ export default function DetailScreen({route, navigation}: any) {
     if (!(await requireLogin(navigation, '登录后可以收藏经验，之后在看看里随时翻回来。'))) return;
     if (!exp) return;
     const previous = exp;
-    const nextBookmarked = !exp.is_bookmarked;
+    const nextCollected = !exp.is_collected;
     setExp({
       ...exp,
-      is_bookmarked: nextBookmarked,
-      bookmark_count: Math.max(exp.bookmark_count + (nextBookmarked ? 1 : -1), 0),
+      is_collected: nextCollected,
+      collection_count: Math.max(exp.collection_count + (nextCollected ? 1 : -1), 0),
     });
-    try { await setCollected(exp.id, nextBookmarked); } catch (e) {
+    try { await setCollected(exp.id, nextCollected); } catch (e) {
       setExp(previous);
       await handleAuthExpired(navigation, e);
     }
@@ -252,10 +252,10 @@ export default function DetailScreen({route, navigation}: any) {
               <Ionicons
                 name="sparkles"
                 size={15}
-                color={exp.is_liked ? '#e85d5d' : '#6e6e6e'}
+                color={exp.is_inspired ? '#e85d5d' : '#6e6e6e'}
               />
-              <Text style={[s.actionText, exp.is_liked && s.actionLiked]}>
-                {exp.like_count > 0 ? String(exp.like_count) : '有启发'}
+              <Text style={[s.actionText, exp.is_inspired && s.actionLiked]}>
+                {exp.inspiration_count > 0 ? String(exp.inspiration_count) : '有启发'}
               </Text>
             </View>
           </TouchableOpacity>
@@ -263,16 +263,16 @@ export default function DetailScreen({route, navigation}: any) {
             style={s.actionBtn}
             onPress={handleBookmark}
             accessibilityRole="button"
-            accessibilityLabel={exp.is_bookmarked ? '取消收藏经验' : '收藏经验'}
+            accessibilityLabel={exp.is_collected ? '取消收藏经验' : '收藏经验'}
           >
             <View style={s.actionContent}>
               <Ionicons
-                name={exp.is_bookmarked ? 'bookmark' : 'bookmark-outline'}
+                name={exp.is_collected ? 'bookmark' : 'bookmark-outline'}
                 size={15}
-                color={exp.is_bookmarked ? '#e8a850' : '#6e6e6e'}
+                color={exp.is_collected ? '#e8a850' : '#6e6e6e'}
               />
-              <Text style={[s.actionText, exp.is_bookmarked && s.actionSaved]}>
-                {exp.is_bookmarked ? '已收藏' : `收藏${exp.bookmark_count > 0 ? ` ${exp.bookmark_count}` : ''}`}
+              <Text style={[s.actionText, exp.is_collected && s.actionSaved]}>
+                {exp.is_collected ? '已收藏' : `收藏${exp.collection_count > 0 ? ` ${exp.collection_count}` : ''}`}
               </Text>
             </View>
           </TouchableOpacity>

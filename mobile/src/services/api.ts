@@ -22,13 +22,13 @@ export interface Experience {
   creator_name?: string;
   creator_display_name?: string;
   score_reason?: string;
-  like_count: number;
-  bookmark_count: number;
+  inspiration_count: number;
+  collection_count: number;
   author_name?: string;
   author_avatar?: string;
   author_title?: string;
-  is_liked: boolean;
-  is_bookmarked: boolean;
+  is_inspired: boolean;
+  is_collected: boolean;
   review_status?: string;
   review_reason?: string;
   quality_score?: number;
@@ -67,9 +67,55 @@ export interface FeedPage {
   total: number;
 }
 
+function numberOrZero(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeExperience(raw: any): Experience {
+  const {
+    like_count,
+    bookmark_count,
+    is_liked,
+    is_bookmarked,
+    ...rest
+  } = raw || {};
+  const experienceType = rest.experience_type
+    || (rest.is_official || rest.source_type === 'platform' ? 'platform_selected' : undefined)
+    || (rest.source_type === 'user' ? 'user_original' : undefined);
+  const visibility = rest.visibility || (rest.is_private ? 'private' : undefined);
+  const creatorName = rest.creator_display_name || rest.creator_name || rest.author_name;
+  const starRating = rest.star_rating ?? 0;
+
+  return {
+    ...rest,
+    id: rest.id || '',
+    author_id: rest.author_id || rest.owner_user_id || '',
+    owner_user_id: rest.owner_user_id || rest.author_id || undefined,
+    content: rest.content || '',
+    domain: rest.domain || '',
+    sub_domain: rest.sub_domain || undefined,
+    topics: rest.topics || rest.topic || '',
+    is_private: rest.is_private ?? visibility === 'private',
+    is_official: Boolean(rest.is_official ?? experienceType === 'platform_selected'),
+    experience_type: experienceType,
+    visibility,
+    source_type: rest.source_type || (experienceType === 'platform_selected' ? 'platform' : 'user'),
+    creator_name: rest.creator_name || creatorName || undefined,
+    creator_display_name: rest.creator_display_name || creatorName || undefined,
+    author_name: rest.author_name || creatorName || undefined,
+    inspiration_count: numberOrZero(rest.inspiration_count ?? like_count),
+    collection_count: numberOrZero(rest.collection_count ?? bookmark_count),
+    is_inspired: Boolean(rest.is_inspired ?? is_liked),
+    is_collected: Boolean(rest.is_collected ?? is_bookmarked),
+    quality_score: rest.quality_score ?? (starRating > 0 ? starRating * 2 : undefined),
+    created_at: rest.created_at || '',
+  };
+}
+
 function normalizeFeedCard(card: ExperienceCard): Experience {
   const starRating = card.star_rating ?? 0;
-  return {
+  return normalizeExperience({
     id: card.id,
     author_id: card.owner_user_id || '',
     owner_user_id: card.owner_user_id,
@@ -81,15 +127,15 @@ function normalizeFeedCard(card: ExperienceCard): Experience {
     is_official: card.experience_type === 'platform_selected',
     source_type: card.experience_type === 'platform_selected' ? 'platform' : 'user',
     creator_name: card.creator_display_name || undefined,
-    like_count: card.inspiration_count || 0,
-    bookmark_count: card.collection_count || 0,
     author_name: card.creator_display_name || undefined,
-    is_liked: Boolean(card.is_inspired),
-    is_bookmarked: Boolean(card.is_collected),
+    inspiration_count: card.inspiration_count || 0,
+    collection_count: card.collection_count || 0,
+    is_inspired: Boolean(card.is_inspired),
+    is_collected: Boolean(card.is_collected),
     review_status: card.lifecycle_status,
     quality_score: starRating > 0 ? starRating * 2 : undefined,
     created_at: '',
-  };
+  });
 }
 
 function normalizeFeedPage(page: {
@@ -146,7 +192,11 @@ export async function fetchExperiences(
     sort,
   });
   if (domain) params.set('domain', domain);
-  return apiGet(`/api/v1/experiences?${params}`);
+  const result = await apiGet(`/api/v1/experiences?${params}`);
+  return {
+    ...result,
+    data: Array.isArray(result?.data) ? result.data.map(normalizeExperience) : [],
+  };
 }
 
 export async function searchExperiences(
@@ -164,7 +214,7 @@ export async function searchExperiences(
 }
 
 export async function fetchExperience(id: string): Promise<Experience> {
-  return apiGet(`/api/v1/experiences/${id}`);
+  return normalizeExperience(await apiGet(`/api/v1/experiences/${id}`));
 }
 
 export async function createExperience(
@@ -193,7 +243,7 @@ export async function createExperience(
   if (domain) body.domain = domain;
   if (sub_domain) body.sub_domain = sub_domain;
   const result = await apiPost('/api/v1/experiences', body);
-  return result?.experience ?? result;
+  return normalizeExperience(result?.experience ?? result);
 }
 
 export async function updateExperience(

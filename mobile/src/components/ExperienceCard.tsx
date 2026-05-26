@@ -209,7 +209,7 @@ export default function FlipCard({
       {showActions && (
         <View style={styles.bottomActions}>
           <TouchableOpacity
-            style={[styles.actionBtn, item.is_liked && styles.actionLiked]}
+            style={[styles.actionBtn, item.is_inspired && styles.actionLiked]}
             onPress={(e) => { e.stopPropagation(); onLike?.(item.id); }}
             accessibilityRole="button"
             accessibilityLabel="标记有启发"
@@ -218,27 +218,27 @@ export default function FlipCard({
               <Ionicons
                 name="sparkles"
                 size={15}
-                color={item.is_liked ? '#e85d5d' : '#9a9a9a'}
+                color={item.is_inspired ? '#e85d5d' : '#9a9a9a'}
               />
-              <Text style={[styles.actionText, item.is_liked && styles.actionLikedText]}>
-                {item.like_count > 0 ? String(item.like_count) : '有启发'}
+              <Text style={[styles.actionText, item.is_inspired && styles.actionLikedText]}>
+                {item.inspiration_count > 0 ? String(item.inspiration_count) : '有启发'}
               </Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionBtn, item.is_bookmarked && styles.actionSaved]}
+            style={[styles.actionBtn, item.is_collected && styles.actionSaved]}
             onPress={(e) => { e.stopPropagation(); onBookmark?.(item.id); }}
             accessibilityRole="button"
-            accessibilityLabel={item.is_bookmarked ? '取消收藏经验' : '收藏经验'}
+            accessibilityLabel={item.is_collected ? '取消收藏经验' : '收藏经验'}
           >
             <View style={styles.actionContent}>
               <Ionicons
-                name={item.is_bookmarked ? 'star' : 'star-outline'}
+                name={item.is_collected ? 'star' : 'star-outline'}
                 size={15}
-                color={item.is_bookmarked ? '#e8a850' : '#9a9a9a'}
+                color={item.is_collected ? '#e8a850' : '#9a9a9a'}
               />
-              <Text style={[styles.actionText, item.is_bookmarked && styles.actionSavedText]}>
-                {item.is_bookmarked ? '已收藏' : '收藏'}
+              <Text style={[styles.actionText, item.is_collected && styles.actionSavedText]}>
+                {item.is_collected ? '已收藏' : '收藏'}
               </Text>
             </View>
           </TouchableOpacity>

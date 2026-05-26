@@ -47,4 +47,19 @@ describe('App V4 API contract', () => {
       expect(appSource).not.toContain(endpoint);
     }
   });
+
+  it('keeps legacy like/bookmark action aliases out of mobile UI runtime source', () => {
+    const uiSources = [
+      read('src/components/ExperienceCard.tsx'),
+      read('src/screens/HomeScreen.tsx'),
+      read('src/screens/DetailScreen.tsx'),
+      read('src/screens/SearchCardScreen.tsx'),
+      read('src/screens/SearchPage.tsx'),
+    ].join('\n');
+
+    expect(uiSources).not.toMatch(/\bis_liked\b/);
+    expect(uiSources).not.toMatch(/\bis_bookmarked\b/);
+    expect(uiSources).not.toMatch(/\blike_count\b/);
+    expect(uiSources).not.toMatch(/\bbookmark_count\b/);
+  });
 });

@@ -911,6 +911,20 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- Mobile V4 action field naming cleanup checks pass:
+  - mobile UI runtime source now consumes V4 action fields: `is_inspired`, `inspiration_count`, `is_collected`, and `collection_count`
+  - legacy `is_liked`, `like_count`, `is_bookmarked`, and `bookmark_count` aliases are now confined to the API normalization layer for backend compatibility instead of leaking into 看看 / 详情 / 搜索卡片 UI logic
+  - `fetchExperience`, `fetchExperiences`, feed normalization, and create response normalization now return V4-shaped experience objects to App screens
+  - added API contract coverage blocking legacy action aliases from mobile UI runtime source, plus a regression test that old detail-response aliases normalize into V4 fields without leaking old properties
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- apiContract.test.ts --runInBand --no-cache`
+    - `npm run test -- apiContract.test.ts HomeScreen.test.tsx DetailScreen.test.tsx SearchCardScreen.test.tsx SearchPage.test.tsx apiFeed.test.ts appRoutes.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (20 suites, 88 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 
@@ -926,7 +940,7 @@ Next implementation slice should be:
 
 ## 5. Remaining Risks
 
-- Migration 017 has been applied to production and application-role grants have been fixed after smoke testing exposed missing grants; production migrations, deployments, or data mutations are authorized for the active development plan and must still pass backup, repeatable migration, deployment, smoke, cleanup, and rollback gates.
+- Migration 017 has been applied to production and application-role grants have been fixed after smoke testing exposed missing grants; do not apply any further production migrations, deployments, or production data mutations without explicit active-thread user confirmation for that exact action.
 - New model fields are present, but older non-V4 repository queries still scan legacy columns.
 - V4 feed and related App endpoints are now deployed; production `dev-login` remains unavailable by design because the backend is running in production mode.
 - Legacy `likes` and `bookmarks` still exist; they are compatibility sources until the new interaction endpoints are implemented and data parity is confirmed.

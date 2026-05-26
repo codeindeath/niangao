@@ -60,8 +60,8 @@ describe('App route registry', () => {
     expect(cardSource).toContain('sparkles');
     expect(cardSource).toContain('star');
     expect(cardSource).not.toContain('◎ {displayName}');
-    expect(cardSource).not.toContain('✦ {item.like_count');
-    expect(cardSource).not.toContain('★ {item.is_bookmarked');
+    expect(cardSource).not.toContain('✦ {item.inspiration_count');
+    expect(cardSource).not.toContain('★ {item.is_collected');
     expect(cardSource).not.toContain('📖 原文');
   });
 
@@ -89,8 +89,8 @@ describe('App route registry', () => {
     expect(detailSource).toContain('bookmark');
     expect(detailSource).toContain('lock-closed-outline');
     expect(detailSource).toContain('book-outline');
-    expect(detailSource).not.toContain('✦ {exp.like_count');
-    expect(detailSource).not.toContain('★ {exp.is_bookmarked');
+    expect(detailSource).not.toContain('✦ {exp.inspiration_count');
+    expect(detailSource).not.toContain('★ {exp.is_collected');
     expect(detailSource).not.toContain('🔒');
     expect(detailSource).not.toContain('📖 经验解读');
   });

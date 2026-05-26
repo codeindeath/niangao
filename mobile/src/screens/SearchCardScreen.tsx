@@ -51,10 +51,10 @@ export default function SearchCardScreen({route, navigation}: any) {
   const handleLike = async (id: string) => {
     if (!(await requireLogin(navigation, '登录后可以标记有启发，年糕也会更懂你的偏好。'))) return;
     const card = cards.find(c => c.id === id);
-    if (!card || card.is_liked) return;
-    updateCard(id, {is_liked: true, like_count: card.like_count + 1});
+    if (!card || card.is_inspired) return;
+    updateCard(id, {is_inspired: true, inspiration_count: card.inspiration_count + 1});
     try { await markInspired(id); } catch (e) {
-      updateCard(id, {is_liked: card.is_liked, like_count: card.like_count});
+      updateCard(id, {is_inspired: card.is_inspired, inspiration_count: card.inspiration_count});
       await handleAuthExpired(navigation, e);
     }
   };
@@ -63,13 +63,13 @@ export default function SearchCardScreen({route, navigation}: any) {
     if (!(await requireLogin(navigation, '登录后可以收藏经验，之后在看看里随时翻回来。'))) return;
     const card = cards.find(c => c.id === id);
     if (!card) return;
-    const nextBookmarked = !card.is_bookmarked;
+    const nextCollected = !card.is_collected;
     updateCard(id, {
-      is_bookmarked: nextBookmarked,
-      bookmark_count: Math.max(card.bookmark_count + (nextBookmarked ? 1 : -1), 0),
+      is_collected: nextCollected,
+      collection_count: Math.max(card.collection_count + (nextCollected ? 1 : -1), 0),
     });
-    try { await setCollected(id, nextBookmarked); } catch (e) {
-      updateCard(id, {is_bookmarked: card.is_bookmarked, bookmark_count: card.bookmark_count});
+    try { await setCollected(id, nextCollected); } catch (e) {
+      updateCard(id, {is_collected: card.is_collected, collection_count: card.collection_count});
       await handleAuthExpired(navigation, e);
     }
   };

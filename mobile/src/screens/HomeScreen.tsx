@@ -213,13 +213,13 @@ export default function HomeScreen() {
   const handleLike = async (id: string) => {
     if (!(await requireLogin(navigation, '登录后可以标记有启发，年糕也会更懂你的偏好。'))) return;
     const current = tabCaches[activeTab].items.find(e => e.id === id);
-    if (!current || current.is_liked) return;
+    if (!current || current.is_inspired) return;
     setTabCaches(prev => ({
       ...prev,
       [activeTab]: {
         ...prev[activeTab],
         items: prev[activeTab].items.map(e =>
-          e.id === id ? {...e, is_liked: true, like_count: e.like_count + 1} : e
+          e.id === id ? {...e, is_inspired: true, inspiration_count: e.inspiration_count + 1} : e
         ),
       },
     }));
@@ -229,7 +229,7 @@ export default function HomeScreen() {
         [activeTab]: {
           ...prev[activeTab],
           items: prev[activeTab].items.map(e =>
-            e.id === id ? {...e, is_liked: false, like_count: Math.max(e.like_count - 1, 0)} : e
+            e.id === id ? {...e, is_inspired: false, inspiration_count: Math.max(e.inspiration_count - 1, 0)} : e
           ),
         },
       }));
@@ -241,27 +241,27 @@ export default function HomeScreen() {
     if (!(await requireLogin(navigation, '登录后可以收藏经验，之后在看看里随时翻回来。'))) return;
     const current = tabCaches[activeTab].items.find(e => e.id === id);
     if (!current) return;
-    const nextBookmarked = !current?.is_bookmarked;
+    const nextCollected = !current?.is_collected;
     setTabCaches(prev => ({
       ...prev,
       [activeTab]: {
         ...prev[activeTab],
         items: prev[activeTab].items.map(e => e.id === id ? {
           ...e,
-          is_bookmarked: nextBookmarked,
-          bookmark_count: nextBookmarked ? e.bookmark_count + 1 : Math.max(e.bookmark_count - 1, 0),
+          is_collected: nextCollected,
+          collection_count: nextCollected ? e.collection_count + 1 : Math.max(e.collection_count - 1, 0),
         } : e),
       },
     }));
-    try { await setCollected(id, nextBookmarked); } catch (e) {
+    try { await setCollected(id, nextCollected); } catch (e) {
       setTabCaches(prev => ({
         ...prev,
         [activeTab]: {
           ...prev[activeTab],
           items: prev[activeTab].items.map(e => e.id === id ? {
             ...e,
-            is_bookmarked: !nextBookmarked,
-            bookmark_count: nextBookmarked ? Math.max(e.bookmark_count - 1, 0) : e.bookmark_count + 1,
+            is_collected: !nextCollected,
+            collection_count: nextCollected ? Math.max(e.collection_count - 1, 0) : e.collection_count + 1,
           } : e),
         },
       }));
