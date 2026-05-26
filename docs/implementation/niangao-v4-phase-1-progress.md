@@ -1886,6 +1886,32 @@ Current result:
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-chat-gate`
     - production SQL parse, authenticated temporary JWT chat smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- 我的 stats lifecycle gate checks pass:
+  - App-facing `/me/stats/*` and `/me/recent-responded-experiences` queries now use canonical `e.lifecycle_status <> 'deleted'` and `e.lifecycle_status='active'` predicates instead of fallback lifecycle defaults
+  - the existing V4 visibility contract test now also blocks fallback lifecycle predicates from returning to `me_stats_v4.go`
+  - the Phase 1 contract doc now records that 我的 stats eligibility uses both V4 `visibility` and `lifecycle_status` facts
+  - Linux backend artifact `/tmp/niangao-backend-v4-me-stats-lifecycle` was deployed to production at `/root/niangao/deployments/20260527055949/server`
+  - production backend binary hash now matches the local me-stats-lifecycle artifact:
+    - `b21af1faba3913b92f088578e6b946d683bb871df83c57195499bbeee82fb16c`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-me-stats-lifecycle.20260527055949.backend`
+  - production SQL parse checks passed for asset stats, contribution stats, change stats, recent harvest stats, and recent responded queries
+  - post-deploy authenticated 我的 smoke passed with temporary JWT users and cleanup:
+    - `/api/v1/me/profile` -> 200
+    - `/api/v1/me/stats/assets` -> 200 and verified `my_experiences=2`, `public_experiences=1`, `private_experiences=1` while excluding a lifecycle-deleted row
+    - `/api/v1/me/stats/contribution` -> 200
+    - `/api/v1/me/stats/change` -> 200
+    - `/api/v1/me/stats/recent-harvest?range=7d` -> 200
+    - `/api/v1/me/recent-responded-experiences?limit=2` -> 200 and returned the public active responded card
+    - cleanup verification -> `0|0|0|0` for temporary users, temporary experiences, temporary collections, and temporary inspirations
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, stats failure, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestMeStatsQueriesUseV4VisibilityFacts -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestMeStatsQueriesUseV4VisibilityFacts -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -count=1`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-me-stats-lifecycle`
+    - production SQL parse, authenticated temporary JWT 我的 smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

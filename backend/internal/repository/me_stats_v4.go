@@ -16,7 +16,7 @@ func (r *ExperienceRepo) AssetStats(ctx context.Context, userID string) (*model.
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
-			   AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL),
 			(SELECT COUNT(*)
 			 FROM experience_collections ec
@@ -26,31 +26,31 @@ func (r *ExperienceRepo) AssetStats(ctx context.Context, userID string) (*model.
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			   AND COALESCE(e.source_scene, 'note') IN ('note', 'chat')
 			   AND e.created_at >= date_trunc('month', NOW())
-			   AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL),
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			   AND e.visibility='public'
-			   AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL),
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			   AND e.visibility='private'
-			   AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL),
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			   AND COALESCE(e.source_scene, 'note')='note'
-			   AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL),
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			   AND COALESCE(e.source_scene, '')='chat'
-			   AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL)`,
 		userID,
 	).Scan(
@@ -77,7 +77,7 @@ func (r *ExperienceRepo) ContributionStats(ctx context.Context, userID string) (
 			WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			  AND COALESCE(e.experience_type, 'user_original')='user_original'
 			  AND e.visibility='public'
-			  AND COALESCE(e.lifecycle_status, 'active')='active'
+			  AND e.lifecycle_status='active'
 			  AND e.deleted_at IS NULL
 		)
 		SELECT
@@ -122,7 +122,7 @@ func (r *ExperienceRepo) ChangeStats(ctx context.Context, userID string) (*model
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			   AND COALESCE(e.source_scene, '')='chat'
 			   AND e.created_at >= date_trunc('month', NOW())
-			   AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL)`,
 		userID,
 	).Scan(&stats.ChatTopics, &stats.ClearerCount, &stats.MonthChatExperiences)
@@ -144,7 +144,7 @@ func (r *ExperienceRepo) RecentHarvestStats(ctx context.Context, userID string, 
 			WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			  AND COALESCE(e.experience_type, 'user_original')='user_original'
 			  AND e.visibility='public'
-			  AND COALESCE(e.lifecycle_status, 'active')='active'
+			  AND e.lifecycle_status='active'
 			  AND e.deleted_at IS NULL
 		)
 		SELECT
@@ -152,14 +152,14 @@ func (r *ExperienceRepo) RecentHarvestStats(ctx context.Context, userID string, 
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			   AND COALESCE(e.source_scene, 'note')='note'
-			   AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL
 			   %s),
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			   AND COALESCE(e.source_scene, '')='chat'
-			   AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL
 			   %s),
 			(SELECT COUNT(DISTINCT ei.user_id)
@@ -206,7 +206,7 @@ func (r *ExperienceRepo) RecentRespondedExperiences(ctx context.Context, userID 
 			WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
 			  AND COALESCE(e.experience_type, 'user_original')='user_original'
 			  AND e.visibility='public'
-			  AND COALESCE(e.lifecycle_status, 'active')='active'
+			  AND e.lifecycle_status='active'
 			  AND e.deleted_at IS NULL
 		),
 		inspire AS (
