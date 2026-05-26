@@ -242,4 +242,58 @@ describe('ProfileScreen', () => {
     });
     expect(logout).toHaveBeenCalled();
   });
+
+  it('routes expired auth during feedback submission back to login without a generic failure alert', async () => {
+    (api.submitFeedback as jest.Mock).mockRejectedValueOnce({status: 401});
+
+    const rendered = render(<ProfileScreen navigation={navigation} />);
+    fireEvent.press(await rendered.findByText('意见反馈'));
+    fireEvent.changeText(rendered.getByPlaceholderText('写下你的反馈'), '这里提交起来不顺');
+
+    await act(async () => {
+      fireEvent.press(rendered.getByText('提交'));
+    });
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith(
+        '登录状态过期',
+        expect.any(String),
+        expect.any(Array),
+      );
+    });
+    expect(Alert.alert).not.toHaveBeenCalledWith('提交失败', expect.any(String));
+
+    const expiredCall = (Alert.alert as jest.Mock).mock.calls.find(
+      call => call[0] === '登录状态过期',
+    );
+    const buttons = expiredCall[2];
+    buttons.find((button: any) => button.text === 'Apple登录').onPress();
+
+    expect(navigation.navigate).toHaveBeenCalledWith('login');
+  });
+
+  it('routes expired auth during account deletion back to login without a generic failure alert', async () => {
+    (api.deleteAccount as jest.Mock).mockRejectedValueOnce({status: 401});
+
+    const {findByText} = render(<ProfileScreen navigation={navigation} />);
+    fireEvent.press(await findByText('注销账号'));
+
+    let buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
+    await act(async () => {
+      await buttons.find((button: any) => button.text === '继续').onPress();
+    });
+    buttons = (Alert.alert as jest.Mock).mock.calls[1][2];
+    await act(async () => {
+      await buttons.find((button: any) => button.text === '确认注销').onPress();
+    });
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith(
+        '登录状态过期',
+        expect.any(String),
+        expect.any(Array),
+      );
+    });
+    expect(Alert.alert).not.toHaveBeenCalledWith('注销失败', expect.any(String));
+  });
 });

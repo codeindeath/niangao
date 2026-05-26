@@ -32,6 +32,7 @@ import {
 import {logout} from '../services/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {reportHandledError} from '../utils/logging';
+import {handleAuthExpired} from '../utils/authGate';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const STATS_CACHE_KEY = 'niangao:v4:me-stats-cache';
@@ -245,6 +246,10 @@ export default function ProfileScreen({navigation}: any) {
                   await logout();
                   clearLocalProfileState();
                 } catch (e: any) {
+                  if (await handleAuthExpired(navigation, e)) {
+                    clearLocalProfileState();
+                    return;
+                  }
                   Alert.alert('注销失败', e?.message || '请稍后再试');
                 }
               },
@@ -274,6 +279,11 @@ export default function ProfileScreen({navigation}: any) {
       setFeedbackVisible(false);
       Alert.alert('已收到', '谢谢你的反馈。');
     } catch (e: any) {
+      if (await handleAuthExpired(navigation, e)) {
+        clearLocalProfileState();
+        setFeedbackVisible(false);
+        return;
+      }
       Alert.alert('提交失败', e?.message || '请稍后再试');
     } finally {
       setFeedbackSending(false);

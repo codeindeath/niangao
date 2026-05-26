@@ -1061,6 +1061,19 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - `rg -n "\\bauthor_id\\b|\\bauthor_name\\b|\\bcreator_name\\b|\\bis_private\\b|\\breview_status\\b|\\bis_official\\b|\\bsource_type\\b" mobile/src --glob '!mobile/src/services/api.ts' -g '!mobile/src/__tests__/**'`
+- Profile secondary expired-auth hardening checks pass:
+  - 我的页 profile load 401 already cleared local auth and showed the login gate; now feedback submission and account deletion also use the unified expired-auth path
+  - feedback submission and account deletion no longer show generic `提交失败` / `注销失败` alerts when the real failure is expired auth
+  - expired auth from those protected actions clears local profile/stats state and routes the user back to `Apple登录`
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- ProfileScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- ProfileScreen.test.tsx authGate.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (22 suites, 100 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 
@@ -1071,12 +1084,12 @@ Not verified yet:
 Next implementation slice should be:
 
 1. Continue App/backend production hardening after authenticated runtime smoke, focusing on remaining weak-network/empty/error states and any App/backend contract mismatches found by static scans or simulator checks.
-2. Prepare the next deployable backend checkpoint after hardening changes pass backend, mobile, AI, and smoke gates; deploy only after explicit active-thread confirmation for that exact action.
+2. Prepare and autonomously deploy the next backend checkpoint when needed for the active V4 App/backend plan, but only after tests, local Linux build, backup/rollback readiness, production smoke, temporary data cleanup, and backend/AI log scans pass.
 3. Continue the development plan task-to-task until the App/backend plan and deployment are complete.
 
 ## 5. Remaining Risks
 
-- Migration 017 has been applied to production and application-role grants have been fixed after smoke testing exposed missing grants; do not apply any further production migrations, deployments, or production data mutations without explicit active-thread user confirmation for that exact action. If confirmed, use backup or rollback readiness, repeatable migration/deploy gates, smoke checks, cleanup of temporary data, and backend/AI log scans.
+- Migration 017 has been applied to production and application-role grants have been fixed after smoke testing exposed missing grants; production migrations, deployments, and temporary smoke data mutations are authorized within the active V4 App/backend plan when needed, but must use backup or rollback readiness, repeatable migration/deploy gates, smoke checks, cleanup of temporary data, and backend/AI log scans.
 - New model fields are present, and active legacy experience readers now share V4 select/scan coverage. `SearchByEmbedding` still has a narrow manual scanner but remains a TODO path because pgvector embedding search is unavailable.
 - V4 feed and related App endpoints are now deployed; production `dev-login` remains unavailable by design because the backend is running in production mode.
 - Legacy `likes` and `bookmarks` still exist; they are compatibility sources until the new interaction endpoints are implemented and data parity is confirmed.
