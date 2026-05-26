@@ -457,6 +457,7 @@ Behavior:
 - If topic classification fails or score is below threshold, chat reply still succeeds and the session remains `temp_session`.
 - If AI fails, keep user message and return retryable error.
 - Candidate experience retrieval is non-fatal; it must use currently deployed V4 fields only. Until content-production fields land, `source_derivation_type` is emitted as a compatible fallback rather than read from `experiences`.
+- Candidate and historical reference-card visibility use canonical V4 `visibility` and `lifecycle_status`; public active experiences are visible, owner active experiences are usable as own context, and non-visible citations return placeholder cards instead of leaking content.
 
 Response:
 

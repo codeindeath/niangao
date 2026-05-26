@@ -279,19 +279,19 @@ func (r *ConversationRepo) attachChatReferenceCards(ctx context.Context, userID 
 		    cc.shown_at,
 		    e.content,
 		    e.deleted_at,
-		    COALESCE(e.visibility, 'public') AS visibility,
-		    COALESCE(e.lifecycle_status, 'active') AS lifecycle_status,
+		    e.visibility AS visibility,
+		    e.lifecycle_status AS lifecycle_status,
 		    COALESCE(e.owner_user_id, e.author_id) AS owner_user_id,
 		    (
 		      e.deleted_at IS NULL
 		      AND (
 		        (
-		          COALESCE(e.visibility, 'public') = 'public'
-		          AND COALESCE(e.lifecycle_status, 'active') = 'active'
+		          e.visibility = 'public'
+		          AND e.lifecycle_status = 'active'
 		        )
 		        OR (
 		          COALESCE(e.owner_user_id, e.author_id) = $1::uuid
-		          AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+		          AND e.lifecycle_status <> 'deleted'
 		        )
 		      )
 		    ) AS visible_to_viewer
@@ -610,7 +610,7 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 	rows, err := r.db.Query(ctx, `
 		WITH collected_recent AS (
 		  SELECT e.id, e.content, COALESCE(e.creator_display_name, u.display_name, u.nickname, '一个年糕用户') AS creator_name,
-		         'collected'::text AS source_relation, COALESCE(e.visibility, 'public') AS visibility,
+		         'collected'::text AS source_relation, e.visibility AS visibility,
 		         COALESCE(e.quality_tier, 'public_visible') AS quality_tier,
 		         COALESCE(e.source_reliability, '') AS source_reliability,
 		         '' AS source_derivation_type,
@@ -624,14 +624,14 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 		  JOIN experiences e ON e.id=c.experience_id
 		  LEFT JOIN users u ON u.id=e.owner_user_id
 		  WHERE c.user_id=$1::uuid AND c.status='active'
-		    AND COALESCE(e.lifecycle_status, 'active')='active'
+		    AND e.lifecycle_status='active'
 		    AND e.deleted_at IS NULL
 		  ORDER BY c.created_at DESC
 		  LIMIT 50
 		),
 		own_recent AS (
 		  SELECT e.id, e.content, COALESCE(e.creator_display_name, u.display_name, u.nickname, '你') AS creator_name,
-		         'own'::text AS source_relation, COALESCE(e.visibility, 'private') AS visibility,
+		         'own'::text AS source_relation, e.visibility AS visibility,
 		         COALESCE(e.quality_tier, 'private_only') AS quality_tier,
 		         COALESCE(e.source_reliability, '') AS source_reliability,
 		         'user_original' AS source_derivation_type,
@@ -647,7 +647,7 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 		  FROM experiences e
 		  LEFT JOIN users u ON u.id=e.owner_user_id
 		  WHERE e.owner_user_id=$1::uuid
-		    AND COALESCE(e.lifecycle_status, 'active')='active'
+		    AND e.lifecycle_status='active'
 		    AND e.deleted_at IS NULL
 		  ORDER BY e.updated_at DESC
 		  LIMIT 50
@@ -655,7 +655,7 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 		public_pool AS (
 		  SELECT e.id, e.content, COALESCE(e.creator_display_name, '精选') AS creator_name,
 		         CASE WHEN COALESCE(e.experience_type, 'platform_selected')='user_original' THEN 'public_original' ELSE 'public' END AS source_relation,
-		         COALESCE(e.visibility, 'public') AS visibility,
+		         e.visibility AS visibility,
 		         COALESCE(e.quality_tier, 'ai_citable') AS quality_tier,
 		         COALESCE(e.source_reliability, '') AS source_reliability,
 		         '' AS source_derivation_type,
@@ -666,11 +666,11 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 		         CASE WHEN COALESCE(e.sub_domain, '')=$3 AND $3<>'' THEN 1 ELSE 0 END +
 		         CASE WHEN COALESCE(e.topic, '')=$4 AND $4<>'' THEN 1 ELSE 0 END AS relevance_score
 		  FROM experiences e
-		  WHERE COALESCE(e.visibility, 'public')='public'
-		    AND COALESCE(e.lifecycle_status, 'active')='active'
+		  WHERE e.visibility='public'
+		    AND e.lifecycle_status='active'
 		    AND e.deleted_at IS NULL
-		    AND COALESCE(e.ai_citable, FALSE)=TRUE
-		    AND COALESCE(e.quality_tier, '') IN ('ai_citable', 'high_trust')
+		    AND e.ai_citable=TRUE
+		    AND e.quality_tier IN ('ai_citable', 'high_trust')
 		    AND ($5::boolean OR COALESCE(e.source_reliability, '') <> 'low')
 		  ORDER BY e.updated_at DESC
 		  LIMIT 80

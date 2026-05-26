@@ -1860,6 +1860,32 @@ Current result:
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-feed-gate`
     - production SQL parse, public smoke, authenticated temporary JWT feed smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Chat reference/candidate V4 visibility/lifecycle gate checks pass:
+  - historical chat reference cards now use V4 `e.visibility='public'` and `e.lifecycle_status='active'` for public visibility, while owner-visible citations require `e.lifecycle_status <> 'deleted'`
+  - chat candidate experience retrieval now uses canonical V4 lifecycle gates for collected, own, and public candidate pools, and the public pool requires `e.visibility='public'`, `e.lifecycle_status='active'`, `e.ai_citable=TRUE`, and V4 `quality_tier`
+  - candidate payload visibility now comes from the V4 `visibility` field instead of fallback public/private defaults
+  - repository contract coverage now prevents `chat_v4.go` reference/candidate queries from reintroducing fallback public/lifecycle gate fragments
+  - the Phase 1 contract doc now records canonical V4 visibility/lifecycle behavior for chat candidates and historical reference cards
+  - Linux backend artifact `/tmp/niangao-backend-v4-chat-gate` was deployed to production at `/root/niangao/deployments/20260527054947/server`
+  - production backend binary hash now matches the local chat-gate artifact:
+    - `d66a073c7512f531c148cb6a9d2d1948735e39fae6dcc3c4e52a1b2b496d3062`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-chat-gate.20260527054947.backend`
+  - production SQL parse checks passed for the chat historical reference-card query and candidate experience query
+  - post-deploy chat smoke passed with temporary JWT users and cleanup:
+    - `GET /api/v1/chat/topics/:id/messages` -> 200 and returned the visible public reference card
+    - the same response kept a non-owner private citation as an `experience_unavailable` placeholder without leaking content
+    - `POST /api/v1/chat/topics/:id/messages` -> 200, exercising the candidate experience query before the AI Gateway call
+    - corrected cleanup verification -> `0|0|0|0|0` for temporary users, temporary experiences, temporary chat topics, temporary chat messages, and temporary citations
+  - the initial chat smoke cleanup script failed after the smoke assertions because it reused a CTE name across separate SQL statements and then checked a non-existent `ai_call_logs.request_payload` column; the cleanup was rerun with explicit subqueries per statement and verified clean
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, candidate-query failure, chat-message load failure, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestChatReferenceAndCandidateQueriesUseV4VisibilityLifecycleGates -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestChatReferenceAndCandidateQueriesUseV4VisibilityLifecycleGates|TestChatCandidateQueryUsesV4CollectionStatus|TestChatCandidateQueryDoesNotRequireFutureSourceDerivationColumn' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -count=1`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-chat-gate`
+    - production SQL parse, authenticated temporary JWT chat smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

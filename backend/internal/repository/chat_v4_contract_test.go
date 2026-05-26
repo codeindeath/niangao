@@ -79,3 +79,35 @@ func TestChatCandidateQueryUsesV4CollectionStatus(t *testing.T) {
 		t.Fatal("chat candidate query should filter active collections with V4 status")
 	}
 }
+
+func TestChatReferenceAndCandidateQueriesUseV4VisibilityLifecycleGates(t *testing.T) {
+	sourceBytes, err := os.ReadFile("chat_v4.go")
+	if err != nil {
+		t.Fatalf("read chat_v4.go: %v", err)
+	}
+	source := string(sourceBytes)
+
+	for _, required := range []string{
+		"e.visibility = 'public'",
+		"e.lifecycle_status = 'active'",
+		"e.lifecycle_status <> 'deleted'",
+		"e.lifecycle_status='active'",
+		"e.visibility='public'",
+	} {
+		if !strings.Contains(source, required) {
+			t.Fatalf("chat reference/candidate queries should include V4 gate fragment %q", required)
+		}
+	}
+
+	for _, forbidden := range []string{
+		"COALESCE(e.visibility, 'public') = 'public'",
+		"COALESCE(e.lifecycle_status, 'active') = 'active'",
+		"COALESCE(e.lifecycle_status, 'active') <> 'deleted'",
+		"COALESCE(e.lifecycle_status, 'active')='active'",
+		"COALESCE(e.visibility, 'public')='public'",
+	} {
+		if strings.Contains(source, forbidden) {
+			t.Fatalf("chat reference/candidate queries should not use fallback V4 gate fragment %q", forbidden)
+		}
+	}
+}

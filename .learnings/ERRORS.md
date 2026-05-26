@@ -661,3 +661,35 @@ For `/api/v1/me/profile` smoke checks, validate `display_name` or another actual
 ### Metadata
 - Reproducible: yes
 - Related Files: backend/internal/model/models.go, backend/internal/handler/me_profile_v4.go
+
+---
+
+## [ERR-20260527-015] production_smoke_cleanup_cte_scope_and_schema_assumption
+
+**Logged**: 2026-05-27T05:53:44+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: infra
+
+### Summary
+Chat production smoke cleanup failed because the script reused a CTE name across separate SQL statements and then checked a non-existent `ai_call_logs.request_payload` column.
+
+### Error
+```
+ERROR: relation "smoke_messages" does not exist
+ERROR: column "request_payload" does not exist
+```
+
+### Context
+- The chat-gate production smoke itself passed: messages endpoint returned 200, send endpoint returned 200, and reference cards preserved unavailable placeholders.
+- Cleanup initially defined `smoke_messages` in one statement, then referenced it from later DELETE statements where that CTE was out of scope.
+- The retry then verified cleanup by assuming `ai_call_logs.request_payload` exists; the production table does not have that column.
+- A corrected cleanup used explicit subqueries per DELETE statement and verified temporary users, experiences, topics, messages, and citations as `0|0|0|0|0`.
+
+### Suggested Fix
+For production smoke cleanup, do not reuse CTE names across SQL statements. Use explicit subqueries or temp tables, and inspect table schema before adding verification checks for optional log columns.
+
+### Metadata
+- Reproducible: yes
+- Related Files: backend/internal/repository/chat_v4.go, docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-001, ERR-20260527-005
