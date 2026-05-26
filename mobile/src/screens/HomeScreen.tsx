@@ -156,11 +156,25 @@ export default function HomeScreen() {
     return data.length;
   }, []);
 
+  const handleFeedAuthExpired = useCallback(async (e: any, fallbackTab?: TabName) => {
+    if (!(await handleAuthExpired(navigation, e))) return false;
+    tokenRef.current = null;
+    setCurrentUserId(null);
+    setError(null);
+    setLoadMoreError(null);
+    if (fallbackTab) setActiveTab(fallbackTab);
+    return true;
+  }, [navigation]);
+
   const loadInitial = useCallback(async (tab: TabName) => {
     try { await loadPage(0, false, tab); }
-    catch (e) { reportHandledError('HomeScreen.loadInitial', e); setError('加载失败'); }
+    catch (e) {
+      if (await handleFeedAuthExpired(e)) return;
+      reportHandledError('HomeScreen.loadInitial', e);
+      setError('加载失败');
+    }
     finally { setLoading(false); }
-  }, [loadPage]);
+  }, [handleFeedAuthExpired, loadPage]);
 
   const handleLoadMore = useCallback(async () => {
     const cache = tabCaches[activeTab];
@@ -168,9 +182,13 @@ export default function HomeScreen() {
     loadingMoreRef.current = true;
     setLoadingMore(true);
     try { await loadPage(cache.offset, true, activeTab); }
-    catch (e) { reportHandledError('HomeScreen.handleLoadMore', e); setLoadMoreError('网络不稳，点一下重试'); }
+    catch (e) {
+      if (await handleFeedAuthExpired(e, activeTab === 'recommend' ? undefined : 'recommend')) return;
+      reportHandledError('HomeScreen.handleLoadMore', e);
+      setLoadMoreError('网络不稳，点一下重试');
+    }
     finally { loadingMoreRef.current = false; setLoadingMore(false); }
-  }, [loadPage, activeTab, tabCaches]);
+  }, [handleFeedAuthExpired, loadPage, activeTab, tabCaches]);
 
   const handleRefreshCurrentTab = () => {
     setError(null);
@@ -181,7 +199,11 @@ export default function HomeScreen() {
     }));
     setLoading(true);
     loadPage(0, false, activeTab)
-      .catch(e => { reportHandledError('HomeScreen.handleRefreshCurrentTab', e); setError('加载失败'); })
+      .catch(async e => {
+        if (await handleFeedAuthExpired(e, activeTab === 'recommend' ? undefined : 'recommend')) return;
+        reportHandledError('HomeScreen.handleRefreshCurrentTab', e);
+        setError('加载失败');
+      })
       .finally(() => setLoading(false));
   };
 
@@ -191,6 +213,7 @@ export default function HomeScreen() {
       return;
     }
     // Save current scroll index
+    const previousTab = activeTab;
     tabScrollIndex.current[activeTab] = tabScrollIndex.current[activeTab] || 0;
     setActiveTab(tab);
     setError(null);
@@ -206,7 +229,13 @@ export default function HomeScreen() {
       }, 50);
     } else {
       setLoading(true);
-      loadPage(0, false, tab).catch(e => { reportHandledError('HomeScreen.handleTabChange', e); setError('加载失败'); }).finally(() => setLoading(false));
+      loadPage(0, false, tab)
+        .catch(async e => {
+          if (await handleFeedAuthExpired(e, previousTab)) return;
+          reportHandledError('HomeScreen.handleTabChange', e);
+          setError('加载失败');
+        })
+        .finally(() => setLoading(false));
     }
   };
 

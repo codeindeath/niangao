@@ -253,6 +253,39 @@ describe('HomeScreen', () => {
     expect(navigation.navigate).toHaveBeenCalledWith('login');
   });
 
+  it('clears expired auth and keeps public recommendations when a protected tab load returns 401', async () => {
+    (config.getToken as jest.Mock).mockResolvedValue('expired-token');
+    (api.fetchRecommendations as jest.Mock).mockResolvedValue({
+      data: [makeExperience('1')],
+      total: 1,
+      has_more: false,
+    });
+    (api.fetchMyBookmarks as jest.Mock).mockRejectedValueOnce({status: 401});
+
+    const navigation = require('@react-navigation/native').__mockNavigation;
+    navigation.navigate.mockClear();
+    const {findByText, getByLabelText, queryByText} = render(<HomeScreen />);
+
+    expect(await findByText('第 1 条经验')).toBeTruthy();
+    fireEvent.press(getByLabelText('收藏分页'));
+
+    await waitFor(() => {
+      expect(config.clearToken).toHaveBeenCalledTimes(1);
+      expect(Alert.alert).toHaveBeenCalledWith(
+        '登录状态过期',
+        '重新登录后可以继续。',
+        expect.any(Array),
+      );
+    });
+
+    expect(queryByText('加载失败')).toBeNull();
+    expect(await findByText('第 1 条经验')).toBeTruthy();
+
+    const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
+    buttons.find((button: any) => button.text === 'Apple登录').onPress();
+    expect(navigation.navigate).toHaveBeenCalledWith('login');
+  });
+
   it('records a flip event when a card interpretation is opened', async () => {
     (config.getToken as jest.Mock).mockResolvedValue('fake-token');
     (api.fetchRecommendations as jest.Mock).mockResolvedValue({

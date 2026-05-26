@@ -1074,6 +1074,19 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- Home protected-tab expired-auth hardening checks pass:
+  - 看看-收藏 / 看看-我的 still prompt login before loading when no token exists
+  - when a stale local token exists and the protected feed returns 401, 看看 now clears expired auth, shows the unified `登录状态过期` path, and keeps the user on public 推荐 instead of replacing the screen with `加载失败`
+  - the same feed-load auth recovery path now covers initial load, protected tab load, refresh, and load-more failures before falling back to generic weak-network copy
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- HomeScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- HomeScreen.test.tsx authGate.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (22 suites, 101 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 
