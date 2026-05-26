@@ -326,33 +326,6 @@ func (r *ExperienceRepo) List(ctx context.Context, query model.ExperienceListQue
 	return experiences, total, nil
 }
 
-// TODO: 推荐系统 — 需要 pgvector 扩展 + embedding 列，当前不可用
-func (r *ExperienceRepo) SearchByEmbedding(ctx context.Context, embedding []float32, userID string, limit int) ([]model.Experience, error) {
-	rows, err := r.db.Query(ctx,
-		`SELECT e.id, e.content, e.domain, e.like_count, u.nickname as author_name
-		 FROM experiences e
-		 LEFT JOIN users u ON u.id = e.author_id
-		WHERE e.status = 'published' AND e.author_id = $1
-		 ORDER BY e.embedding <=> $2 LIMIT $3`,
-		userID, embedding, limit,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("search embedding: %w", err)
-	}
-	defer rows.Close()
-
-	var experiences []model.Experience
-	for rows.Next() {
-		var e model.Experience
-		if err := rows.Scan(&e.ID, &e.Content, &e.Domain, &e.LikeCount, &e.AuthorName); err != nil {
-			return nil, fmt.Errorf("scan: %w", err)
-		}
-		experiences = append(experiences, e)
-	}
-
-	return experiences, nil
-}
-
 func (r *ExperienceRepo) Update(ctx context.Context, id, authorID string, req model.CreateExperienceRequest) error {
 	reviewStatus := string(model.ReviewPending)
 	qualityTier := string(model.QualityTierUnreviewed)

@@ -1020,6 +1020,7 @@ Current result:
     - `rg -n "\\btopics\\b" mobile/src/screens/HomeScreen.tsx mobile/src/screens/DetailScreen.tsx mobile/src/screens/SearchCardScreen.tsx mobile/src/screens/CreateScreen.tsx`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 - Backend legacy experience reader scanner drift hardening checks pass:
+  - note: this was an intermediate hardening checkpoint; the legacy readers covered here were removed in the later repository cleanup slice
   - legacy `Recommend`, `ListByAuthor`, and `ListBookmarked` now select the shared V4 `experienceSelectCols`
   - those readers now reuse `scanExperience`, so future V4 field additions cannot silently leave their select/scan order behind
   - regression coverage now blocks returning to separate manual field lists in active legacy readers
@@ -1257,6 +1258,36 @@ Current result:
     - `git diff --check`
     - production public and authenticated temporary JWT smoke checks
     - backend/AI `journalctl` error scans
+- Backend unavailable embedding search cleanup checks pass:
+  - removed unused `SearchByEmbedding`, which had no production call sites and depended on unavailable `embedding <=>` pgvector behavior
+  - the deleted method was folded into the deprecated repository-method regression guard so it cannot silently return as a manual scanner
+  - updated the active repository scanner test to use the next real function boundary instead of the removed embedding-search TODO marker
+  - Linux backend artifact `/tmp/niangao-backend-v4-embedding-search-cleanup` was deployed to production at `/root/niangao/deployments/20260527012251/server`
+  - production backend binary hash now matches the local embedding-search-cleanup artifact:
+    - `05373d276e7aedb5f84d7dfe1304373860012ad4ff275f836fd6a71e39309601`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-embedding-search-cleanup.20260527012251`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences/recommend` -> 410 `deprecated_endpoint`
+  - post-deploy authenticated V4 smoke passed with a temporary JWT user and cleanup:
+    - `GET /api/v1/me/profile` -> 200
+    - `GET /api/v1/me/stats/assets` -> 200
+    - `GET /api/v1/feed/mine?limit=1` -> 200
+    - `POST /api/v1/chat/temp-sessions` -> 201
+    - cleanup verification -> `cleanup_remaining=0`, `codex_smoke_users=0`, `codex_smoke_temp_sessions=0`
+  - post-deploy backend/AI journal scans after the deploy window found no panic, fatal error, failed message, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestDeprecatedExperienceRepositoryMethodsAreRemoved -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestDeprecatedExperienceRepositoryMethodsAreRemoved|TestExperienceListUsesSharedV4Scanner|TestV4FeedQueriesExposeOwnerUserID|TestV4RecommendQuery' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-embedding-search-cleanup`
+    - `rg -n -g '!**/*_test.go' "SearchByEmbedding|embedding <=>|TODO: 推荐系统" backend/internal backend/cmd`
+    - `git diff --check`
+    - production public and authenticated temporary JWT smoke checks
+    - backend/AI `journalctl` error scans
 
 Not verified yet:
 
@@ -1273,8 +1304,8 @@ Next implementation slice should be:
 ## 5. Remaining Risks
 
 - Migration 017 has been applied to production and application-role grants have been fixed after smoke testing exposed missing grants; production migrations, deployments, and temporary smoke data mutations are authorized within the active V4 App/backend plan when needed, but must use backup or rollback readiness, repeatable migration/deploy gates, smoke checks, cleanup of temporary data, and backend/AI log scans.
-- New model fields are present, and active legacy experience readers now share V4 select/scan coverage. `SearchByEmbedding` still has a narrow manual scanner but remains a TODO path because pgvector embedding search is unavailable.
+- New model fields are present, active App-facing feed/search/detail readers are covered by V4 select/scan tests, and the unused pgvector-dependent `SearchByEmbedding` dead path has been removed.
 - V4 feed and related App endpoints are now deployed; production `dev-login` remains unavailable by design because the backend is running in production mode.
-- Legacy `likes` and `bookmarks` still exist; they are compatibility sources until the new interaction endpoints are implemented and data parity is confirmed.
+- Legacy `likes` and `bookmarks` tables still exist for migration/admin compatibility and count fallbacks; active App interaction endpoints use V4 `experience_inspirations` and `experience_collections`.
 - 我的 page stats now has 7d/30d/all and recent responded APIs, and partial stats failures no longer collapse the whole page into login.
 - iOS simulator runtime now reaches login, guest browsing, real production feed, protected-route gating, search page, authenticated 看看/聊聊/记下/我的, deployed AI rewrite, and deployed save. Real Apple Sign in remains unverified in this checkpoint; production `dev-login` remains unavailable by design.

@@ -34,7 +34,7 @@ func TestExperienceListUsesSharedV4Scanner(t *testing.T) {
 	if listStart < 0 {
 		t.Fatal("ExperienceRepo.List not found")
 	}
-	listEnd := strings.Index(text[listStart:], "// TODO: 推荐系统")
+	listEnd := strings.Index(text[listStart:], "func (r *ExperienceRepo) Update(")
 	if listEnd < 0 {
 		t.Fatal("ExperienceRepo.List end marker not found")
 	}

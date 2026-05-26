@@ -18,6 +18,7 @@ func TestDeprecatedExperienceRepositoryMethodsAreRemoved(t *testing.T) {
 		"func (r *ExperienceRepo) Recommend(",
 		"func (r *ExperienceRepo) ListByAuthor(",
 		"func (r *ExperienceRepo) ListBookmarked(",
+		"func (r *ExperienceRepo) SearchByEmbedding(",
 	} {
 		if strings.Contains(experienceSource, symbol) {
 			t.Fatalf("deprecated experience repository method should be removed: %s", symbol)
