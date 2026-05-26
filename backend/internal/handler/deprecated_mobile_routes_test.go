@@ -27,7 +27,7 @@ func TestDeprecatedExperienceAppRoutesReturnGone(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
 			r := gin.New()
-			RegisterExperienceRoutes(r.Group("/api/v1"), nil, nil, nil)
+			RegisterExperienceRoutes(r.Group("/api/v1"), nil)
 
 			w := httptest.NewRecorder()
 			req := httptest.NewRequest(tt.method, tt.path, nil)
@@ -74,6 +74,18 @@ func TestDeprecatedMobileHandlerSourcesAreRemoved(t *testing.T) {
 	} {
 		if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
 			t.Fatalf("deprecated mobile handler source %s should be removed, stat err=%v", path, err)
+		}
+	}
+}
+
+func TestDeprecatedMobileInteractionRepositorySourcesAreRemoved(t *testing.T) {
+	for _, path := range []string{
+		"../repository/bookmark.go",
+		"../repository/like.go",
+		"../repository/stats.go",
+	} {
+		if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("deprecated mobile interaction repository source %s should be removed, stat err=%v", path, err)
 		}
 	}
 }

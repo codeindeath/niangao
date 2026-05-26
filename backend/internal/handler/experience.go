@@ -18,8 +18,6 @@ import (
 
 type ExperienceHandler struct {
 	repo      *repository.ExperienceRepo
-	likeRepo  *repository.LikeRepo
-	bookRepo  *repository.BookmarkRepo
 	aiGateway ExperienceAIGateway
 }
 
@@ -27,12 +25,12 @@ type ExperienceAIGateway interface {
 	RewriteExperience(ctx context.Context, req model.ExperienceRewriteGatewayRequest) (*model.ExperienceRewriteGatewayResponse, error)
 }
 
-func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.ExperienceRepo, likeRepo *repository.LikeRepo, bookRepo *repository.BookmarkRepo, gateways ...ExperienceAIGateway) {
+func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.ExperienceRepo, gateways ...ExperienceAIGateway) {
 	var aiGateway ExperienceAIGateway
 	if len(gateways) > 0 {
 		aiGateway = gateways[0]
 	}
-	h := &ExperienceHandler{repo: expRepo, likeRepo: likeRepo, bookRepo: bookRepo, aiGateway: aiGateway}
+	h := &ExperienceHandler{repo: expRepo, aiGateway: aiGateway}
 
 	exp := r.Group("/experiences")
 	{
@@ -380,38 +378,6 @@ func (h *ExperienceHandler) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
-}
-
-func (h *ExperienceHandler) ToggleLike(c *gin.Context) {
-	userID := getAuthUserID(c)
-	if userID == "" {
-		return
-	}
-	id := c.Param("id")
-
-	liked, err := h.likeRepo.Toggle(c.Request.Context(), userID, id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to toggle like"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"liked": liked})
-}
-
-func (h *ExperienceHandler) ToggleBookmark(c *gin.Context) {
-	userID := getAuthUserID(c)
-	if userID == "" {
-		return
-	}
-	id := c.Param("id")
-
-	bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to toggle bookmark"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"bookmarked": bookmarked})
 }
 
 func parseIntParam(s string, def int) int {

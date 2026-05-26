@@ -40,8 +40,6 @@ func main() {
 
 	// Repositories
 	expRepo := repository.NewExperienceRepo(db)
-	likeRepo := repository.NewLikeRepo(db)
-	bookmarkRepo := repository.NewBookmarkRepo(db)
 	convRepo := repository.NewConversationRepo(db)
 	aiGateway := ai.NewGateway(cfg.AIServiceURL)
 
@@ -66,7 +64,7 @@ func main() {
 		handler.RegisterAuthRoutes(v1, db, cfg.JWTSecret, cfg.AppleBundleID, devMode)
 
 		// 经验
-		handler.RegisterExperienceRoutes(v1, expRepo, likeRepo, bookmarkRepo, aiGateway)
+		handler.RegisterExperienceRoutes(v1, expRepo, aiGateway)
 		handler.RegisterFeedRoutes(v1, expRepo)
 		handler.RegisterExperienceActionRoutes(v1, expRepo)
 		handler.RegisterSearchRoutes(v1, expRepo)

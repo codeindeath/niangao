@@ -43,7 +43,7 @@ func (f *fakeExperienceRewriteGateway) RewriteExperience(ctx context.Context, re
 
 func TestV4ExperienceRewriteRequiresAuth(t *testing.T) {
 	r := gin.New()
-	RegisterExperienceRoutes(r.Group("/api/v1"), nil, nil, nil, &fakeExperienceRewriteGateway{})
+	RegisterExperienceRoutes(r.Group("/api/v1"), nil, &fakeExperienceRewriteGateway{})
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/api/v1/experiences/rewrite", strings.NewReader(`{"content":"我想整理一下"}`))
@@ -61,7 +61,7 @@ func TestV4ExperienceRewriteCallsGatewayAndReturnsSuggestion(t *testing.T) {
 	v1 := r.Group("/api/v1", func(c *gin.Context) {
 		c.Set("user_id", "user-1")
 	})
-	RegisterExperienceRoutes(v1, nil, nil, nil, gateway)
+	RegisterExperienceRoutes(v1, nil, gateway)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/api/v1/experiences/rewrite", strings.NewReader(`{"content":"我发现我不是怕换工作，是怕再次证明自己选错了","source":"manual_note","default_visibility":"public","user_selected_domain":"meaning","user_selected_sub_domain":"self"}`))
@@ -94,7 +94,7 @@ func TestV4ExperienceRewriteGatewayFailureIsRetryable(t *testing.T) {
 	v1 := r.Group("/api/v1", func(c *gin.Context) {
 		c.Set("user_id", "user-1")
 	})
-	RegisterExperienceRoutes(v1, nil, nil, nil, &fakeExperienceRewriteGateway{fail: true})
+	RegisterExperienceRoutes(v1, nil, &fakeExperienceRewriteGateway{fail: true})
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/api/v1/experiences/rewrite", strings.NewReader(`{"content":"我想整理一下"}`))
@@ -118,7 +118,7 @@ func TestV4ExperienceRewriteRejectsOverlongGatewayOutput(t *testing.T) {
 	v1 := r.Group("/api/v1", func(c *gin.Context) {
 		c.Set("user_id", "user-1")
 	})
-	RegisterExperienceRoutes(v1, nil, nil, nil, &fakeExperienceRewriteGateway{
+	RegisterExperienceRoutes(v1, nil, &fakeExperienceRewriteGateway{
 		response: &model.ExperienceRewriteGatewayResponse{
 			CanRewrite:       true,
 			RewrittenContent: strings.Repeat("年", 101),

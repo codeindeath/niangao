@@ -1134,6 +1134,39 @@ Current result:
     - `git diff --check`
     - production public and authenticated temporary JWT smoke checks
     - backend/AI `journalctl` error scans
+- Backend deprecated interaction repository cleanup checks pass:
+  - removed unused legacy interaction repositories:
+    - `backend/internal/repository/bookmark.go`
+    - `backend/internal/repository/like.go`
+    - `backend/internal/repository/stats.go`
+  - `ExperienceHandler` no longer keeps `LikeRepo` / `BookmarkRepo` dependencies for deprecated `/like` and `/bookmark` behavior
+  - production server no longer initializes `NewLikeRepo` or `NewBookmarkRepo`
+  - regression coverage now fails if the removed legacy interaction repository source files return
+  - Linux backend artifact `/tmp/niangao-backend-v4-interaction-repo-cleanup` was deployed to production at `/root/niangao/deployments/20260527003122/server`
+  - production backend binary hash now matches the local interaction-repo-cleanup artifact:
+    - `d853cda29b35919876c3ed6b00f4a82b0402a05b7246a0ea801fd792314d335f`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-interaction-repo-cleanup.20260527003122`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences/recommend` -> 410 `deprecated_endpoint`
+  - post-deploy authenticated V4 smoke passed with a temporary JWT user and cleanup:
+    - `GET /api/v1/me/profile` -> 200
+    - `GET /api/v1/me/stats/assets` -> 200
+    - `GET /api/v1/feed/mine?limit=1` -> 200
+    - `POST /api/v1/chat/temp-sessions` -> 201
+    - cleanup temporary users -> 0
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestDeprecatedMobileInteractionRepositorySourcesAreRemoved|TestDeprecatedExperienceAppRoutesReturnGone|TestV4ExperienceRewrite' -count=1 -v` (RED confirmed before implementation)
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-interaction-repo-cleanup`
+    - `rg -n "NewLikeRepo|NewBookmarkRepo|StatsRepo|LikeRepo|BookmarkRepo|ToggleLike|ToggleBookmark|func \\(h \\*ExperienceHandler\\) Toggle|/api/v1/chat/send|/user/stats|/user/profile" backend/internal backend/cmd -g '!**/*_test.go'`
+    - `git diff --check`
+    - production public and authenticated temporary JWT smoke checks
+    - backend/AI `journalctl` error scans
 
 Not verified yet:
 
