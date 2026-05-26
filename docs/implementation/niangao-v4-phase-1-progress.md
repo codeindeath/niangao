@@ -858,6 +858,35 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - `rg -n "\\btoggleLike\\b|\\btoggleBookmark\\b|/api/v1/experiences/recommend|/api/v1/me/bookmarks|/api/v1/me/experiences|/api/v1/user/profile|/api/v1/user/stats|/api/v1/chat/send|/api/v1/experiences/\\$\\{id\\}/(view|like|bookmark)" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- Production backend deprecated mobile route hardening checks pass:
+  - old App-facing `GET /api/v1/experiences/recommend` no longer runs legacy recommendation logic or gets captured by `GET /api/v1/experiences/:id`; it returns `410 deprecated_endpoint`
+  - old App-facing `POST /api/v1/experiences/:id/like`, `POST /api/v1/experiences/:id/bookmark`, `GET /api/v1/me/experiences`, and `GET /api/v1/me/bookmarks` now return `410 deprecated_endpoint`
+  - production server main no longer registers old `/api/v1/chat`, `/api/v1/chat/send`, `/api/v1/user/*`, `/api/v1/user/stats`, or legacy `/api/v1/experiences/:id/view` route groups
+  - final route-hardened backend binary was built at `/tmp/niangao-backend-v4-route-hardening` and deployed to production with a binary backup
+  - production backend binary hash now matches the local route-hardened artifact:
+    - `9bb6c66e3bc1d57c97521f9a9ea9504b429d76a072a0279b709518ba1128c60b`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=2` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+  - post-deploy deprecated route smoke passes:
+    - `/api/v1/experiences/recommend` -> 410
+    - `/api/v1/experiences/:id/like` -> 410
+    - `/api/v1/experiences/:id/bookmark` -> 410
+    - `/api/v1/user/profile` -> 404
+    - `/api/v1/chat` -> 404
+  - post-deploy authenticated V4 smoke passed with a temporary JWT user and cleanup:
+    - `GET /api/v1/me/profile` -> 200
+    - `GET /api/v1/feed/mine?limit=1` -> 200
+    - cleanup temporary users -> 0
+  - post-deploy backend journal scan found no panic, fatal error, permission-denied error, traceback, or real 5xx response
+  - verification:
+    - `go test ./internal/handler -run 'TestDeprecatedExperienceAppRoutesReturnGone|TestProductionMainDoesNotRegisterDeprecatedMobileRouteGroups|TestGetRecommendations'`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-route-hardening`
+    - `git diff --check`
+    - production public, deprecated-route, and authenticated temporary JWT smoke checks
+    - backend `journalctl` error scan
 
 Not verified yet:
 

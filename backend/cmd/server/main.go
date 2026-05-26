@@ -43,7 +43,6 @@ func main() {
 	likeRepo := repository.NewLikeRepo(db)
 	bookmarkRepo := repository.NewBookmarkRepo(db)
 	convRepo := repository.NewConversationRepo(db)
-	statsRepo := repository.NewStatsRepo(db)
 	aiGateway := ai.NewGateway(cfg.AIServiceURL)
 
 	// Dev mode flag
@@ -72,16 +71,12 @@ func main() {
 		handler.RegisterExperienceActionRoutes(v1, expRepo)
 		handler.RegisterSearchRoutes(v1, expRepo)
 		// 对话（新版：Go 编排 + 消息落库）
-		handler.RegisterChatRoutes(v1, convRepo, bookmarkRepo, cfg.AIServiceURL)
 		handler.RegisterChatV4Routes(v1, convRepo, aiGateway)
 		// 用户
-		handler.RegisterUserRoutes(v1, db)
 		handler.RegisterMeStatsRoutes(v1, expRepo)
 		handler.RegisterMeProfileRoutes(v1, expRepo)
 		handler.RegisterMeFeedbackRoutes(v1, expRepo)
 		handler.RegisterMeAccountRoutes(v1, db)
-		// 统计
-		handler.RegisterStatsRoutes(v1, statsRepo)
 
 		// Admin routes (require admin permission)
 		admin := v1.Group("/admin", middleware.RequireAdmin(db))

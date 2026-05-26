@@ -37,19 +37,19 @@ func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.Experience
 	exp := r.Group("/experiences")
 	{
 		exp.GET("", h.List)
-		exp.GET("/recommend", middleware.RequireAuth(), h.GetRecommendations)
+		exp.GET("/recommend", deprecatedMobileEndpoint)
 		exp.GET("/:id", h.Get)
 		exp.POST("/rewrite", middleware.RequireAuth(), h.Rewrite)
 		exp.POST("", middleware.RequireAuth(), h.Create)
 		exp.PUT("/:id", middleware.RequireAuth(), h.Update)
 		exp.DELETE("/:id", middleware.RequireAuth(), h.Delete)
-		exp.POST("/:id/like", middleware.RequireAuth(), h.ToggleLike)
-		exp.POST("/:id/bookmark", middleware.RequireAuth(), h.ToggleBookmark)
+		exp.POST("/:id/like", deprecatedMobileEndpoint)
+		exp.POST("/:id/bookmark", deprecatedMobileEndpoint)
 	}
 
 	// 个人维度 API — 直接在 v1 下注册，不走子 Group
-	r.GET("/me/experiences", middleware.RequireAuth(), h.MyExperiences)
-	r.GET("/me/bookmarks", middleware.RequireAuth(), h.MyBookmarks)
+	r.GET("/me/experiences", deprecatedMobileEndpoint)
+	r.GET("/me/bookmarks", deprecatedMobileEndpoint)
 }
 
 func (h *ExperienceHandler) Rewrite(c *gin.Context) {

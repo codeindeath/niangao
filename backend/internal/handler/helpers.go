@@ -54,3 +54,10 @@ func nilIfEmpty(s string) *string {
 func parseInt(s string) (int, error) {
 	return strconv.Atoi(s)
 }
+
+func deprecatedMobileEndpoint(c *gin.Context) {
+	c.JSON(http.StatusGone, gin.H{"error": gin.H{
+		"code":    "deprecated_endpoint",
+		"message": "endpoint deprecated; use V4 API contract",
+	}})
+}
