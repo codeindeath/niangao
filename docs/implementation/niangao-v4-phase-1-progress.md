@@ -1427,6 +1427,15 @@ Current result:
     - `npm run test -- --runInBand` (22 suites, 105 tests)
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- Backend repository legacy write/review dead-path cleanup checks pass:
+  - removed unused `ExperienceRepo.Create`, `ExistsByContent`, `ExistsByContentExcluding`, and `UpdateReviewResult`
+  - current App create/update paths continue through `CreateWithReview`, `Update`, `Delete`, V4 detail/feed/search, and V4 action repositories
+  - this was a backend dead-code cleanup only; the Linux artifact was built for verification, but no production deployment was needed
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestDeprecatedExperienceRepositoryMethodsAreRemoved -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestDeprecatedExperienceRepositoryMethodsAreRemoved|TestExperienceDetailUsesV4InteractionTables|TestExperienceDetailUsesV4VisibilityLifecycleGate|TestSoftDeleteSynchronizesV4LifecycleFacts|TestUpdateExperienceQueryPreservesSourceSceneAndSynchronizesLifecycle' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-repo-legacy-method-cleanup`
 
 Not verified yet:
 

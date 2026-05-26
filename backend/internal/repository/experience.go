@@ -34,39 +34,6 @@ func (r *ExperienceRepo) GetUserDisplayName(ctx context.Context, userID string) 
 	return displayName, nil
 }
 
-func (r *ExperienceRepo) Create(ctx context.Context, authorID string, req model.CreateExperienceRequest) (*model.Experience, error) {
-	exp := &model.Experience{
-		AuthorID:     authorID,
-		Content:      req.Content,
-		Domain:       req.Domain,
-		SubDomain:    strPtrNilIfEmpty(string(req.SubDomain)),
-		Topics:       req.Topics,
-		IsPrivate:    req.IsPrivate,
-		SourceType:   "user",
-		Status:       "published",
-		ReviewStatus: string(model.ReviewPrivate),
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-	}
-
-	if req.Interpretation != "" {
-		exp.Interpretation = &req.Interpretation
-	}
-
-	err := r.db.QueryRow(ctx,
-		`INSERT INTO experiences (author_id, content, interpretation, domain, sub_domain, topics, is_private, source_type,
-		 review_status, status, original_text, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
-		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.SubDomain, exp.Topics, exp.IsPrivate, exp.SourceType,
-		exp.ReviewStatus, exp.Status, exp.OriginalText, exp.CreatedAt, exp.UpdatedAt,
-	).Scan(&exp.ID)
-	if err != nil {
-		return nil, fmt.Errorf("insert experience: %w", err)
-	}
-
-	return exp, nil
-}
-
 // CreateWithReview creates an experience with review fields.
 // originalText is set when the content is a translation (e.g., classical→modern Chinese).
 func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, req model.CreateExperienceRequest, reviewStatus string, reviewReason *string, qualityScore *float64, scoreDetails *string, originalText *string) (*model.Experience, error) {
@@ -136,43 +103,6 @@ func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, 
 	}
 
 	return exp, nil
-}
-
-// ExistsByContent checks if an experience with the same content already exists (not deleted).
-func (r *ExperienceRepo) ExistsByContent(ctx context.Context, content string) (bool, error) {
-	var exists bool
-	err := r.db.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM experiences WHERE content = $1 AND deleted_at IS NULL)`,
-		content,
-	).Scan(&exists)
-	return exists, err
-}
-
-// ExistsByContentExcluding checks for duplicate content, excluding a specific experience ID.
-// Used when an experience is already saved and we want to check for OTHER duplicates.
-func (r *ExperienceRepo) ExistsByContentExcluding(ctx context.Context, content string, excludeID string) (bool, error) {
-	var exists bool
-	err := r.db.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM experiences WHERE content = $1 AND id != $2 AND deleted_at IS NULL)`,
-		content, excludeID,
-	).Scan(&exists)
-	return exists, err
-}
-
-// UpdateReviewResult updates an existing experience with review results
-// (after pipeline: normalize → dedup → hard_policy → AI review → translate → interpret).
-func (r *ExperienceRepo) UpdateReviewResult(ctx context.Context, id string, content string, interpretation *string, originalText *string, score *float64, scoreDetails *string, reviewStatus string, reviewReason *string) error {
-	_, err := r.db.Exec(ctx,
-		`UPDATE experiences SET content=$1, interpretation=COALESCE($2, interpretation),
-		 original_text=COALESCE($3, original_text), quality_score=COALESCE($4, quality_score),
-		 score_details=COALESCE($5, score_details), review_status=$6, review_reason=$7,
-		 interpretation_generated=CASE WHEN $2 IS NOT NULL THEN TRUE ELSE interpretation_generated END,
-		 updated_at=NOW() WHERE id=$8`,
-		content, interpretation, originalText, score, scoreDetails, reviewStatus, reviewReason, id)
-	if err != nil {
-		return fmt.Errorf("update review result: %w", err)
-	}
-	return nil
 }
 
 const experienceSelectCols = `e.id, e.author_id, COALESCE(e.owner_user_id, e.author_id), e.content, e.interpretation, e.domain, e.sub_domain, COALESCE(e.topics, ''), e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
