@@ -108,6 +108,30 @@ func TestUpdateExperienceQueryPreservesSourceSceneAndSynchronizesLifecycle(t *te
 	}
 }
 
+func TestCreateWithReviewSynchronizesLifecycleForPublicReview(t *testing.T) {
+	source, err := os.ReadFile("experience.go")
+	if err != nil {
+		t.Fatalf("read experience.go: %v", err)
+	}
+	text := string(source)
+	start := strings.Index(text, "func (r *ExperienceRepo) CreateWithReview(")
+	if start < 0 {
+		t.Fatal("ExperienceRepo.CreateWithReview not found")
+	}
+	end := strings.Index(text[start:], "const experienceSelectCols")
+	if end < 0 {
+		t.Fatal("ExperienceRepo.CreateWithReview end marker not found")
+	}
+	body := text[start : start+end]
+
+	if !strings.Contains(body, "LifecycleStatus:           updateLifecycleStatusForRequest(req.IsPrivate)") {
+		t.Fatal("CreateWithReview should derive lifecycle_status from public/private visibility")
+	}
+	if strings.Contains(body, "LifecycleStatus:           string(model.LifecycleActive)") {
+		t.Fatal("CreateWithReview should not mark public pending-review creates as active")
+	}
+}
+
 func TestUpdateLifecycleStatusForRequest(t *testing.T) {
 	if got := updateLifecycleStatusForRequest(false); got != "needs_review" {
 		t.Fatalf("public edits should become needs_review, got %q", got)

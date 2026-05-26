@@ -1484,6 +1484,33 @@ Current result:
     - `npm run typecheck`
     - `npm run test -- --runInBand` (22 suites, 107 tests)
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- Backend public-create lifecycle gate checks pass:
+  - public newly-created user experiences now write `lifecycle_status='needs_review'` instead of `active`, while private creates remain active private records
+  - this closes the detail visibility gap where a public pending-review create could otherwise be opened by non-owners before review
+  - Linux backend artifact `/tmp/niangao-backend-v4-create-lifecycle-gate` was deployed to production at `/root/niangao/deployments/20260527030620/server`
+  - production backend binary hash now matches the local create-lifecycle-gate artifact:
+    - `8904017c22be08c6dd18ab883a3c5502897cf819430ba5f51715a1949189e732`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-create-lifecycle-gate.20260527030620.backend`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410
+  - post-deploy authenticated lifecycle smoke passed with a temporary JWT user and cleanup:
+    - `GET /api/v1/me/profile` -> 200
+    - create public temp experience -> 201 with `lifecycle_status=needs_review`
+    - owner detail for the temp experience -> 200 with `lifecycle_status=needs_review`
+    - guest detail for the same temp experience -> 404
+    - cleanup verification -> `0|0|0|0` for temporary user, experience, collection, and inspiration rows
+  - post-deploy backend/AI journal scans found no panic, fatal error, permission-denied error, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestCreateWithReviewSynchronizesLifecycleForPublicReview -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestCreateWithReviewSynchronizesLifecycleForPublicReview|TestUpdateLifecycleStatusForRequest|TestExperienceDetailUsesV4VisibilityLifecycleGate' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-create-lifecycle-gate`
+    - production public and authenticated temporary JWT smoke checks
+    - backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 
