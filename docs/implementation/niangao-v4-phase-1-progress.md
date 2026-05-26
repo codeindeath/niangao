@@ -1388,6 +1388,35 @@ Current result:
     - `git diff --check`
     - production public and authenticated temporary JWT smoke checks
     - backend/AI `journalctl` severe-error scans
+- Backend account cancellation soft-delete hardening checks pass:
+  - `DELETE /api/v1/me/account` now soft-deletes and anonymizes the user row instead of hard-deleting it, avoiding FK-driven 500s for users with related data
+  - cancellation now clears refresh/token-revocation rows for the user; existing JWTs are rejected after `users.deleted_at` is set because auth middleware no longer injects disabled users
+  - anonymization updates `apple_user_id` to a deleted-id sentinel, clears nickname/display/profile fields, resets `user_settings`, and sets `deleted_at`
+  - Linux backend artifact `/tmp/niangao-backend-v4-account-soft-delete` was deployed to production at `/root/niangao/deployments/20260527023200/server`
+  - production backend binary hash now matches the local account-soft-delete artifact:
+    - `31a0bc21d1ccfb322f367fc53b9241096f162285cd7cd7b7b41ab007dfa832b1`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-account-soft-delete.20260527023200.backend`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410
+  - post-deploy authenticated account-cancellation smoke passed with a temporary JWT user and cleanup:
+    - profile before cancellation -> 200
+    - account cancellation -> 200
+    - profile after cancellation with the same JWT -> 401
+    - database verification -> `1|0|0` for soft-deleted user present, old `apple_user_id` absent, refresh tokens removed
+    - physical cleanup verification for the temporary smoke user -> `0|0`
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run TestV4MeAccountSoftDeletesAndAnonymizesUser -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestV4MeAccountRequiresAuth|TestV4MeAccountSoftDeletesAndAnonymizesUser' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-account-soft-delete`
+    - `rg -n "DELETE FROM users|deleted_at=NOW\\(\\)|apple_user_id='deleted:' \\|\\| id::text|DELETE FROM refresh_tokens" backend/internal/handler/me_account_v4.go backend/internal/handler/me_account_v4_test.go`
+    - `git diff --check`
+    - production public and authenticated temporary JWT smoke checks
+    - backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 
