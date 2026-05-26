@@ -1949,6 +1949,20 @@ Current result:
     - `npm run test -- --runInBand` (23 suites, 117 tests)
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- iOS simulator runtime checkpoint after the Detail 404 App slice:
+  - direct `npx expo run:ios --device A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14 --port 8081` is blocked in the current shell because CocoaPods CLI is not on PATH, Expo's `gem install cocoapods --no-document` fallback failed, and `brew` is unavailable; this is logged as `ERR-20260527-016`
+  - the existing native workspace path still works: `xcodebuild -workspace ios/mobile.xcworkspace -configuration Debug -scheme mobile -destination id=A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14 build` completed successfully
+  - Metro served the bundle on port 8081, the built App was installed into the iPhone 17 simulator, and `com.swt.niangaogao` launched
+  - screenshot `/tmp/niangao-v4-detail-404-runtime-check.png` verified the production-style login screen: background image, `年糕`, `生活有态度`, `Apple 登录`, `先看看`, `开发模拟登录`, and agreement copy rendered
+  - deeper guest/feed interaction was not completed in this checkpoint because this Xcode's `xcrun simctl io` supports screenshot/recording commands but not tap input; the next runtime pass should use an alternate tap automation path or manual simulator interaction
+  - no App/backend production deployment was needed for this runtime checkpoint
+  - verification:
+    - `xcrun simctl bootstatus A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14 -b`
+    - `xcodebuild -workspace ios/mobile.xcworkspace -configuration Debug -scheme mobile -destination id=A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14 build`
+    - `npx expo start --port 8081 --localhost --non-interactive`
+    - `xcrun simctl install A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14 /Users/swt/Library/Developer/Xcode/DerivedData/mobile-boiieqniqvtfohffpwzkdkpdklox/Build/Products/Debug-iphonesimulator/app.app`
+    - `xcrun simctl launch A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14 com.swt.niangaogao`
+    - `xcrun simctl io A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14 screenshot /tmp/niangao-v4-detail-404-runtime-check.png`
 
 Not verified yet:
 

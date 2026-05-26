@@ -693,3 +693,37 @@ For production smoke cleanup, do not reuse CTE names across SQL statements. Use 
 - Reproducible: yes
 - Related Files: backend/internal/repository/chat_v4.go, docs/implementation/niangao-v4-phase-1-progress.md
 - See Also: ERR-20260527-001, ERR-20260527-005
+
+---
+
+## [ERR-20260527-016] expo_run_ios_missing_cocoapods_cli
+
+**Logged**: 2026-05-27T06:31:00+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: frontend
+
+### Summary
+`npx expo run:ios` cannot be used directly in the current shell because CocoaPods CLI is not on PATH and the automatic installers are unavailable.
+
+### Error
+```
+Failed to install CocoaPods CLI with gem (recommended)
+Cause: gem install cocoapods --no-document exited with non-zero code: 1
+Failed to install CocoaPods with Homebrew
+Cause: spawn brew ENOENT
+```
+
+### Context
+- Command attempted from `mobile/`: `npx expo run:ios --device A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14 --port 8081`.
+- `expo run:ios` attempted to install CocoaPods before building even though `mobile/ios/Pods` already exists.
+- Homebrew is not installed on this machine, so Expo's fallback installer cannot run.
+- Use the existing Xcode workspace/build path or install/expose CocoaPods before relying on `expo run:ios`.
+
+### Suggested Fix
+For simulator runtime checks in this repo, prefer the already documented `xcodebuild -workspace ios/mobile.xcworkspace ... build` path plus an existing app install/Metro workflow, or add CocoaPods CLI to PATH before invoking `expo run:ios`.
+
+### Metadata
+- Reproducible: yes
+- Related Files: mobile/package.json, docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-013
