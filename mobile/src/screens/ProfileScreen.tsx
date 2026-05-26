@@ -181,6 +181,7 @@ export default function ProfileScreen({navigation}: any) {
       if (shouldWriteCache) writeStatsCache(nextCache);
     } catch (e: any) {
       if (e?.status === 401) {
+        await logout();
         setProfile(null);
         setAssets(null);
         setContribution(null);

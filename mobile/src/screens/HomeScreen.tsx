@@ -26,7 +26,7 @@ import {
 } from '../services/api';
 import {getToken, getUserInfo} from '../services/config';
 import FlipCard from '../components/ExperienceCard';
-import {requireLogin} from '../utils/authGate';
+import {handleAuthExpired, requireLogin} from '../utils/authGate';
 import {reportHandledError} from '../utils/logging';
 
 // Module-level tab refresh trigger (called from CreateScreen after publish)
@@ -223,7 +223,7 @@ export default function HomeScreen() {
         ),
       },
     }));
-    try { await markInspired(id); } catch {
+    try { await markInspired(id); } catch (e) {
       setTabCaches(prev => ({
         ...prev,
         [activeTab]: {
@@ -233,6 +233,7 @@ export default function HomeScreen() {
           ),
         },
       }));
+      await handleAuthExpired(navigation, e);
     }
   };
 
@@ -252,7 +253,7 @@ export default function HomeScreen() {
         } : e),
       },
     }));
-    try { await setCollected(id, nextBookmarked); } catch {
+    try { await setCollected(id, nextBookmarked); } catch (e) {
       setTabCaches(prev => ({
         ...prev,
         [activeTab]: {
@@ -264,6 +265,7 @@ export default function HomeScreen() {
           } : e),
         },
       }));
+      await handleAuthExpired(navigation, e);
     }
   };
 
@@ -308,6 +310,7 @@ export default function HomeScreen() {
           review_status: 'private',
         });
       } catch (e: any) {
+        if (await handleAuthExpired(navigation, e)) return;
         Alert.alert('操作失败', e?.message || '请稍后再试');
       }
     };
@@ -324,6 +327,7 @@ export default function HomeScreen() {
             await deleteExperience(id);
             removeExperienceFromCurrentTab(id);
           } catch (e: any) {
+            if (await handleAuthExpired(navigation, e)) return;
             Alert.alert('删除失败', e?.message || '请稍后再试');
           }
         }},

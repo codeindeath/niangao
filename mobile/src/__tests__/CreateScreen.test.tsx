@@ -4,8 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fireEvent, render, waitFor} from '@testing-library/react-native';
 import CreateScreen from '../screens/CreateScreen';
 import * as api from '../services/api';
+import * as config from '../services/config';
 
 jest.mock('../services/api');
+jest.mock('../services/config');
 
 describe('CreateScreen', () => {
   const makeNavigation = () => ({
@@ -207,5 +209,31 @@ describe('CreateScreen', () => {
     expect(queryByText('先取个名字')).toBeNull();
     expect(getByDisplayValue('今天先把事情做小一点')).toBeTruthy();
     expect(getByText('公开')).toBeTruthy();
+  });
+
+  it('clears expired auth and keeps the draft when saving returns 401', async () => {
+    (api.createExperience as jest.Mock).mockRejectedValueOnce({status: 401});
+    const navigation = makeNavigation();
+
+    const {getByPlaceholderText, getByText, getByDisplayValue} = render(
+      <CreateScreen navigation={navigation} route={{params: {}}} />,
+    );
+
+    fireEvent.changeText(getByPlaceholderText('此刻你有什么想说的？'), '今天先把事情做小一点');
+    fireEvent.press(getByText('保存'));
+
+    await waitFor(() => {
+      expect(config.clearToken).toHaveBeenCalledTimes(1);
+      expect(Alert.alert).toHaveBeenCalledWith(
+        '登录状态过期',
+        '重新登录后可以继续。',
+        expect.any(Array),
+      );
+    });
+    expect(getByDisplayValue('今天先把事情做小一点')).toBeTruthy();
+
+    const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
+    buttons.find((button: any) => button.text === 'Apple登录').onPress();
+    expect(navigation.navigate).toHaveBeenCalledWith('login');
   });
 });

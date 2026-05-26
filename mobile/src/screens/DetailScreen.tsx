@@ -12,7 +12,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {fetchExperience, markInspired, setCollected, updateExperience, deleteExperience, Experience} from '../services/api';
 import {getUserInfo} from '../services/config';
-import {requireLogin} from '../utils/authGate';
+import {handleAuthExpired, requireLogin} from '../utils/authGate';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const DOMAIN_LABELS: Record<string, string> = {
@@ -67,6 +67,7 @@ export default function DetailScreen({route, navigation}: any) {
     setExp({...exp, is_liked: true, like_count: exp.like_count + 1});
     try { await markInspired(exp.id); } catch (e) {
       setExp(previous);
+      await handleAuthExpired(navigation, e);
     }
   };
 
@@ -82,13 +83,17 @@ export default function DetailScreen({route, navigation}: any) {
     });
     try { await setCollected(exp.id, nextBookmarked); } catch (e) {
       setExp(previous);
+      await handleAuthExpired(navigation, e);
     }
   };
 
   const performDelete = async () => {
     if (!exp) return;
     try { await deleteExperience(exp.id); navigation.goBack(); }
-    catch (e: any) { Alert.alert('删除失败', e?.message || '请稍后再试'); }
+    catch (e: any) {
+      if (await handleAuthExpired(navigation, e)) return;
+      Alert.alert('删除失败', e?.message || '请稍后再试');
+    }
   };
 
   const performMakePrivate = async () => {
@@ -110,6 +115,7 @@ export default function DetailScreen({route, navigation}: any) {
         review_status: 'private',
       } : prev);
     } catch (e: any) {
+      if (await handleAuthExpired(navigation, e)) return;
       Alert.alert('操作失败', e?.message || '请稍后再试');
     }
   };

@@ -887,6 +887,18 @@ Current result:
     - `git diff --check`
     - production public, deprecated-route, and authenticated temporary JWT smoke checks
     - backend `journalctl` error scan
+- Mobile expired-auth action hardening checks pass:
+  - shared `handleAuthExpired` now clears local auth state and routes nested screens back to login when protected actions return 401
+  - `记下` save and rewrite paths keep the current draft instead of dropping user input when auth expires
+  - 看看 card actions, 搜索卡片 card actions, 详情 actions, owner delete, and owner turn-private paths now restore optimistic UI and then handle expired auth consistently
+  - 我的 page 401 profile loading path now also verifies logout/local auth cleanup
+  - verification:
+    - `npm run test -- authGate.test.ts CreateScreen.test.tsx HomeScreen.test.tsx DetailScreen.test.tsx SearchCardScreen.test.tsx ProfileScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (20 suites, 83 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 

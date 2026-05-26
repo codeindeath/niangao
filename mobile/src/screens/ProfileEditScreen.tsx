@@ -12,6 +12,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {fetchProfile, updateProfile} from '../services/api';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {reportHandledError} from '../utils/logging';
+import {handleAuthExpired} from '../utils/authGate';
 
 export default function ProfileEditScreen({navigation}: any) {
   const [displayName, setDisplayName] = useState('');
@@ -63,6 +64,7 @@ export default function ProfileEditScreen({navigation}: any) {
       });
       navigation.goBack();
     } catch (e: any) {
+      if (await handleAuthExpired(navigation, e)) return;
       Alert.alert('保存失败', e?.message || '请稍后再试');
     } finally {
       setSaving(false);

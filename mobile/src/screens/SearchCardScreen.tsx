@@ -12,7 +12,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Experience, markInspired, setCollected, updateExperience, deleteExperience, recordView, recordExperienceEvent} from '../services/api';
 import {getUserInfo} from '../services/config';
 import FlipCard from '../components/ExperienceCard';
-import {requireLogin} from '../utils/authGate';
+import {handleAuthExpired, requireLogin} from '../utils/authGate';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -53,8 +53,9 @@ export default function SearchCardScreen({route, navigation}: any) {
     const card = cards.find(c => c.id === id);
     if (!card || card.is_liked) return;
     updateCard(id, {is_liked: true, like_count: card.like_count + 1});
-    try { await markInspired(id); } catch {
+    try { await markInspired(id); } catch (e) {
       updateCard(id, {is_liked: card.is_liked, like_count: card.like_count});
+      await handleAuthExpired(navigation, e);
     }
   };
 
@@ -67,8 +68,9 @@ export default function SearchCardScreen({route, navigation}: any) {
       is_bookmarked: nextBookmarked,
       bookmark_count: Math.max(card.bookmark_count + (nextBookmarked ? 1 : -1), 0),
     });
-    try { await setCollected(id, nextBookmarked); } catch {
+    try { await setCollected(id, nextBookmarked); } catch (e) {
       updateCard(id, {is_bookmarked: card.is_bookmarked, bookmark_count: card.bookmark_count});
+      await handleAuthExpired(navigation, e);
     }
   };
 
@@ -93,6 +95,7 @@ export default function SearchCardScreen({route, navigation}: any) {
           review_status: 'private',
         });
       } catch (e: any) {
+        if (await handleAuthExpired(navigation, e)) return;
         Alert.alert('操作失败', e?.message || '请稍后再试');
       }
     };
@@ -109,6 +112,7 @@ export default function SearchCardScreen({route, navigation}: any) {
             await deleteExperience(id);
             setCards(prev => prev.filter(e => e.id !== id));
           } catch (e: any) {
+            if (await handleAuthExpired(navigation, e)) return;
             Alert.alert('删除失败', e?.message || '请稍后再试');
           }
         }},

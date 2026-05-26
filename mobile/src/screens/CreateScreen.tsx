@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {createExperience, updateExperience, rewriteExperience, updateProfile, ApiError, Experience} from '../services/api';
 import {triggerTabRefresh} from './HomeScreen';
+import {handleAuthExpired} from '../utils/authGate';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const PRIMARY_DOMAINS: {key: string; label: string}[] = [
@@ -267,9 +268,9 @@ export default function CreateScreen({navigation, route}: any) {
     ]);
   };
 
-  const handlePersistError = (e: any, privateSave: boolean = isPrivate) => {
-    if (e instanceof ApiError && e.status === 401) {
-      Alert.alert('未登录', '请先登录后再记下经验');
+  const handlePersistError = async (e: any, privateSave: boolean = isPrivate) => {
+    if (await handleAuthExpired(navigation, e)) {
+      return;
     } else if (!isEditing && !privateSave && isDisplayNameRequiredError(e)) {
       setDisplayNameRetryPrivate(privateSave);
       setDisplayNameModalVisible(true);
@@ -283,7 +284,7 @@ export default function CreateScreen({navigation, route}: any) {
     try {
       await persistExperience(trimmedContent, privateSave);
     } catch (e: any) {
-      handlePersistError(e, privateSave);
+      await handlePersistError(e, privateSave);
     } finally {
       setSubmitting(false);
     }
@@ -332,7 +333,7 @@ export default function CreateScreen({navigation, route}: any) {
       await persistExperience(content.trim(), displayNameRetryPrivate ?? isPrivate);
       setDisplayNameRetryPrivate(null);
     } catch (e: any) {
-      handlePersistError(e, displayNameRetryPrivate ?? isPrivate);
+      await handlePersistError(e, displayNameRetryPrivate ?? isPrivate);
     } finally {
       setDisplayNameSubmitting(false);
     }
@@ -361,7 +362,8 @@ export default function CreateScreen({navigation, route}: any) {
       } else {
         Alert.alert('先这样记下也可以', '这段内容暂时不适合整理成经验，你可以按原文记下。');
       }
-    } catch {
+    } catch (e: any) {
+      if (await handleAuthExpired(navigation, e)) return;
       Alert.alert('暂时改不了', '原文可以直接记下。');
     } finally {
       setRewriting(false);

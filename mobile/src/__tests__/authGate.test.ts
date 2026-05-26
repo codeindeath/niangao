@@ -1,5 +1,5 @@
 import {Alert} from 'react-native';
-import {requireLogin} from '../utils/authGate';
+import {handleAuthExpired, requireLogin} from '../utils/authGate';
 import * as config from '../services/config';
 
 jest.mock('../services/config');
@@ -52,5 +52,38 @@ describe('requireLogin', () => {
     buttons[1].onPress();
 
     expect(navigation.navigate).toHaveBeenCalledWith('login');
+  });
+
+  it('clears expired auth and routes nested screens back to login', async () => {
+    const parent = {navigate: jest.fn()};
+    const navigation = {
+      navigate: jest.fn(),
+      getParent: jest.fn(() => parent),
+    };
+
+    await expect(handleAuthExpired(navigation, {status: 401})).resolves.toBe(true);
+
+    expect(config.clearToken).toHaveBeenCalledTimes(1);
+    expect(Alert.alert).toHaveBeenCalledWith(
+      '登录状态过期',
+      '重新登录后可以继续。',
+      expect.any(Array),
+    );
+
+    const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
+    buttons.find((button: any) => button.text === 'Apple登录').onPress();
+
+    expect(parent.navigate).toHaveBeenCalledWith('login');
+    expect(navigation.navigate).not.toHaveBeenCalled();
+  });
+
+  it('ignores non-auth failures', async () => {
+    const navigation = {navigate: jest.fn(), getParent: jest.fn()};
+
+    await expect(handleAuthExpired(navigation, {status: 500})).resolves.toBe(false);
+
+    expect(config.clearToken).not.toHaveBeenCalled();
+    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(navigation.navigate).not.toHaveBeenCalled();
   });
 });

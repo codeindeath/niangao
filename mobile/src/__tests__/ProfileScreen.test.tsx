@@ -194,6 +194,7 @@ describe('ProfileScreen', () => {
 
     expect(await findByText('Apple登录')).toBeTruthy();
     await waitFor(() => {
+      expect(logout).toHaveBeenCalledTimes(1);
       expect(api.fetchAssetStats).not.toHaveBeenCalled();
     });
   });
