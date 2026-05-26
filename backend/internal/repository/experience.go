@@ -417,13 +417,9 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, of
 	var query string
 	var args []interface{}
 
-	baseSelect := `SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, COALESCE(e.topics, ''), e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
-		e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
-		e.creator_name, e.source_type, e.score_reason, e.original_text,
-		e.status, e.created_at, e.updated_at, e.random_sort,
-		u.nickname, u.avatar_url, u.title as author_title,
+	baseSelect := fmt.Sprintf(`SELECT %s,
 		EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND experience_id = e.id) AS is_liked,
-		EXISTS(SELECT 1 FROM bookmarks WHERE user_id = $1 AND experience_id = e.id) AS is_bookmarked`
+		EXISTS(SELECT 1 FROM bookmarks WHERE user_id = $1 AND experience_id = e.id) AS is_bookmarked`, experienceSelectCols)
 
 	baseFrom := `FROM experiences e
 		LEFT JOIN users u ON u.id = e.author_id`
@@ -472,14 +468,7 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, of
 	var experiences []model.Experience
 	for rows.Next() {
 		var e model.Experience
-		if err := rows.Scan(
-			&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
-			&e.SubDomain, &e.Topics, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
-			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
-			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
-			&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.RandomSort,
-			&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
-		); err != nil {
+		if err := scanExperience(rows, &e); err != nil {
 			return nil, fmt.Errorf("recommend scan: %w", err)
 		}
 		experiences = append(experiences, e)
@@ -573,17 +562,13 @@ func (r *ExperienceRepo) ListByAuthor(ctx context.Context, authorID string, page
 	}
 
 	rows, err := r.db.Query(ctx,
-		`SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, COALESCE(e.topics, ''), e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
-		        e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
-		        e.creator_name, e.source_type, e.score_reason, e.original_text,
-		e.status, e.created_at, e.updated_at, e.random_sort,
-		        u.nickname, u.avatar_url, u.title as author_title,
+		fmt.Sprintf(`SELECT %s,
 		        EXISTS(SELECT 1 FROM likes WHERE user_id=$1 AND experience_id=e.id) as is_liked,
 		        EXISTS(SELECT 1 FROM bookmarks WHERE user_id=$1 AND experience_id=e.id) as is_bookmarked
 		 FROM experiences e
 		 LEFT JOIN users u ON u.id = e.author_id
 		 WHERE e.author_id=$1 AND e.status='published' AND e.deleted_at IS NULL
-		 ORDER BY e.created_at DESC LIMIT $2 OFFSET $3`,
+		 ORDER BY e.created_at DESC LIMIT $2 OFFSET $3`, experienceSelectCols),
 		authorID, pageSize, (page-1)*pageSize,
 	)
 	if err != nil {
@@ -591,7 +576,15 @@ func (r *ExperienceRepo) ListByAuthor(ctx context.Context, authorID string, page
 	}
 	defer rows.Close()
 
-	return scanExperiences(rows, total)
+	var experiences []model.Experience
+	for rows.Next() {
+		var e model.Experience
+		if err := scanExperience(rows, &e); err != nil {
+			return nil, 0, fmt.Errorf("scan: %w", err)
+		}
+		experiences = append(experiences, e)
+	}
+	return experiences, total, nil
 }
 
 // ListBookmarked — 用户收藏的经验
@@ -614,18 +607,14 @@ func (r *ExperienceRepo) ListBookmarked(ctx context.Context, userID string, page
 	}
 
 	rows, err := r.db.Query(ctx,
-		`SELECT e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, COALESCE(e.topics, ''), e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
-		        e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
-		        e.creator_name, e.source_type, e.score_reason, e.original_text,
-		e.status, e.created_at, e.updated_at, e.random_sort,
-		        u.nickname, u.avatar_url, u.title as author_title,
+		fmt.Sprintf(`SELECT %s,
 		        EXISTS(SELECT 1 FROM likes WHERE user_id=$1 AND experience_id=e.id) as is_liked,
 		        true as is_bookmarked
 		 FROM bookmarks b
 		 JOIN experiences e ON e.id = b.experience_id
 		 LEFT JOIN users u ON u.id = e.author_id
 		 WHERE b.user_id=$1 AND e.status='published' AND e.review_status IN ('approved', 'private') AND e.deleted_at IS NULL
-		 ORDER BY b.created_at DESC LIMIT $2 OFFSET $3`,
+		 ORDER BY b.created_at DESC LIMIT $2 OFFSET $3`, experienceSelectCols),
 		userID, pageSize, (page-1)*pageSize,
 	)
 	if err != nil {
@@ -633,21 +622,10 @@ func (r *ExperienceRepo) ListBookmarked(ctx context.Context, userID string, page
 	}
 	defer rows.Close()
 
-	return scanExperiences(rows, total)
-}
-
-func scanExperiences(rows pgx.Rows, total int) ([]model.Experience, int, error) {
 	var experiences []model.Experience
 	for rows.Next() {
 		var e model.Experience
-		if err := rows.Scan(
-			&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
-			&e.SubDomain, &e.Topics, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
-			&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
-			&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
-			&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.RandomSort,
-			&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
-		); err != nil {
+		if err := scanExperience(rows, &e); err != nil {
 			return nil, 0, fmt.Errorf("scan: %w", err)
 		}
 		experiences = append(experiences, e)

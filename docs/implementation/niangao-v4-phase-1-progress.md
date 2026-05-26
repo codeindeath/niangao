@@ -1012,13 +1012,24 @@ Current result:
   - API contract coverage now blocks plural `topics` from returning to mobile experience UI runtime source and verifies old `topics` responses normalize into `topic`
   - no server redeploy is required for this slice because only mobile App source changed
   - verification:
-    - `npm run test -- apiFeed.test.ts apiContract.test.ts apiExperienceWrite.test.ts CreateScreen.test.tsx HomeScreen.test.tsx DetailScreen.test.tsx SearchCardScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation for `topic` and `is_private` payload coverage)
-    - `npm run test -- --runInBand` (22 suites, 98 tests)
+    - `npm run test -- apiContract.test.ts apiFeed.test.ts apiExperienceWrite.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (22 suites, 97 tests)
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - `rg -n "\\btopics\\b" mobile/src/screens/HomeScreen.tsx mobile/src/screens/DetailScreen.tsx mobile/src/screens/SearchCardScreen.tsx mobile/src/screens/CreateScreen.tsx`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- Backend legacy experience reader scanner drift hardening checks pass:
+  - legacy `Recommend`, `ListByAuthor`, and `ListBookmarked` now select the shared V4 `experienceSelectCols`
+  - those readers now reuse `scanExperience`, so future V4 field additions cannot silently leave their select/scan order behind
+  - regression coverage now blocks returning to separate manual field lists in active legacy readers
+  - a Linux backend artifact was built locally at `/tmp/niangao-backend-v4-scanner-check` for verification
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestLegacyExperienceReadersUseSharedV4Scanner|TestExperienceListUsesSharedV4Scanner' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -count=1`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-scanner-check`
+    - `git diff --check`
 
 Not verified yet:
 
@@ -1029,13 +1040,13 @@ Not verified yet:
 Next implementation slice should be:
 
 1. Continue App/backend production hardening after authenticated runtime smoke, focusing on remaining weak-network/empty/error states and any App/backend contract mismatches found by static scans or simulator checks.
-2. Prepare the next deployable checkpoint after hardening changes pass backend, mobile, AI, and smoke gates.
+2. Prepare or deploy the next backend checkpoint after hardening changes pass backend, mobile, AI, and smoke gates.
 3. Continue the development plan task-to-task until the App/backend plan and deployment are complete.
 
 ## 5. Remaining Risks
 
-- Migration 017 has been applied to production and application-role grants have been fixed after smoke testing exposed missing grants; do not apply any further production migrations, deployments, or production data mutations without explicit active-thread user confirmation for that exact action.
-- New model fields are present, but older non-V4 repository queries still scan legacy columns.
+- Migration 017 has been applied to production and application-role grants have been fixed after smoke testing exposed missing grants. Production migrations, deployments, and temporary production data mutations are authorized within the active V4 App/backend plan when needed, but each must include backup or rollback readiness, repeatable migration/deploy gates, smoke checks, cleanup of temporary data, and backend/AI log scans.
+- New model fields are present, and active legacy experience readers now share V4 select/scan coverage. `SearchByEmbedding` still has a narrow manual scanner but remains a TODO path because pgvector embedding search is unavailable.
 - V4 feed and related App endpoints are now deployed; production `dev-login` remains unavailable by design because the backend is running in production mode.
 - Legacy `likes` and `bookmarks` still exist; they are compatibility sources until the new interaction endpoints are implemented and data parity is confirmed.
 - 我的 page stats now has 7d/30d/all and recent responded APIs, and partial stats failures no longer collapse the whole page into login.

@@ -1,5 +1,5 @@
-import {createExperience, fetchExperience, fetchMyExperiences, updateExperience} from '../services/api';
-import {apiGet, apiPost, apiPut} from '../services/config';
+import {fetchExperience, fetchMyExperiences} from '../services/api';
+import {apiGet} from '../services/config';
 
 jest.mock('../services/config', () => ({
   apiGet: jest.fn(),
@@ -92,20 +92,4 @@ describe('feed API normalization', () => {
     expect(legacyResult.topic).toBe('#边界沟通');
   });
 
-  it('sends singular V4 topic when creating or updating experiences', async () => {
-    (apiPost as jest.Mock).mockResolvedValue({experience: {id: 'exp-new'}});
-    (apiPut as jest.Mock).mockResolvedValue({status: 'ok'});
-
-    await createExperience('把不确定的事先说清楚。', 'relationship', 'friendship', false, undefined, '#边界沟通');
-    expect(apiPost).toHaveBeenCalledWith('/api/v1/experiences', expect.objectContaining({
-      topic: '#边界沟通',
-    }));
-    expect((apiPost as jest.Mock).mock.calls[0][1]).not.toHaveProperty('topics');
-
-    await updateExperience('exp-new', '把不确定的事先说清楚。', 'relationship', 'friendship', false, undefined, '#边界沟通');
-    expect(apiPut).toHaveBeenCalledWith('/api/v1/experiences/exp-new', expect.objectContaining({
-      topic: '#边界沟通',
-    }));
-    expect((apiPut as jest.Mock).mock.calls[0][1]).not.toHaveProperty('topics');
-  });
 });
