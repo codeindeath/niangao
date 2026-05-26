@@ -10,8 +10,10 @@ import {
   Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {fetchExperience, toggleLike, toggleBookmark, deleteExperience, Experience} from '../services/api';
+import {fetchExperience, toggleLike, toggleBookmark, updateExperience, deleteExperience, Experience} from '../services/api';
 import {getUserInfo} from '../services/config';
+import {requireLogin} from '../utils/authGate';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const DOMAIN_LABELS: Record<string, string> = {
   vitality: '生命', living: '生活', work: '工作',
@@ -59,28 +61,96 @@ export default function DetailScreen({route, navigation}: any) {
   };
 
   const handleLike = async () => {
-    if (!exp) return;
-    setExp({...exp, is_liked: !exp.is_liked, like_count: exp.is_liked ? exp.like_count - 1 : exp.like_count + 1});
+    if (!(await requireLogin(navigation, '登录后可以标记有启发，年糕也会更懂你的偏好。'))) return;
+    if (!exp || exp.is_liked) return;
+    const previous = exp;
+    setExp({...exp, is_liked: true, like_count: exp.like_count + 1});
     try { await toggleLike(exp.id); } catch (e) {
-      setExp(prev => prev ? {...prev, is_liked: !prev.is_liked, like_count: prev.is_liked ? prev.like_count - 1 : prev.like_count + 1} : null);
+      setExp(previous);
     }
   };
 
   const handleBookmark = async () => {
+    if (!(await requireLogin(navigation, '登录后可以收藏经验，之后在看看里随时翻回来。'))) return;
     if (!exp) return;
-    setExp({...exp, is_bookmarked: !exp.is_bookmarked});
-    try { await toggleBookmark(exp.id); } catch (e) {
-      setExp(prev => prev ? {...prev, is_bookmarked: !prev.is_bookmarked} : null);
+    const previous = exp;
+    const nextBookmarked = !exp.is_bookmarked;
+    setExp({
+      ...exp,
+      is_bookmarked: nextBookmarked,
+      bookmark_count: Math.max(exp.bookmark_count + (nextBookmarked ? 1 : -1), 0),
+    });
+    try { await toggleBookmark(exp.id, nextBookmarked); } catch (e) {
+      setExp(previous);
+    }
+  };
+
+  const performDelete = async () => {
+    if (!exp) return;
+    try { await deleteExperience(exp.id); navigation.goBack(); }
+    catch (e: any) { Alert.alert('删除失败', e?.message || '请稍后再试'); }
+  };
+
+  const performMakePrivate = async () => {
+    if (!exp) return;
+    try {
+      await updateExperience(
+        exp.id,
+        exp.content,
+        exp.domain,
+        exp.sub_domain,
+        true,
+        exp.interpretation,
+        exp.topics,
+      );
+      setExp(prev => prev ? {
+        ...prev,
+        is_private: true,
+        visibility: 'private',
+        review_status: 'private',
+      } : prev);
+    } catch (e: any) {
+      Alert.alert('操作失败', e?.message || '请稍后再试');
     }
   };
 
   const handleDelete = () => {
-    Alert.alert('删除经验', '确定要删除这条经验吗？', [
+    if (!currentUserId) {
+      requireLogin(navigation, '登录后可以管理自己记下的经验。');
+      return;
+    }
+    const isPublic = exp && !exp.is_private && exp.visibility !== 'private';
+    Alert.alert(
+      '删除经验',
+      isPublic
+        ? '删除后，他人收藏和历史引用会显示不可见。你也可以先转为私密，只停止公开展示、推荐和 AI 引用。'
+        : '确定要删除这条经验吗？',
+      [
+        {text: '取消', style: 'cancel'},
+        ...(isPublic ? [{text: '转为私密', onPress: performMakePrivate}] : []),
+        {text: '删除', style: 'destructive', onPress: performDelete},
+      ],
+    );
+  };
+
+  const handleEdit = () => {
+    if (!exp) return;
+    if (!currentUserId) {
+      requireLogin(navigation, '登录后可以编辑自己记下的经验。');
+      return;
+    }
+    navigation.navigate('createEdit', {experience: exp});
+  };
+
+  const handleMakePrivate = () => {
+    if (!exp || exp.is_private || exp.visibility === 'private') return;
+    if (!currentUserId) {
+      requireLogin(navigation, '登录后可以管理自己记下的经验。');
+      return;
+    }
+    Alert.alert('转为私密', '转为私密后，这条经验会停止公开展示、推荐和 AI 引用。确定继续吗？', [
       {text: '取消', style: 'cancel'},
-      {text: '删除', style: 'destructive', onPress: async () => {
-        try { await deleteExperience(exp!.id); navigation.goBack(); }
-        catch (e: any) { Alert.alert('删除失败', e?.message || '请稍后再试'); }
-      }},
+      {text: '转为私密', style: 'destructive', onPress: performMakePrivate},
     ]);
   };
 
@@ -96,18 +166,20 @@ export default function DetailScreen({route, navigation}: any) {
     return <SafeAreaView style={s.container}><View style={s.center}><Text style={s.emptyText}>经验不存在或已被删除</Text></View></SafeAreaView>;
   }
 
-  const isPlatform = exp.source_type === 'platform';
-  const isRejected = exp.review_status === 'rejected';
-  const displayName = exp.creator_name || exp.author_name || '匿名';
+  const isPlatform = exp.experience_type === 'platform_selected' || exp.source_type === 'platform' || exp.is_official;
+  const displayName = exp.creator_display_name || exp.creator_name || exp.author_name || '匿名';
   const domainLabel = (exp.sub_domain && SUB_DOMAIN_LABELS[exp.sub_domain]) || DOMAIN_LABELS[exp.domain] || exp.domain;
   const showScore = exp.quality_score != null && exp.quality_score > 0;
   const stars = showScore ? Math.round(exp.quality_score! / 2) : 0;
+  const ownerUserId = exp.owner_user_id || exp.author_id;
+  const isOwner = Boolean(currentUserId && ownerUserId === currentUserId);
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={s.backText}>← 返回</Text>
+        <TouchableOpacity style={s.backButton} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="返回">
+          <Ionicons name="chevron-back" size={19} color="#4a7c59" />
+          <Text style={s.backText}>返回</Text>
         </TouchableOpacity>
       </View>
 
@@ -118,12 +190,15 @@ export default function DetailScreen({route, navigation}: any) {
           <Text style={s.creatorName}>{displayName}</Text>
           {isPlatform && (
             <View style={s.platformTag}>
-              <Text style={s.platformTagIcon}>官</Text>
-              <Text style={s.platformTagText}>平台生产</Text>
+              <Text style={s.platformTagText}>精选</Text>
             </View>
           )}
           <View style={s.domainTag}><Text style={s.domainTagText}>{domainLabel}</Text></View>
-          {exp.is_private && <Text style={s.privateMark}>🔒</Text>}
+          {exp.is_private && (
+            <View style={s.privateMark} accessible accessibilityLabel="私密经验">
+              <Ionicons name="lock-closed-outline" size={14} color="#8a8173" />
+            </View>
+          )}
         </View>
 
         {/* Content card */}
@@ -132,17 +207,6 @@ export default function DetailScreen({route, navigation}: any) {
           {exp.source_label && <Text style={s.source}>来源：{exp.source_label}</Text>}
           <Text style={s.date}>{new Date(exp.created_at).toLocaleDateString('zh-CN', {year: 'numeric', month: 'long', day: 'numeric'})}</Text>
         </View>
-
-        {/* Rejected indicator (only for rejected experiences) */}
-        {isRejected && (
-          <View style={s.rejectedCard}>
-            <Text style={s.rejectedIcon}>❕</Text>
-            <View style={{flex: 1}}>
-              <Text style={s.rejectedTitle}>这条经验未通过审核，仅你自己可见</Text>
-              {exp.review_reason ? <Text style={s.rejectedReason}>{exp.review_reason}</Text> : null}
-            </View>
-          </View>
-        )}
 
         {/* Score stars — click for reason */}
         {showScore && (
@@ -172,25 +236,66 @@ export default function DetailScreen({route, navigation}: any) {
 
         {/* Actions */}
         <View style={s.actions}>
-          <TouchableOpacity style={s.actionBtn} onPress={handleLike}>
-            <Text style={[s.actionText, exp.is_liked && s.actionLiked]}>♥ {exp.like_count > 0 ? exp.like_count : '点赞'}</Text>
+          <TouchableOpacity
+            style={s.actionBtn}
+            onPress={handleLike}
+            accessibilityRole="button"
+            accessibilityLabel="标记有启发"
+          >
+            <View style={s.actionContent}>
+              <Ionicons
+                name="sparkles"
+                size={15}
+                color={exp.is_liked ? '#e85d5d' : '#6e6e6e'}
+              />
+              <Text style={[s.actionText, exp.is_liked && s.actionLiked]}>
+                {exp.like_count > 0 ? String(exp.like_count) : '有启发'}
+              </Text>
+            </View>
           </TouchableOpacity>
-          <TouchableOpacity style={s.actionBtn} onPress={handleBookmark}>
-            <Text style={[s.actionText, exp.is_bookmarked && s.actionSaved]}>★ {exp.is_bookmarked ? '已收藏' : '收藏'}</Text>
+          <TouchableOpacity
+            style={s.actionBtn}
+            onPress={handleBookmark}
+            accessibilityRole="button"
+            accessibilityLabel={exp.is_bookmarked ? '取消收藏经验' : '收藏经验'}
+          >
+            <View style={s.actionContent}>
+              <Ionicons
+                name={exp.is_bookmarked ? 'bookmark' : 'bookmark-outline'}
+                size={15}
+                color={exp.is_bookmarked ? '#e8a850' : '#6e6e6e'}
+              />
+              <Text style={[s.actionText, exp.is_bookmarked && s.actionSaved]}>
+                {exp.is_bookmarked ? '已收藏' : `收藏${exp.bookmark_count > 0 ? ` ${exp.bookmark_count}` : ''}`}
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
 
-        {/* Delete — only for author */}
-        {currentUserId && exp.author_id === currentUserId && (
-          <TouchableOpacity style={s.deleteBtn} onPress={handleDelete}>
-            <Text style={s.deleteText}>🗑 删除此经验</Text>
-          </TouchableOpacity>
+        {/* Owner actions */}
+        {isOwner && (
+          <View style={s.ownerActions}>
+            <TouchableOpacity style={s.ownerActionBtn} onPress={handleEdit}>
+              <Text style={s.ownerActionText}>编辑</Text>
+            </TouchableOpacity>
+            {!exp.is_private && exp.visibility !== 'private' ? (
+              <TouchableOpacity style={s.ownerActionBtn} onPress={handleMakePrivate}>
+                <Text style={s.ownerActionText}>转为私密</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity style={[s.ownerActionBtn, s.deleteBtn]} onPress={handleDelete}>
+              <Text style={s.deleteText}>删除</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Interpretation */}
         {exp.interpretation ? (
           <View style={s.interpCard}>
-            <Text style={s.interpTitle}>📖 经验解读</Text>
+            <View style={s.interpTitleRow}>
+              <Ionicons name="book-outline" size={16} color="#4a7c59" />
+              <Text style={s.interpTitle}>经验解读</Text>
+            </View>
             <Text style={s.interpText}>{exp.interpretation}</Text>
           </View>
         ) : (
@@ -204,6 +309,7 @@ export default function DetailScreen({route, navigation}: any) {
 const s = StyleSheet.create({
   container: {flex: 1, backgroundColor: '#faf8f5'},
   header: {paddingHorizontal: 18, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: '#e8e4df'},
+  backButton: {flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 36},
   backText: {fontSize: 15, color: '#4a7c59', fontWeight: '500'},
   center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
   emptyText: {fontSize: 15, color: '#9a9a9a'},
@@ -228,22 +334,13 @@ const s = StyleSheet.create({
   platformTagText: {fontSize: 10, color: '#4a7c59', fontWeight: '600'},
   domainTag: {backgroundColor: '#eaf2e8', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10},
   domainTagText: {fontSize: 11, fontWeight: '600', color: '#4a7c59'},
-  privateMark: {fontSize: 14, marginLeft: 4},
+  privateMark: {marginLeft: 4, width: 18, height: 18, justifyContent: 'center', alignItems: 'center'},
 
   // Content
   contentCard: {marginHorizontal: 18, backgroundColor: '#ffffff', borderRadius: 16, padding: 18, borderWidth: 0.5, borderColor: '#f0ece7'},
   content: {fontSize: 20, lineHeight: 30, fontWeight: '700', color: '#1a1a1a'},
   source: {fontSize: 12, color: '#9a9a9a', marginTop: 12},
   date: {fontSize: 11, color: '#b5b0a8', marginTop: 4},
-
-  // Rejected
-  rejectedCard: {
-    marginHorizontal: 18, marginTop: 12, backgroundColor: '#f8f8f8',
-    borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-  },
-  rejectedIcon: {fontSize: 20, color: '#9a9a9a', marginTop: 1},
-  rejectedTitle: {fontSize: 13, fontWeight: '600', color: '#6e6e6e'},
-  rejectedReason: {fontSize: 12, color: '#9a9a9a', marginTop: 3},
 
   // Score
   scoreCard: {marginHorizontal: 18, marginTop: 12, backgroundColor: '#ffffff', borderRadius: 16, padding: 18, borderWidth: 0.5, borderColor: '#f0ece7'},
@@ -262,17 +359,22 @@ const s = StyleSheet.create({
   // Actions
   actions: {flexDirection: 'row', marginHorizontal: 18, marginTop: 16, gap: 12},
   actionBtn: {backgroundColor: '#ffffff', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 10, borderWidth: 0.5, borderColor: '#f0ece7'},
+  actionContent: {flexDirection: 'row', alignItems: 'center', gap: 5},
   actionText: {fontSize: 13, fontWeight: '600', color: '#6e6e6e'},
   actionLiked: {color: '#e85d5d'},
   actionSaved: {color: '#e8a850'},
 
-  // Delete
-  deleteBtn: {marginHorizontal: 18, marginTop: 12, backgroundColor: '#fff5f5', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 0.5, borderColor: '#fce8e8'},
+  // Owner actions
+  ownerActions: {flexDirection: 'row', marginHorizontal: 18, marginTop: 12, gap: 10},
+  ownerActionBtn: {flex: 1, backgroundColor: '#ffffff', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 0.5, borderColor: '#e3ded5'},
+  ownerActionText: {fontSize: 14, color: '#4a7c59', fontWeight: '700'},
+  deleteBtn: {backgroundColor: '#fff5f5', borderColor: '#f4dede'},
   deleteText: {fontSize: 14, color: '#e85d5d', fontWeight: '500'},
 
   // Interpretation
   interpCard: {marginHorizontal: 18, marginTop: 20, backgroundColor: '#ffffff', borderRadius: 16, padding: 18, borderWidth: 0.5, borderColor: '#d4e0d6'},
-  interpTitle: {fontSize: 14, fontWeight: '700', color: '#4a7c59', marginBottom: 10},
+  interpTitleRow: {flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10},
+  interpTitle: {fontSize: 14, fontWeight: '700', color: '#4a7c59'},
   interpText: {fontSize: 15, lineHeight: 24, color: '#3d3d3d'},
   noInterp: {marginHorizontal: 18, marginTop: 20, padding: 40, alignItems: 'center'},
   noInterpText: {fontSize: 14, color: '#b5b0a8'},

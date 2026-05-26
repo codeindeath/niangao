@@ -1,12 +1,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 后端服务地址（ECS）
-export const API_BASE = 'http://115.190.177.146';  // Nginx 反代，不需要直连端口
-export const AI_BASE = 'http://115.190.177.146:8000';
+declare const process: {env?: Record<string, string | undefined>};
+
+const DEFAULT_API_BASE = 'http://115.190.177.146';
+
+function normalizeApiBase(value?: string): string {
+  const trimmed = value?.trim();
+  if (!trimmed) return DEFAULT_API_BASE;
+  return trimmed.replace(/\/+$/, '');
+}
+
+export const API_BASE = normalizeApiBase(process.env?.EXPO_PUBLIC_API_BASE);
 
 const TOKEN_KEY = 'auth_token';
 const REFRESH_KEY = 'refresh_token';
 const USER_KEY = 'user_info';
+const STANDARD_REQUEST_TIMEOUT_MS = 15_000;
+const AI_REQUEST_TIMEOUT_MS = 60_000;
 
 // ---------- Token 管理 ----------
 export async function getToken(): Promise<string | null> {
@@ -55,36 +66,79 @@ export function isTokenExpired(token: string): boolean {
   }
 }
 
-// ---------- Go 后端 HTTP 请求 ----------
-export async function apiGet(path: string): Promise<any> {
-  const token = await getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: token ? {Authorization: `Bearer ${token}`} : {},
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    let message = text;
-    try {
-      const json = JSON.parse(text);
-      message = json.error || json.message || text;
-    } catch {}
-    throw new ApiError(res.status, message);
-  }
-  try { return JSON.parse(text); } catch { return text; }
+function parseErrorPayload(text: string): {message: string; code?: string} {
+  try {
+    const json = JSON.parse(text);
+    if (typeof json.error === 'string') return {message: json.error};
+    if (json.error && typeof json.error.message === 'string') {
+      return {message: json.error.message, code: json.error.code};
+    }
+    if (typeof json.message === 'string') return {message: json.message, code: json.code};
+  } catch {}
+  return {message: text || '请求失败'};
 }
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  code?: string;
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
     this.name = 'ApiError';
   }
 }
 
+function requestTimeoutForPath(path: string): number {
+  if (
+    path.includes('/api/v1/chat/') ||
+    path.includes('/api/v1/experiences/rewrite')
+  ) {
+    return AI_REQUEST_TIMEOUT_MS;
+  }
+  return STANDARD_REQUEST_TIMEOUT_MS;
+}
+
+function isAbortError(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && (error as {name?: string}).name === 'AbortError');
+}
+
+export async function apiFetchWithTimeout(path: string, init: Record<string, any> = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), requestTimeoutForPath(path));
+
+  try {
+    return await fetch(`${API_BASE}${path}`, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new ApiError(0, '网络不稳，请稍后再试', 'request_timeout');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// ---------- Go 后端 HTTP 请求 ----------
+export async function apiGet(path: string): Promise<any> {
+  const token = await getToken();
+  const res = await apiFetchWithTimeout(path, {
+    headers: token ? {Authorization: `Bearer ${token}`} : {},
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    const error = parseErrorPayload(text);
+    throw new ApiError(res.status, error.message, error.code);
+  }
+  try { return JSON.parse(text); } catch { return text; }
+}
+
 export async function apiPost(path: string, body: any): Promise<any> {
   const token = await getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await apiFetchWithTimeout(path, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -94,19 +148,15 @@ export async function apiPost(path: string, body: any): Promise<any> {
   });
   const text = await res.text();
   if (!res.ok) {
-    let message = text;
-    try {
-      const json = JSON.parse(text);
-      message = json.error || json.message || text;
-    } catch {}
-    throw new ApiError(res.status, message);
+    const error = parseErrorPayload(text);
+    throw new ApiError(res.status, error.message, error.code);
   }
   try { return JSON.parse(text); } catch { return text; }
 }
 
 export async function apiPut(path: string, body: any): Promise<any> {
   const token = await getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await apiFetchWithTimeout(path, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -116,48 +166,40 @@ export async function apiPut(path: string, body: any): Promise<any> {
   });
   const text = await res.text();
   if (!res.ok) {
-    let message = text;
-    try {
-      const json = JSON.parse(text);
-      message = json.error || json.message || text;
-    } catch {}
-    throw new ApiError(res.status, message);
+    const error = parseErrorPayload(text);
+    throw new ApiError(res.status, error.message, error.code);
   }
   try { return JSON.parse(text); } catch { return text; }
 }
 
-export async function apiDelete(path: string): Promise<any> {
+export async function apiPatch(path: string, body: any): Promise<any> {
   const token = await getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'DELETE',
-    headers: token ? {Authorization: `Bearer ${token}`} : {},
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    let message = text;
-    try {
-      const json = JSON.parse(text);
-      message = json.error || json.message || text;
-    } catch {}
-    throw new ApiError(res.status, message);
-  }
-  try { return JSON.parse(text); } catch { return text; }
-}
-
-// ---------- AI 服务 HTTP 请求 ----------
-export async function aiPost(path: string, body: any): Promise<any> {
-  const token = await getToken();
-  const res = await fetch(`${AI_BASE}${path}`, {
-    method: 'POST',
+  const res = await apiFetchWithTimeout(path, {
+    method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? {Authorization: `Bearer ${token}`} : {}),
     },
     body: JSON.stringify(body),
   });
+  const text = await res.text();
   if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`HTTP ${res.status}: ${errBody}`);
+    const error = parseErrorPayload(text);
+    throw new ApiError(res.status, error.message, error.code);
   }
-  return res.json();
+  try { return JSON.parse(text); } catch { return text; }
+}
+
+export async function apiDelete(path: string): Promise<any> {
+  const token = await getToken();
+  const res = await apiFetchWithTimeout(path, {
+    method: 'DELETE',
+    headers: token ? {Authorization: `Bearer ${token}`} : {},
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    const error = parseErrorPayload(text);
+    throw new ApiError(res.status, error.message, error.code);
+  }
+  try { return JSON.parse(text); } catch { return text; }
 }

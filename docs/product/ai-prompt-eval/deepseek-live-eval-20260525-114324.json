@@ -1,0 +1,67 @@
+{
+  "generated_at": "2026-05-25T11:43:24",
+  "model": "deepseek-v4-pro",
+  "base_url": "https://api.deepseek.com",
+  "spec_path": "docs/product/niangao-ai-prompt-production-spec-v4.md",
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0
+  },
+  "results": [
+    {
+      "case_id": "content_016",
+      "function_type": "experience_extract",
+      "category": "content_production",
+      "title": "显性原则提取",
+      "tags": [
+        "extract",
+        "principle"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 20081,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1510,
+      "usage": {
+        "prompt_tokens": 1163,
+        "completion_tokens": 785,
+        "total_tokens": 1948,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 628
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1163
+      },
+      "raw_content": "{\"schema_version\":\"1.1\",\"function_type\":\"experience_extract\",\"result\":{\"candidates\":[{\"candidate_content\":\"如果你想做出人们想要的东西，在花几个月在脑海中构建之前，先和用户谈谈。\",\"creator_name\":\"Paul Graham\",\"creator_attribution_type\":\"speaker\",\"source_derivation_type\":\"cleaned_quote\",\"source_excerpt\":\"If you want to make something people want, talk to users before you spend months building in your head.\",\"source_location\":\"Paul Graham素材\",\"preserve_original_score\":0.95,\"extraction_confidence\":0.95,\"attitude_type\":\"practical\",\"risk_notes\":[]}],\"discarded_examples\":[]},\"confidence\":0.9,\"warnings\":[]}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_extract",
+        "result": {
+          "candidates": [
+            {
+              "candidate_content": "如果你想做出人们想要的东西，在花几个月在脑海中构建之前，先和用户谈谈。",
+              "creator_name": "Paul Graham",
+              "creator_attribution_type": "speaker",
+              "source_derivation_type": "cleaned_quote",
+              "source_excerpt": "If you want to make something people want, talk to users before you spend months building in your head.",
+              "source_location": "Paul Graham素材",
+              "preserve_original_score": 0.95,
+              "extraction_confidence": 0.95,
+              "attitude_type": "practical",
+              "risk_notes": []
+            }
+          ],
+          "discarded_examples": []
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    }
+  ]
+}

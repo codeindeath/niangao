@@ -9,10 +9,11 @@ import {
   StyleSheet,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {Experience, toggleLike, toggleBookmark, deleteExperience} from '../services/api';
+import {Experience, toggleLike, toggleBookmark, updateExperience, deleteExperience, recordView, recordExperienceEvent} from '../services/api';
 import {getUserInfo} from '../services/config';
 import FlipCard from '../components/ExperienceCard';
-import {recordView} from '../services/api';
+import {requireLogin} from '../utils/authGate';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const HEADER_HEIGHT = 44;
@@ -48,35 +49,71 @@ export default function SearchCardScreen({route, navigation}: any) {
   };
 
   const handleLike = async (id: string) => {
+    if (!(await requireLogin(navigation, '登录后可以标记有启发，年糕也会更懂你的偏好。'))) return;
     const card = cards.find(c => c.id === id);
-    if (!card) return;
-    updateCard(id, {is_liked: !card.is_liked, like_count: card.is_liked ? card.like_count - 1 : card.like_count + 1});
+    if (!card || card.is_liked) return;
+    updateCard(id, {is_liked: true, like_count: card.like_count + 1});
     try { await toggleLike(id); } catch {
       updateCard(id, {is_liked: card.is_liked, like_count: card.like_count});
     }
   };
 
   const handleBookmark = async (id: string) => {
+    if (!(await requireLogin(navigation, '登录后可以收藏经验，之后在看看里随时翻回来。'))) return;
     const card = cards.find(c => c.id === id);
     if (!card) return;
-    updateCard(id, {is_bookmarked: !card.is_bookmarked});
-    try { await toggleBookmark(id); } catch {
-      updateCard(id, {is_bookmarked: card.is_bookmarked});
+    const nextBookmarked = !card.is_bookmarked;
+    updateCard(id, {
+      is_bookmarked: nextBookmarked,
+      bookmark_count: Math.max(card.bookmark_count + (nextBookmarked ? 1 : -1), 0),
+    });
+    try { await toggleBookmark(id, nextBookmarked); } catch {
+      updateCard(id, {is_bookmarked: card.is_bookmarked, bookmark_count: card.bookmark_count});
     }
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert('删除经验', '确定要删除这条经验吗？', [
-      {text: '取消', style: 'cancel'},
-      {text: '删除', style: 'destructive', onPress: async () => {
-        try {
-          await deleteExperience(id);
-          setCards(prev => prev.filter(e => e.id !== id));
-        } catch (e: any) {
-          Alert.alert('删除失败', e?.message || '请稍后再试');
-        }
-      }},
-    ]);
+    const card = cards.find(e => e.id === id);
+    const isPublic = card && !card.is_private && card.visibility !== 'private';
+    const turnPrivate = async () => {
+      if (!card) return;
+      try {
+        await updateExperience(
+          card.id,
+          card.content,
+          card.domain,
+          card.sub_domain,
+          true,
+          card.interpretation,
+          card.topics,
+        );
+        updateCard(card.id, {
+          is_private: true,
+          visibility: 'private',
+          review_status: 'private',
+        });
+      } catch (e: any) {
+        Alert.alert('操作失败', e?.message || '请稍后再试');
+      }
+    };
+    Alert.alert(
+      '删除经验',
+      isPublic
+        ? '删除后，他人收藏和历史引用会显示不可见。你也可以先转为私密，只停止公开展示、推荐和 AI 引用。'
+        : '确定要删除这条经验吗？',
+      [
+        {text: '取消', style: 'cancel'},
+        ...(isPublic ? [{text: '转为私密', onPress: turnPrivate}] : []),
+        {text: '删除', style: 'destructive', onPress: async () => {
+          try {
+            await deleteExperience(id);
+            setCards(prev => prev.filter(e => e.id !== id));
+          } catch (e: any) {
+            Alert.alert('删除失败', e?.message || '请稍后再试');
+          }
+        }},
+      ],
+    );
   };
 
   const handleFlipChange = useCallback((id: string, isFlipped: boolean) => {
@@ -85,7 +122,13 @@ export default function SearchCardScreen({route, navigation}: any) {
       if (isFlipped) next.add(id); else next.delete(id);
       return next;
     });
-  }, []);
+    if (isFlipped) {
+      recordExperienceEvent(id, 'flip', 'search', {
+        keyword,
+        side: 'back',
+      });
+    }
+  }, [keyword]);
 
   const viewabilityConfig = useRef({itemVisiblePercentThreshold: 50}).current;
   const onViewableItemsChanged = useRef(({viewableItems}: any) => {
@@ -153,8 +196,8 @@ export default function SearchCardScreen({route, navigation}: any) {
 
       {/* Absolute-positioned transparent top bar */}
       <View style={[s.topBar, {top: insets.top}]}>
-        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={s.backBtnText}>←</Text>
+        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="返回">
+          <Ionicons name="chevron-back" size={21} color="#5c5548" />
         </TouchableOpacity>
         <Text style={s.title} numberOfLines={1}>
           和'{displayKeyword}'相关的经验
@@ -198,7 +241,6 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backBtnText: {fontSize: 20, color: '#5c5548', fontWeight: '600'},
   title: {fontSize: 15, fontWeight: '600', color: '#2a2722', flexShrink: 1},
   count: {fontSize: 12, color: '#9b9487'},
   footerHint: {fontSize: 11, color: '#c5bfb3'},

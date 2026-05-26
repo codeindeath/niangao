@@ -73,6 +73,144 @@ func TestMeaningEmotionSubDomain(t *testing.T) {
 	}
 }
 
+func TestV4ExperienceEnums(t *testing.T) {
+	if !IsValidExperienceType(ExperienceTypePlatformSelected) {
+		t.Fatal("platform_selected should be a valid experience type")
+	}
+	if !IsValidExperienceType(ExperienceTypeUserOriginal) {
+		t.Fatal("user_original should be a valid experience type")
+	}
+	if IsValidExperienceType("official") {
+		t.Fatal("legacy official should not be a valid V4 experience type")
+	}
+
+	if !IsValidVisibility(VisibilityPublic) || !IsValidVisibility(VisibilityPrivate) {
+		t.Fatal("public/private should be valid visibility values")
+	}
+	if IsValidVisibility("published") {
+		t.Fatal("published should not be a valid visibility value")
+	}
+
+	if !IsValidLifecycleStatus(LifecycleActive) || !IsValidLifecycleStatus(LifecycleNeedsReview) {
+		t.Fatal("active/needs_review should be valid lifecycle statuses")
+	}
+	if IsValidLifecycleStatus("published") {
+		t.Fatal("published should not be a valid V4 lifecycle status")
+	}
+
+	if !IsValidQualityTier(QualityTierRecommendCandidate) || !IsValidQualityTier(QualityTierAICitable) {
+		t.Fatal("recommend_candidate/ai_citable should be valid quality tiers")
+	}
+	if IsValidQualityTier("approved") {
+		t.Fatal("approved should not be a valid V4 quality tier")
+	}
+
+	if !IsValidRecommendationStatus(RecommendationEligible) || !IsValidRecommendationStatus(RecommendationSuppressed) {
+		t.Fatal("eligible/suppressed should be valid recommendation statuses")
+	}
+	if IsValidRecommendationStatus("approved") {
+		t.Fatal("approved should not be a valid recommendation status")
+	}
+}
+
+func TestV4DistributionEligibility(t *testing.T) {
+	tests := []struct {
+		name                 string
+		visibility           Visibility
+		lifecycle            LifecycleStatus
+		qualityTier          QualityTier
+		recommendationStatus RecommendationStatus
+		want                 bool
+	}{
+		{
+			name:                 "public active recommend candidate eligible",
+			visibility:           VisibilityPublic,
+			lifecycle:            LifecycleActive,
+			qualityTier:          QualityTierRecommendCandidate,
+			recommendationStatus: RecommendationEligible,
+			want:                 true,
+		},
+		{
+			name:                 "public visible is searchable but not recommendable",
+			visibility:           VisibilityPublic,
+			lifecycle:            LifecycleActive,
+			qualityTier:          QualityTierPublicVisible,
+			recommendationStatus: RecommendationEligible,
+			want:                 false,
+		},
+		{
+			name:                 "private never public recommendable",
+			visibility:           VisibilityPrivate,
+			lifecycle:            LifecycleActive,
+			qualityTier:          QualityTierHighTrust,
+			recommendationStatus: RecommendationEligible,
+			want:                 false,
+		},
+		{
+			name:                 "needs review is unavailable to public feed",
+			visibility:           VisibilityPublic,
+			lifecycle:            LifecycleNeedsReview,
+			qualityTier:          QualityTierHighTrust,
+			recommendationStatus: RecommendationEligible,
+			want:                 false,
+		},
+		{
+			name:                 "suppressed is not recommendable",
+			visibility:           VisibilityPublic,
+			lifecycle:            LifecycleActive,
+			qualityTier:          QualityTierHighTrust,
+			recommendationStatus: RecommendationSuppressed,
+			want:                 false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := CanDistributePublicly(tt.visibility, tt.lifecycle, tt.qualityTier, tt.recommendationStatus)
+			if got != tt.want {
+				t.Fatalf("CanDistributePublicly() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestQualityTierAtLeastRejectsUnknownTiers(t *testing.T) {
+	if QualityTierAtLeast("unknown", QualityTierUnreviewed) {
+		t.Fatal("unknown quality tier should not satisfy minimum tier checks")
+	}
+
+	if QualityTierAtLeast(QualityTierHighTrust, "unknown") {
+		t.Fatal("unknown minimum quality tier should not be satisfiable")
+	}
+}
+
+func TestV4AICitationEligibility(t *testing.T) {
+	tests := []struct {
+		name        string
+		visibility  Visibility
+		lifecycle   LifecycleStatus
+		qualityTier QualityTier
+		aiCitable   bool
+		want        bool
+	}{
+		{"ai citable tier with flag", VisibilityPublic, LifecycleActive, QualityTierAICitable, true, true},
+		{"high trust tier with flag", VisibilityPublic, LifecycleActive, QualityTierHighTrust, true, true},
+		{"recommend candidate is not public ai citable", VisibilityPublic, LifecycleActive, QualityTierRecommendCandidate, true, false},
+		{"flag false blocks citation", VisibilityPublic, LifecycleActive, QualityTierHighTrust, false, false},
+		{"private blocks public citation", VisibilityPrivate, LifecycleActive, QualityTierHighTrust, true, false},
+		{"needs review blocks citation", VisibilityPublic, LifecycleNeedsReview, QualityTierHighTrust, true, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := CanBeAICitedPublicly(tt.visibility, tt.lifecycle, tt.qualityTier, tt.aiCitable)
+			if got != tt.want {
+				t.Fatalf("CanBeAICitedPublicly() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestCreateExperienceRequestValidation(t *testing.T) {
 	tests := []struct {
 		name    string

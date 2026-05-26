@@ -22,6 +22,19 @@ func NewExperienceRepo(db *pgxpool.Pool) *ExperienceRepo {
 	return &ExperienceRepo{db: db}
 }
 
+func (r *ExperienceRepo) GetUserDisplayName(ctx context.Context, userID string) (string, error) {
+	var displayName string
+	err := r.db.QueryRow(ctx,
+		`SELECT COALESCE(NULLIF(TRIM(display_name), ''), NULLIF(TRIM(nickname), ''), '')
+		 FROM users WHERE id=$1`,
+		userID,
+	).Scan(&displayName)
+	if err != nil {
+		return "", fmt.Errorf("get user display name: %w", err)
+	}
+	return displayName, nil
+}
+
 func (r *ExperienceRepo) Create(ctx context.Context, authorID string, req model.CreateExperienceRequest) (*model.Experience, error) {
 	exp := &model.Experience{
 		AuthorID:     authorID,
@@ -58,22 +71,44 @@ func (r *ExperienceRepo) Create(ctx context.Context, authorID string, req model.
 // CreateWithReview creates an experience with review fields.
 // originalText is set when the content is a translation (e.g., classical→modern Chinese).
 func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, req model.CreateExperienceRequest, reviewStatus string, reviewReason *string, qualityScore *float64, scoreDetails *string, originalText *string) (*model.Experience, error) {
+	qualityTier := string(model.QualityTierUnreviewed)
+	if req.IsPrivate {
+		qualityTier = string(model.QualityTierPrivateOnly)
+	}
+	interpretationStatus := string(model.InterpretationNone)
+	if req.Interpretation != "" {
+		interpretationStatus = string(model.InterpretationReady)
+	}
+
 	exp := &model.Experience{
-		AuthorID:     authorID,
-		Content:      req.Content,
-		Domain:       req.Domain,
-		SubDomain:    strPtrNilIfEmpty(string(req.SubDomain)),
-		Topics:       req.Topics,
-		IsPrivate:    req.IsPrivate,
-		SourceType:   "user",
-		Status:       "published",
-		ReviewStatus: reviewStatus,
-		ReviewReason: reviewReason,
-		QualityScore: qualityScore,
-		ScoreDetails: scoreDetails,
-		OriginalText: originalText,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		AuthorID:                  authorID,
+		OwnerUserID:               strPtr(authorID),
+		Content:                   req.Content,
+		Domain:                    req.Domain,
+		SubDomain:                 strPtrNilIfEmpty(string(req.SubDomain)),
+		Topics:                    req.Topics,
+		Topic:                     req.Topic,
+		IsPrivate:                 req.IsPrivate,
+		ExperienceType:            string(model.ExperienceTypeUserOriginal),
+		Visibility:                string(req.Visibility),
+		LifecycleStatus:           string(model.LifecycleActive),
+		SourceType:                "user",
+		SourceScene:               req.SourceScene,
+		SourceChatTopicID:         strPtrNilIfEmpty(req.SourceChatTopicID),
+		SourceChatMessageID:       strPtrNilIfEmpty(req.SourceChatMessageID),
+		SourceChatMessageSnapshot: strPtrNilIfEmpty(req.SourceChatMessageSnapshot),
+		Status:                    "published",
+		ReviewStatus:              reviewStatus,
+		ReviewReason:              reviewReason,
+		QualityScore:              qualityScore,
+		QualityTier:               qualityTier,
+		ScoreDetails:              scoreDetails,
+		OriginalText:              originalText,
+		RecommendationStatus:      string(model.RecommendationIneligible),
+		AICitable:                 false,
+		InterpretationStatus:      interpretationStatus,
+		CreatedAt:                 time.Now(),
+		UpdatedAt:                 time.Now(),
 	}
 
 	if req.Interpretation != "" {
@@ -83,11 +118,19 @@ func (r *ExperienceRepo) CreateWithReview(ctx context.Context, authorID string, 
 
 	err := r.db.QueryRow(ctx,
 		`INSERT INTO experiences (author_id, content, interpretation, domain, sub_domain, topics, is_private, source_type,
-		 review_status, review_reason, quality_score, score_details, status, original_text, interpretation_generated, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,
+		 review_status, review_reason, quality_score, score_details, status, original_text, interpretation_generated, created_at, updated_at,
+		 owner_user_id, creator_display_name, experience_type, visibility, lifecycle_status, source_scene, topic, quality_tier,
+		 recommendation_status, ai_citable, inspiration_count, collection_count, interpretation_status,
+		 source_chat_topic_id, source_chat_message_id, source_chat_message_snapshot)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,
+		 $18, COALESCE((SELECT display_name FROM users WHERE id=$1), (SELECT nickname FROM users WHERE id=$1), ''),
+		 $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32) RETURNING id`,
 		exp.AuthorID, exp.Content, exp.Interpretation, exp.Domain, exp.SubDomain, exp.Topics, exp.IsPrivate, exp.SourceType,
 		exp.ReviewStatus, exp.ReviewReason, exp.QualityScore, exp.ScoreDetails,
 		exp.Status, exp.OriginalText, exp.InterpretationGenerated, exp.CreatedAt, exp.UpdatedAt,
+		exp.OwnerUserID, exp.ExperienceType, exp.Visibility, exp.LifecycleStatus, exp.SourceScene, exp.Topic, exp.QualityTier,
+		exp.RecommendationStatus, exp.AICitable, exp.InspirationCount, exp.CollectionCount, exp.InterpretationStatus,
+		exp.SourceChatTopicID, exp.SourceChatMessageID, exp.SourceChatMessageSnapshot,
 	).Scan(&exp.ID)
 	if err != nil {
 		return nil, fmt.Errorf("insert experience with review: %w", err)
@@ -174,21 +217,48 @@ func (r *ExperienceRepo) CreateOfficial(ctx context.Context, authorID, content, 
 	return exp, nil
 }
 
-const experienceSelectCols = `e.id, e.author_id, e.content, e.interpretation, e.domain, e.sub_domain, COALESCE(e.topics, ''), e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
-		e.source_label, e.like_count, e.bookmark_count, e.interpretation_generated,
-		e.creator_name, e.source_type, e.score_reason, e.original_text,
+const experienceSelectCols = `e.id, e.author_id, COALESCE(e.owner_user_id, e.author_id), e.content, e.interpretation, e.domain, e.sub_domain, COALESCE(e.topics, ''), e.is_private, e.review_status, e.review_reason, e.quality_score, e.score_details, e.is_official,
+		e.source_label, COALESCE(e.inspiration_count, e.like_count), COALESCE(e.collection_count, e.bookmark_count), e.like_count, e.bookmark_count, e.interpretation_generated,
+		e.creator_name, e.creator_display_name, e.source_type,
+		COALESCE(e.experience_type, CASE WHEN e.is_official THEN 'platform_selected' ELSE 'user_original' END),
+		COALESCE(e.visibility, CASE WHEN e.is_private THEN 'private' ELSE 'public' END),
+		COALESCE(e.lifecycle_status, CASE WHEN e.deleted_at IS NOT NULL THEN 'deleted' WHEN e.review_status = 'pending' THEN 'needs_review' ELSE 'active' END),
+		COALESCE(e.source_scene, ''), COALESCE(e.topic, e.topics, ''),
+		COALESCE(e.quality_tier, ''), COALESCE(e.recommendation_status, ''), COALESCE(e.ai_citable, FALSE),
+		COALESCE(e.interpretation_status, ''), e.score_reason, e.original_text,
 		e.status, e.created_at, e.updated_at, e.random_sort,
 		u.nickname, u.avatar_url, u.title as author_title`
 
 const experienceLikedBookmark = `EXISTS(SELECT 1 FROM likes WHERE user_id=$2 AND experience_id=e.id) as is_liked,
 		EXISTS(SELECT 1 FROM bookmarks WHERE user_id=$2 AND experience_id=e.id) as is_bookmarked`
 
+const updateExperienceQuery = `UPDATE experiences
+		 SET content=$1,
+		     interpretation=NULLIF($2, ''),
+		     domain=$3,
+		     sub_domain=NULLIF($4, ''),
+		     is_private=$5,
+		     topics=$6,
+		     visibility=$7,
+		     topic=$8,
+		     review_status=$9,
+		     review_reason=NULL,
+		     quality_tier=$10,
+		     lifecycle_status=$11,
+		     recommendation_status='ineligible',
+		     ai_citable=FALSE,
+		     interpretation_status=CASE WHEN NULLIF($2, '') IS NULL THEN 'none' ELSE 'stale' END,
+		     updated_at=NOW()
+		 WHERE id=$12 AND COALESCE(owner_user_id, author_id)=$13`
+
 func scanExperience(row pgx.Row, e *model.Experience) error {
 	return row.Scan(
-		&e.ID, &e.AuthorID, &e.Content, &e.Interpretation, &e.Domain,
+		&e.ID, &e.AuthorID, &e.OwnerUserID, &e.Content, &e.Interpretation, &e.Domain,
 		&e.SubDomain, &e.Topics, &e.IsPrivate, &e.ReviewStatus, &e.ReviewReason, &e.QualityScore, &e.ScoreDetails,
-		&e.IsOfficial, &e.SourceLabel, &e.LikeCount, &e.BookmarkCount,
-		&e.InterpretationGenerated, &e.CreatorName, &e.SourceType, &e.ScoreReason, &e.OriginalText,
+		&e.IsOfficial, &e.SourceLabel, &e.InspirationCount, &e.CollectionCount, &e.LikeCount, &e.BookmarkCount,
+		&e.InterpretationGenerated, &e.CreatorName, &e.CreatorDisplayName, &e.SourceType,
+		&e.ExperienceType, &e.Visibility, &e.LifecycleStatus, &e.SourceScene, &e.Topic,
+		&e.QualityTier, &e.RecommendationStatus, &e.AICitable, &e.InterpretationStatus, &e.ScoreReason, &e.OriginalText,
 		&e.Status, &e.CreatedAt, &e.UpdatedAt, &e.RandomSort,
 		&e.AuthorName, &e.AuthorAvatar, &e.AuthorTitle, &e.IsLiked, &e.IsBookmarked,
 	)
@@ -202,7 +272,7 @@ func (r *ExperienceRepo) GetByID(ctx context.Context, id string, viewerID string
 		 LEFT JOIN users u ON u.id = e.author_id
 		WHERE e.id = $1 AND e.deleted_at IS NULL
 		  AND ((e.status = 'published' AND e.review_status = 'approved' AND e.is_private = FALSE)
-		       OR e.author_id = $2)`, experienceSelectCols, experienceLikedBookmark)
+		       OR COALESCE(e.owner_user_id, e.author_id) = $2)`, experienceSelectCols, experienceLikedBookmark)
 
 	exp := &model.Experience{}
 	err := scanExperience(r.db.QueryRow(ctx, query, id, viewerID), exp)
@@ -426,10 +496,18 @@ func (r *ExperienceRepo) Recommend(ctx context.Context, userID string, limit, of
 }
 
 func (r *ExperienceRepo) Update(ctx context.Context, id, authorID string, req model.CreateExperienceRequest) error {
+	reviewStatus := string(model.ReviewPending)
+	qualityTier := string(model.QualityTierUnreviewed)
+	lifecycleStatus := updateLifecycleStatusForRequest(req.IsPrivate)
+	if req.IsPrivate {
+		reviewStatus = string(model.ReviewPrivate)
+		qualityTier = string(model.QualityTierPrivateOnly)
+	}
+
 	result, err := r.db.Exec(ctx,
-		`UPDATE experiences SET content=$1, interpretation=NULLIF($2, ''), domain=$3, sub_domain=NULLIF($4, ''), is_private=$5, topics=$6, updated_at=NOW()
-		 WHERE id=$7 AND author_id=$8`,
-		req.Content, req.Interpretation, req.Domain, string(req.SubDomain), req.IsPrivate, req.Topics, id, authorID,
+		updateExperienceQuery,
+		req.Content, req.Interpretation, req.Domain, string(req.SubDomain), req.IsPrivate, req.Topics,
+		string(req.Visibility), req.Topic, reviewStatus, qualityTier, lifecycleStatus, id, authorID,
 	)
 	if err != nil {
 		return fmt.Errorf("update experience: %w", err)
@@ -440,11 +518,18 @@ func (r *ExperienceRepo) Update(ctx context.Context, id, authorID string, req mo
 	return nil
 }
 
+func updateLifecycleStatusForRequest(isPrivate bool) string {
+	if isPrivate {
+		return string(model.LifecycleActive)
+	}
+	return string(model.LifecycleNeedsReview)
+}
+
 func (r *ExperienceRepo) Delete(ctx context.Context, id, authorID string) error {
 	// First verify the experience exists and is owned by the user, and check review_status
 	var reviewStatus string
 	err := r.db.QueryRow(ctx,
-		`SELECT review_status FROM experiences WHERE id=$1 AND author_id=$2 AND deleted_at IS NULL`,
+		`SELECT review_status FROM experiences WHERE id=$1 AND COALESCE(owner_user_id, author_id)=$2 AND deleted_at IS NULL`,
 		id, authorID,
 	).Scan(&reviewStatus)
 	if err != nil {
@@ -452,9 +537,15 @@ func (r *ExperienceRepo) Delete(ctx context.Context, id, authorID string) error 
 	}
 
 	if reviewStatus == "approved" {
-		// Soft-delete: approved experiences keep their row (stay in public pool logically)
+		// Soft-delete approved rows so historic references can stay auditable while V4 public surfaces suppress them.
 		_, err = r.db.Exec(ctx,
-			`UPDATE experiences SET deleted_at = NOW() WHERE id=$1 AND author_id=$2`,
+			`UPDATE experiences
+			 SET deleted_at = NOW(),
+			     lifecycle_status='deleted',
+			     recommendation_status='suppressed',
+			     ai_citable=FALSE,
+			     updated_at=NOW()
+			 WHERE id=$1 AND COALESCE(owner_user_id, author_id)=$2`,
 			id, authorID)
 		if err != nil {
 			return fmt.Errorf("soft-delete experience: %w", err)
@@ -462,7 +553,7 @@ func (r *ExperienceRepo) Delete(ctx context.Context, id, authorID string) error 
 	} else {
 		// Hard-delete: the experience wasn't in the public pool anyway
 		_, err = r.db.Exec(ctx,
-			`DELETE FROM experiences WHERE id=$1 AND author_id=$2`,
+			`DELETE FROM experiences WHERE id=$1 AND COALESCE(owner_user_id, author_id)=$2`,
 			id, authorID)
 		if err != nil {
 			return fmt.Errorf("delete experience: %w", err)

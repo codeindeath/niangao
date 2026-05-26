@@ -1,0 +1,214 @@
+{
+  "generated_at": "2026-05-25T01:49:48",
+  "model": "deepseek-v4-pro",
+  "base_url": "https://api.deepseek.com",
+  "spec_path": "docs/product/niangao-ai-prompt-production-spec-v4.md",
+  "summary": {
+    "total": 5,
+    "passed": 4,
+    "failed": 1
+  },
+  "results": [
+    {
+      "case_id": "topic_clear_parent_guilt",
+      "function_type": "chat_topic_classify",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 3856,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 906,
+        "completion_tokens": 163,
+        "total_tokens": 1069,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 906
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_topic_classify\",\n  \"result\": {\n    \"clarity_score\": 0.75,\n    \"should_create_topic\": true,\n    \"title\": \"和妈妈说话很累\",\n    \"domain\": \"关系\",\n    \"sub_domain\": \"父母\",\n    \"topic_keyword\": \"母女沟通\",\n    \"candidate_existing_topic_id\": null,\n    \"should_bind_existing_topic\": false,\n    \"discard_if_user_leaves\": false,\n    \"reason\": \"用户明确表达了与母亲通话后的内疚和不适，议题清晰，符合生成条件。\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_topic_classify",
+        "result": {
+          "clarity_score": 0.75,
+          "should_create_topic": true,
+          "title": "和妈妈说话很累",
+          "domain": "关系",
+          "sub_domain": "父母",
+          "topic_keyword": "母女沟通",
+          "candidate_existing_topic_id": null,
+          "should_bind_existing_topic": false,
+          "discard_if_user_leaves": false,
+          "reason": "用户明确表达了与母亲通话后的内疚和不适，议题清晰，符合生成条件。"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "summary_privacy_abstraction",
+      "function_type": "chat_summary",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 4193,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 730,
+        "completion_tokens": 179,
+        "total_tokens": 909,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 730
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户因同事在公开场合评价其收入与工作表现而感到羞耻。\",\n    \"current_state\": \"用户表达了被公开评价后的羞耻感，助手初步共情。\",\n    \"open_questions\": [],\n    \"decisions_or_insights\": [],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在工作关系里重视被尊重，对公开评价敏感\",\n        \"source_message_ids\": [\"m1\"],\n        \"confidence\": 0.8\n      }\n    ]\n  },\n  \"confidence\": 0.8,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户因同事在公开场合评价其收入与工作表现而感到羞耻。",
+          "current_state": "用户表达了被公开评价后的羞耻感，助手初步共情。",
+          "open_questions": [],
+          "decisions_or_insights": [],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在工作关系里重视被尊重，对公开评价敏感",
+              "source_message_ids": [
+                "m1"
+              ],
+              "confidence": 0.8
+            }
+          ]
+        },
+        "confidence": 0.8,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "translation_preserve_voice",
+      "function_type": "translation_normalization",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2970,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 466,
+        "completion_tokens": 111,
+        "total_tokens": 577,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 82
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"translation_normalization\",\n  \"result\": {\n    \"detected_language\": \"en\",\n    \"normalized_text\": \"不要让他人的地图成为你的牢笼。选择你的道路，然后付出它的代价。\",\n    \"translation_notes\": [],\n    \"low_confidence_spans\": [],\n    \"preserve_voice_score\": 0.9\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "translation_normalization",
+        "result": {
+          "detected_language": "en",
+          "normalized_text": "不要让他人的地图成为你的牢笼。选择你的道路，然后付出它的代价。",
+          "translation_notes": [],
+          "low_confidence_spans": [],
+          "preserve_voice_score": 0.9
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "extract_direct_principle_pg",
+      "function_type": "experience_extract",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 10036,
+      "finish_reason": "stop",
+      "reasoning_content_len": 762,
+      "usage": {
+        "prompt_tokens": 1021,
+        "completion_tokens": 431,
+        "total_tokens": 1452,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 275
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1021
+      },
+      "raw_content": "{\"schema_version\":\"1.1\",\"function_type\":\"experience_extract\",\"result\":{\"candidates\":[{\"candidate_content\":\"如果你想做出人们想要的东西，在头脑中花费数月构建之前，先和用户谈谈。\",\"creator_name\":\"Paul Graham\",\"creator_attribution_type\":\"speaker\",\"source_derivation_type\":\"direct_quote\",\"source_excerpt\":\"If you want to make something people want, talk to users before you spend months building in your head.\",\"source_location\":\"Startup notes\",\"preserve_original_score\":0.95,\"extraction_confidence\":0.95,\"attitude_type\":\"practical\",\"risk_notes\":[]}],\"discarded_examples\":[]},\"confidence\":0.95,\"warnings\":[]}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_extract",
+        "result": {
+          "candidates": [
+            {
+              "candidate_content": "如果你想做出人们想要的东西，在头脑中花费数月构建之前，先和用户谈谈。",
+              "creator_name": "Paul Graham",
+              "creator_attribution_type": "speaker",
+              "source_derivation_type": "direct_quote",
+              "source_excerpt": "If you want to make something people want, talk to users before you spend months building in your head.",
+              "source_location": "Startup notes",
+              "preserve_original_score": 0.95,
+              "extraction_confidence": 0.95,
+              "attitude_type": "practical",
+              "risk_notes": []
+            }
+          ],
+          "discarded_examples": []
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "classify_low_signal_emotion",
+      "function_type": "experience_classify",
+      "status": "failed",
+      "errors": [
+        "low_signal_confidence_too_high"
+      ],
+      "warnings": [],
+      "elapsed_ms": 2652,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 538,
+        "completion_tokens": 98,
+        "total_tokens": 636,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 538
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": null,\n    \"sub_domain\": null,\n    \"topic\": null,\n    \"confidence\": 0.0,\n    \"alternative\": [],\n    \"reason\": \"输入为情绪表达，无复用性判断，不构成经验。\"\n  },\n  \"confidence\": 0.0,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": null,
+          "sub_domain": null,
+          "topic": null,
+          "confidence": 0.0,
+          "alternative": [],
+          "reason": "输入为情绪表达，无复用性判断，不构成经验。"
+        },
+        "confidence": 0.0,
+        "warnings": []
+      }
+    }
+  ]
+}

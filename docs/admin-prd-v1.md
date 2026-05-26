@@ -920,7 +920,7 @@ HTTP Request → CORS() → AuthMiddleware(jwtSecret, db) → [业务路由]
 
 ```json
 // Request
-{ "username": "admin", "password": "Sweet24412*" }
+{ "username": "<admin-user>", "password": "<从生产环境安全配置获取，不写入仓库文档>" }
 
 // Response 200
 {

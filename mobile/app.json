@@ -18,7 +18,8 @@
       "usesAppleSignIn": true
     },
     "plugins": [
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "./plugins/withDynamicIosBundleUrl"
     ],
     "android": {
       "adaptiveIcon": {

@@ -1,12 +1,14 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import HomeScreen from '../screens/HomeScreen';
 import ChatScreen from '../screens/ChatScreen';
 import CreateScreen from '../screens/CreateScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import {openProtectedMainTab} from '../utils/protectedTab';
 
 const Tab = createBottomTabNavigator();
+type TabRouteName = 'home' | 'chat' | 'create' | 'profile';
 
 const TAB_BAR_VISIBLE = {
   backgroundColor: 'rgba(250,248,245,0.93)',
@@ -20,16 +22,22 @@ const TAB_BAR_VISIBLE = {
 const TAB_BAR_HIDDEN = { display: 'none' as const };
 
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    home: '⌂',
-    chat: '💬',
-    create: '📝',
-    profile: '👤',
+  const icons: Record<TabRouteName, keyof typeof Ionicons.glyphMap> = {
+    home: focused ? 'sparkles' : 'sparkles-outline',
+    chat: focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline',
+    create: focused ? 'add-circle' : 'add-circle-outline',
+    profile: focused ? 'person-circle' : 'person-circle-outline',
   };
+
+  const routeName = name as TabRouteName;
+  const iconName = icons[routeName] ?? 'ellipse-outline';
+
   return (
-    <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.5 }}>
-      {icons[name] || '?'}
-    </Text>
+    <Ionicons
+      name={iconName}
+      size={focused ? 23 : 21}
+      color={focused ? '#4a7c59' : '#9a9a9a'}
+    />
   );
 }
 
@@ -56,17 +64,27 @@ export default function BottomTabNavigator() {
       <Tab.Screen
         name="home"
         component={HomeScreen}
-        options={{ tabBarLabel: '首页' }}
+        options={{ tabBarLabel: '看看' }}
       />
       <Tab.Screen
         name="chat"
         component={ChatScreen}
-        options={{ tabBarLabel: '对话' }}
+        options={{ tabBarLabel: '聊聊' }}
+        listeners={({navigation}) => ({
+          tabPress: e => {
+            void openProtectedMainTab(e, navigation, 'chat');
+          },
+        })}
       />
       <Tab.Screen
         name="create"
         component={CreateScreen}
-        options={{ tabBarLabel: '记录' }}
+        options={{ tabBarLabel: '记下' }}
+        listeners={({navigation}) => ({
+          tabPress: e => {
+            void openProtectedMainTab(e, navigation, 'create');
+          },
+        })}
       />
       <Tab.Screen
         name="profile"

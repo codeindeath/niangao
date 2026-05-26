@@ -12,11 +12,13 @@ import {
   Platform,
   Animated,
   Dimensions,
+  Modal,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {createExperience, ApiError} from '../services/api';
+import {createExperience, updateExperience, rewriteExperience, updateProfile, ApiError, Experience} from '../services/api';
 import {triggerTabRefresh} from './HomeScreen';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const PRIMARY_DOMAINS: {key: string; label: string}[] = [
   {key: 'vitality', label: '生命'},
@@ -87,15 +89,34 @@ interface DraftData {
   isPrivate: boolean;
 }
 
-export default function CreateScreen({navigation}: any) {
+interface RewriteCandidate {
+  content: string;
+  domain?: string;
+  subDomain?: string;
+  topic?: string;
+}
+
+export default function CreateScreen({navigation, route}: any) {
+  const editingExperience = route?.params?.experience as Experience | undefined;
+  const isEditing = !!editingExperience;
+  const sourceScene = route?.params?.sourceScene === 'chat' ? 'chat' : 'note';
+  const sourceMessageIds = Array.isArray(route?.params?.sourceMessageIds)
+    ? route.params.sourceMessageIds
+    : undefined;
   const [content, setContent] = useState('');
   const [domain, setDomain] = useState('');
   const [subDomain, setSubDomain] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [rewriting, setRewriting] = useState(false);
+  const [rewriteCandidate, setRewriteCandidate] = useState<RewriteCandidate | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [topics, setTopics] = useState('');
   const [isTopicEditing, setIsTopicEditing] = useState(false);
+  const [displayNameModalVisible, setDisplayNameModalVisible] = useState(false);
+  const [displayNameDraft, setDisplayNameDraft] = useState('');
+  const [displayNameSubmitting, setDisplayNameSubmitting] = useState(false);
+  const [displayNameRetryPrivate, setDisplayNameRetryPrivate] = useState<boolean | null>(null);
 
   const inputRef = useRef<TextInput>(null);
   const topicPageInputRef = useRef<TextInput>(null);
@@ -123,6 +144,26 @@ export default function CreateScreen({navigation}: any) {
 
   // Load cached draft on mount
   useEffect(() => {
+    if (editingExperience) {
+      setContent(editingExperience.content || '');
+      setDomain(editingExperience.domain || '');
+      setSubDomain(editingExperience.sub_domain || '');
+      setTopics(editingExperience.topics || '');
+      setIsPrivate(Boolean(editingExperience.is_private || editingExperience.visibility === 'private'));
+      return;
+    }
+
+    if (typeof route?.params?.prefillContent === 'string') {
+      setContent(route.params.prefillContent);
+      setDomain(route.params.domain || '');
+      setSubDomain(route.params.subDomain || route.params.sub_domain || '');
+      setTopics(route.params.topic || route.params.topics || '');
+      setIsPrivate(route.params.defaultVisibility === 'private' || sourceScene === 'chat');
+    }
+  }, [editingExperience, route?.params, sourceScene]);
+
+  useEffect(() => {
+    if (isEditing || typeof route?.params?.prefillContent === 'string') return;
     AsyncStorage.getItem(DRAFT_KEY).then(data => {
       if (data) {
         try {
@@ -138,7 +179,7 @@ export default function CreateScreen({navigation}: any) {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isEditing, route?.params?.prefillContent]);
 
   useEffect(() => {
     Animated.parallel([
@@ -155,7 +196,15 @@ export default function CreateScreen({navigation}: any) {
     ]).start();
   }, [domain, subdomainHeight, subdomainOpacity]);
 
+  useEffect(() => {
+    setRewriteCandidate(null);
+  }, [content]);
+
   const handleBack = () => {
+    if (isEditing) {
+      navigation.goBack();
+      return;
+    }
     if (content.trim()) {
       const draft: DraftData = {content, domain, subDomain, topics, isPrivate};
       AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -179,6 +228,67 @@ export default function CreateScreen({navigation}: any) {
     }
   };
 
+  const isDisplayNameRequiredError = (e: any) => (
+    e?.code === 'display_name_required' ||
+    (e instanceof ApiError && e.code === 'display_name_required')
+  );
+
+  const persistExperience = async (trimmedContent: string, privateSave: boolean = isPrivate) => {
+    if (isEditing && editingExperience) {
+      await updateExperience(
+        editingExperience.id,
+        trimmedContent,
+        domain,
+        subDomain,
+        privateSave,
+        editingExperience.interpretation,
+        topics.trim(),
+      );
+    } else {
+      await createExperience(
+        trimmedContent,
+        domain,
+        subDomain,
+        privateSave,
+        undefined,
+        topics.trim(),
+        {
+          source_scene: sourceScene,
+          source_message_ids: sourceMessageIds,
+        },
+      );
+      await AsyncStorage.removeItem(DRAFT_KEY);
+    }
+    Alert.alert(isEditing ? '已保存' : '已记下', isEditing && !privateSave ? '修改后会重新处理' : '你的经验已保存', [
+      {text: '好的', onPress: () => {
+        triggerTabRefresh('my');
+        navigation.goBack();
+      }},
+    ]);
+  };
+
+  const handlePersistError = (e: any, privateSave: boolean = isPrivate) => {
+    if (e instanceof ApiError && e.status === 401) {
+      Alert.alert('未登录', '请先登录后再记下经验');
+    } else if (!isEditing && !privateSave && isDisplayNameRequiredError(e)) {
+      setDisplayNameRetryPrivate(privateSave);
+      setDisplayNameModalVisible(true);
+    } else {
+      Alert.alert('发布失败', e?.message || String(e));
+    }
+  };
+
+  const saveWithVisibility = async (trimmedContent: string, privateSave: boolean) => {
+    setSubmitting(true);
+    try {
+      await persistExperience(trimmedContent, privateSave);
+    } catch (e: any) {
+      handlePersistError(e, privateSave);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handlePublish = async () => {
     const trimmedContent = content.trim();
     const contentLength = Array.from(trimmedContent).length;
@@ -187,41 +297,89 @@ export default function CreateScreen({navigation}: any) {
       Alert.alert('提示', '请输入经验内容');
       return;
     }
-    if (contentLength < 10 || contentLength > 100) {
-      Alert.alert('提示', '经验内容需 10-100 字');
+    if (contentLength < 1 || contentLength > 100) {
+      Alert.alert('提示', '经验内容需 1-100 字');
       return;
     }
-    setSubmitting(true);
-    try {
-      await createExperience(
-        trimmedContent,
-        domain,
-        subDomain,
-        isPrivate,
-        undefined,
-        topics.trim(),
-      );
-      await AsyncStorage.removeItem(DRAFT_KEY);
-      Alert.alert('发布成功', '你的经验已发布', [
-        {text: '好的', onPress: () => {
-          triggerTabRefresh('my');
-          navigation.goBack();
-        }},
+
+    if (!isEditing && sourceScene === 'chat' && isPrivate) {
+      Alert.alert('要匿名贡献给相似处境的人吗？', '不会公开原聊天内容、议题标题或上下文。', [
+        {text: '保持私密', onPress: () => saveWithVisibility(trimmedContent, true)},
+        {text: '匿名贡献', onPress: () => saveWithVisibility(trimmedContent, false)},
+        {text: '取消', style: 'cancel'},
       ]);
-    } catch (e: any) {
-      if (e instanceof ApiError && e.status === 401) {
-        Alert.alert('未登录', '请先登录后再发布经验');
-      } else {
-        Alert.alert('发布失败', e?.message || String(e));
-      }
-    } finally {
-      setSubmitting(false);
+      return;
     }
+
+    await saveWithVisibility(trimmedContent, isPrivate);
+  };
+
+  const handleDisplayNameContinue = async () => {
+    const name = displayNameDraft.trim();
+    if (!name) {
+      Alert.alert('提示', '请输入名字');
+      return;
+    }
+    if (Array.from(name).length > 20) {
+      Alert.alert('提示', '名字最多 20 个字');
+      return;
+    }
+
+    setDisplayNameSubmitting(true);
+    try {
+      await updateProfile({display_name: name});
+      setDisplayNameModalVisible(false);
+      await persistExperience(content.trim(), displayNameRetryPrivate ?? isPrivate);
+      setDisplayNameRetryPrivate(null);
+    } catch (e: any) {
+      handlePersistError(e, displayNameRetryPrivate ?? isPrivate);
+    } finally {
+      setDisplayNameSubmitting(false);
+    }
+  };
+
+  const handleRewrite = async () => {
+    const trimmedContent = content.trim();
+    if (!trimmedContent || rewriting || submitting) return;
+    setRewriting(true);
+    try {
+      const result = await rewriteExperience(trimmedContent, {
+        source: sourceScene === 'chat' ? 'chat_note' : 'manual_note',
+        default_visibility: isPrivate ? 'private' : 'public',
+        user_selected_domain: domain || undefined,
+        user_selected_sub_domain: subDomain || undefined,
+        topic_context: topics.trim() || undefined,
+        source_message_ids: sourceMessageIds,
+      });
+      if (result.can_rewrite && result.rewritten_content) {
+        setRewriteCandidate({
+          content: result.rewritten_content,
+          domain: result.domain,
+          subDomain: result.sub_domain,
+          topic: result.topic,
+        });
+      } else {
+        Alert.alert('先这样记下也可以', '这段内容暂时不适合整理成经验，你可以按原文记下。');
+      }
+    } catch {
+      Alert.alert('暂时改不了', '原文可以直接记下。');
+    } finally {
+      setRewriting(false);
+    }
+  };
+
+  const applyRewriteCandidate = () => {
+    if (!rewriteCandidate) return;
+    setContent(rewriteCandidate.content);
+    if (!domain && rewriteCandidate.domain) setDomain(rewriteCandidate.domain);
+    if (!subDomain && rewriteCandidate.subDomain) setSubDomain(rewriteCandidate.subDomain);
+    if (!topics && rewriteCandidate.topic) setTopics(rewriteCandidate.topic);
+    setRewriteCandidate(null);
   };
 
   const trimmedContent = content.trim();
   const contentLength = Array.from(trimmedContent).length;
-  const isPublishReady = !!(trimmedContent) && contentLength >= 10 && contentLength <= 100;
+  const isPublishReady = !!(trimmedContent) && contentLength >= 1 && contentLength <= 100;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -268,10 +426,10 @@ export default function CreateScreen({navigation}: any) {
         <>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="返回">
+          <Ionicons name="chevron-back" size={22} color="#5c5548" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>记录经验</Text>
+        <Text style={styles.headerTitle}>{isEditing ? '编辑经验' : '记下'}</Text>
         <View style={styles.backBtn} />
       </View>
 
@@ -393,13 +551,23 @@ export default function CreateScreen({navigation}: any) {
       {/* Bottom bar */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
+          style={[styles.rewriteButton, (!trimmedContent || rewriting || submitting) && styles.rewriteButtonDisabled]}
+          onPress={handleRewrite}
+          disabled={!trimmedContent || rewriting || submitting}>
+          {rewriting ? (
+            <ActivityIndicator size="small" color="#4a7c59" />
+          ) : (
+            <Text style={styles.rewriteButtonText}>帮我改改</Text>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.saveButton, (!isPublishReady || submitting) && styles.saveButtonDisabled]}
           onPress={handlePublish}
           disabled={!isPublishReady || submitting}>
           {submitting ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.saveButtonText}>保存</Text>
+            <Text style={styles.saveButtonText}>{isEditing ? '保存修改' : '保存'}</Text>
           )}
         </TouchableOpacity>
         <TouchableOpacity style={styles.privacyRow} onPress={() => setIsPrivate(!isPrivate)}>
@@ -412,6 +580,68 @@ export default function CreateScreen({navigation}: any) {
         </>
       )}
       </Animated.View>
+      <Modal visible={!!rewriteCandidate} transparent animationType="fade">
+        <View style={styles.rewriteOverlay}>
+          <View style={styles.rewriteModal}>
+            <Text style={styles.rewriteModalTitle}>帮你改成这样</Text>
+            <Text style={styles.rewriteModalContent}>{rewriteCandidate?.content}</Text>
+            <View style={styles.rewriteModalActions}>
+              <TouchableOpacity
+                style={styles.rewriteModalSecondary}
+                onPress={() => setRewriteCandidate(null)}
+                activeOpacity={0.72}>
+                <Text style={styles.rewriteModalSecondaryText}>取消</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.rewriteModalPrimary}
+                onPress={applyRewriteCandidate}
+                activeOpacity={0.78}>
+                <Text style={styles.rewriteModalPrimaryText}>替换原文</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={displayNameModalVisible} transparent animationType="fade">
+        <View style={styles.rewriteOverlay}>
+          <View style={styles.displayNameModal}>
+            <Text style={styles.displayNameTitle}>先取个名字</Text>
+            <Text style={styles.displayNameHint}>公开经验会显示这个名字。</Text>
+            <TextInput
+              style={styles.displayNameInput}
+              value={displayNameDraft}
+              onChangeText={setDisplayNameDraft}
+              placeholder="别人会在经验卡上看到这个名字"
+              placeholderTextColor="#b5b0a8"
+              maxLength={20}
+              autoFocus
+            />
+            <View style={styles.rewriteModalActions}>
+              <TouchableOpacity
+                style={styles.rewriteModalSecondary}
+                onPress={() => {
+                  setDisplayNameModalVisible(false);
+                  setDisplayNameRetryPrivate(null);
+                }}
+                activeOpacity={0.72}
+                disabled={displayNameSubmitting}>
+                <Text style={styles.rewriteModalSecondaryText}>取消</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.rewriteModalPrimary, (!displayNameDraft.trim() || displayNameSubmitting) && styles.saveButtonDisabled]}
+                onPress={handleDisplayNameContinue}
+                activeOpacity={0.78}
+                disabled={!displayNameDraft.trim() || displayNameSubmitting}>
+                {displayNameSubmitting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.rewriteModalPrimaryText}>保存并继续</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -434,15 +664,12 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     width: 44,
+    minHeight: 36,
+    justifyContent: 'center',
   },
   backBtnText: {
     fontSize: 15,
     color: '#9a9a9a',
-  },
-  backArrow: {
-    fontSize: 22,
-    color: '#4a7c59',
-    fontWeight: '300',
   },
   headerTitle: {
     fontSize: 13,
@@ -561,6 +788,112 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingBottom: 28,
     backgroundColor: '#faf8f5',
+  },
+  rewriteButton: {
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 42,
+    width: '100%',
+    marginBottom: 10,
+    backgroundColor: '#f5faf2',
+    borderWidth: 1,
+    borderColor: '#dbe7d8',
+  },
+  rewriteButtonDisabled: {
+    opacity: 0.45,
+  },
+  rewriteButtonText: {
+    color: '#4a7c59',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  rewriteOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(25,24,20,0.34)',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  rewriteModal: {
+    backgroundColor: '#fffaf0',
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#eadfcd',
+  },
+  displayNameModal: {
+    backgroundColor: '#fffaf0',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#eadfcd',
+  },
+  displayNameTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#2a2722',
+  },
+  displayNameHint: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#8f887b',
+  },
+  displayNameInput: {
+    minHeight: 46,
+    marginTop: 16,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ded2c0',
+    backgroundColor: '#fffdf8',
+    color: '#24231f',
+    fontSize: 15,
+  },
+  rewriteModalTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#2a2722',
+    marginBottom: 12,
+  },
+  rewriteModalContent: {
+    fontSize: 18,
+    lineHeight: 28,
+    color: '#1f211c',
+    fontWeight: '700',
+  },
+  rewriteModalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+  },
+  rewriteModalSecondary: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: '#ded2c0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rewriteModalSecondaryText: {
+    color: '#6d6256',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  rewriteModalPrimary: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 11,
+    backgroundColor: '#4a7c59',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rewriteModalPrimaryText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
   },
   saveButton: {
     backgroundColor: '#4a7c59',

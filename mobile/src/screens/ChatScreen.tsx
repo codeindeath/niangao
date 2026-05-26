@@ -11,18 +11,43 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {initChat, sendChatMessage, ChatMessageItem} from '../services/api';
+import {
+  createChatTempSession,
+  fetchRecentChatTopics,
+  fetchChatTopicMessages,
+  sendChatTopicMessage,
+  sendTempChatMessage,
+  toggleBookmark,
+  recordExperienceEvent,
+  ChatTopic,
+  ChatReferenceCard,
+  ChatNoteSuggestion,
+  ChatMessageItem,
+} from '../services/api';
+import {clearToken} from '../services/config';
+import {reportHandledError} from '../utils/logging';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 interface MessageBubble {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  referenceCards?: ChatReferenceCard[];
+  noteSuggestion?: ChatNoteSuggestion;
+  failed?: boolean;
+  retryText?: string;
+  clientMessageId?: string;
 }
 
 export default function ChatScreen({navigation}: any) {
-  const [conversationId, setConversationId] = useState<string>('');
+  const [tempSessionId, setTempSessionId] = useState<string>('');
+  const [activeTopic, setActiveTopic] = useState<ChatTopic | null>(null);
+  const [topics, setTopics] = useState<ChatTopic[]>([]);
+  const [topicModalVisible, setTopicModalVisible] = useState(false);
+  const [topicLoading, setTopicLoading] = useState(false);
   const [messages, setMessages] = useState<MessageBubble[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,6 +55,22 @@ export default function ChatScreen({navigation}: any) {
   const flatListRef = useRef<FlatList>(null);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const screenWidth = Dimensions.get('window').width;
+
+  const openLogin = useCallback(() => {
+    const parent = navigation.getParent?.();
+    if (parent?.navigate) {
+      parent.navigate('login');
+      return;
+    }
+    navigation.navigate('login');
+  }, [navigation]);
+
+  const handleAuthExpired = useCallback((err: any): boolean => {
+    if (err?.status !== 401) return false;
+    clearToken().catch(clearErr => reportHandledError('ChatScreen.clearExpiredAuth', clearErr));
+    openLogin();
+    return true;
+  }, [openLogin]);
 
   const handleBack = () => {
     Animated.timing(slideAnim, {
@@ -47,41 +88,124 @@ export default function ChatScreen({navigation}: any) {
     return unsub;
   }, [navigation, slideAnim]);
 
-  // 初始化：加载历史消息 + 自动打招呼
-  useEffect(() => {
-    initChat()
-      .then(data => {
-        setConversationId(data.conversation_id);
-        const msgs: MessageBubble[] = (data.messages || []).map(
-          (m: ChatMessageItem) => ({
-            id: m.id,
-            role: m.role,
-            content: m.content,
-          }),
-        );
-        setMessages(msgs);
-      })
-      .catch(err => {
-        console.warn('[chat] init failed:', err?.message);
-        // Fallback: show welcome if history load fails
+  const startTempSession = useCallback(() => {
+    setInitialLoading(true);
+    setActiveTopic(null);
+    return createChatTempSession(false)
+      .then(session => {
+        setTempSessionId(session.id);
         setMessages([
           {
             id: 'welcome',
             role: 'assistant',
-            content: '嗨，我是年糕。想聊什么都可以，随便说说。',
+            content: '我在。你可以从任何一点开始说，不用先想清楚。',
+          },
+        ]);
+      })
+      .catch(err => {
+        if (handleAuthExpired(err)) {
+          setMessages([
+            {
+              id: 'auth-expired',
+              role: 'assistant',
+              content: '登录状态过期了，重新登录后可以继续聊。',
+            },
+          ]);
+          return;
+        }
+        reportHandledError('ChatScreen.startTempSession', err);
+        setMessages([
+          {
+            id: 'welcome',
+            role: 'assistant',
+            content: '现在连不上聊聊服务。你可以先把想说的放在这里，稍后再试。',
           },
         ]);
       })
       .finally(() => setInitialLoading(false));
-  }, []);
+  }, [handleAuthExpired]);
+
+  // 初始化：进入聊聊先创建临时会话；用户发消息后再判断是否形成稳定议题
+  useEffect(() => {
+    startTempSession();
+  }, [startTempSession]);
+
+  const openTopicList = async () => {
+    setTopicModalVisible(true);
+    setTopicLoading(true);
+    try {
+      const result = await fetchRecentChatTopics();
+      setTopics(result.data || []);
+    } catch (err: any) {
+      reportHandledError('ChatScreen.openTopicList', err);
+      setTopics([]);
+    } finally {
+      setTopicLoading(false);
+    }
+  };
+
+  const selectTopic = async (topic: ChatTopic) => {
+    setTopicModalVisible(false);
+    setTopicLoading(true);
+    try {
+      const result = await fetchChatTopicMessages(topic.id);
+      setActiveTopic(topic);
+      setMessages((result.data || []).map(toBubble));
+    } catch (err: any) {
+      reportHandledError('ChatScreen.selectTopic', err);
+      setActiveTopic(topic);
+      setMessages([{
+        id: 'topic-load-failed',
+        role: 'assistant',
+        content: '这个议题的消息暂时没恢复出来，可以先接着说。',
+      }]);
+    } finally {
+      setTopicLoading(false);
+    }
+  };
+
+  const handleStartNewTopic = () => {
+    setTopicModalVisible(false);
+    startTempSession();
+  };
+
+  const toBubble = (message: ChatMessageItem): MessageBubble => ({
+    id: message.id,
+    role: message.role,
+    content: message.content,
+  });
+
+  const sendToCurrentScope = async (text: string, clientMessageId: string) => {
+    if (activeTopic) {
+      return sendChatTopicMessage(activeTopic.id, text, clientMessageId);
+    }
+    return sendTempChatMessage(tempSessionId, text, clientMessageId);
+  };
+
+  const citationMetadata = (messageId: string) => ({
+    message_id: messageId,
+    ...(activeTopic ? {topic_id: activeTopic.id} : {temp_session_id: tempSessionId}),
+  });
+
+  const recordCitationShows = (messageId: string, cards: ChatReferenceCard[] = []) => {
+    cards.forEach(card => {
+      recordExperienceEvent(card.experience_id, 'chat_citation_show', 'chat', citationMetadata(messageId));
+    });
+  };
+
+  const handleReferencePress = (messageId: string, experienceId: string) => {
+    recordExperienceEvent(experienceId, 'chat_citation_click', 'chat', citationMetadata(messageId));
+    navigation.navigate('detail', {id: experienceId, from: 'chat'});
+  };
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || loading || !conversationId) return;
+    if (!text || loading || (!activeTopic && !tempSessionId)) return;
     setInput('');
 
+    const clientMessageId = `m-${Date.now()}`;
     const userMsg: MessageBubble = {
-      id: Date.now().toString(),
+      id: clientMessageId,
       role: 'user',
       content: text,
     };
@@ -93,30 +217,111 @@ export default function ChatScreen({navigation}: any) {
     setMessages(prev => [...prev, {id: aiId, role: 'assistant', content: ''}]);
 
     try {
-      const result = await sendChatMessage(conversationId, text);
+      const result = await sendToCurrentScope(text, clientMessageId);
+      const referenceCards = result.reference_cards || [];
+      recordCitationShows(result.message.id || aiId, referenceCards);
 
       setMessages(prev =>
         prev.map(m =>
           m.id === aiId
             ? {
                 ...m,
-                content: result.reply,
+                id: result.message.id || aiId,
+                content: result.message.content,
+                referenceCards,
+                noteSuggestion: result.note_suggestion,
               }
             : m,
         ),
       );
     } catch (e: any) {
+      if (handleAuthExpired(e)) {
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === aiId
+              ? {
+                  ...m,
+                  content: '登录状态过期了，重新登录后可以继续聊。',
+                  failed: false,
+                  retryText: undefined,
+                  clientMessageId: undefined,
+                }
+              : m,
+          ),
+        );
+        return;
+      }
       let errMsg = '抱歉，对话服务暂时不可用，请稍后再试。';
       if (e?.status === 429) {
         errMsg = '今日对话已达上限（100轮），明天再来聊吧。';
       }
       setMessages(prev =>
         prev.map(m =>
-          m.id === aiId ? {...m, content: errMsg} : m,
+          m.id === aiId ? {...m, content: errMsg, failed: true, retryText: text, clientMessageId} : m,
         ),
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const retryAssistant = async (item: MessageBubble) => {
+    if (!item.retryText || loading || (!activeTopic && !tempSessionId)) return;
+    setLoading(true);
+    setMessages(prev => prev.map(m => m.id === item.id ? {...m, content: '', failed: false} : m));
+    try {
+      const result = await sendToCurrentScope(item.retryText, item.clientMessageId || `retry-${Date.now()}`);
+      const referenceCards = result.reference_cards || [];
+      recordCitationShows(result.message.id || item.id, referenceCards);
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === item.id
+            ? {
+                ...m,
+                id: result.message.id || item.id,
+                content: result.message.content,
+                referenceCards,
+                noteSuggestion: result.note_suggestion,
+                failed: false,
+                retryText: undefined,
+                clientMessageId: undefined,
+              }
+            : m,
+        ),
+      );
+    } catch {
+      setMessages(prev => prev.map(m => m.id === item.id ? {
+        ...m,
+        content: '还是没连上。你这条消息已经保留了，可以稍后再试。',
+        failed: true,
+      } : m));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const collectReferenceCard = async (messageId: string, experienceId: string) => {
+    setMessages(prev => prev.map(message => {
+      if (message.id !== messageId || !message.referenceCards) return message;
+      return {
+        ...message,
+        referenceCards: message.referenceCards.map(card =>
+          card.experience_id === experienceId ? {...card, is_collected: true} : card,
+        ),
+      };
+    }));
+    try {
+      await toggleBookmark(experienceId, true);
+    } catch {
+      setMessages(prev => prev.map(message => {
+        if (message.id !== messageId || !message.referenceCards) return message;
+        return {
+          ...message,
+          referenceCards: message.referenceCards.map(card =>
+            card.experience_id === experienceId ? {...card, is_collected: false} : card,
+          ),
+        };
+      }));
     }
   };
 
@@ -125,6 +330,7 @@ export default function ChatScreen({navigation}: any) {
     const isUser = item.role === 'user';
 
     return (
+      <View style={[styles.messageBlock, isUser && styles.messageBlockUser]}>
       <View style={[styles.bubbleRow, isUser && styles.bubbleRowUser]}>
         {!isUser && (
           <View style={styles.aiAvatar}>
@@ -150,12 +356,63 @@ export default function ChatScreen({navigation}: any) {
               style={{marginTop: 4}}
             />
           )}
+          {!isUser && item.failed && (
+            <TouchableOpacity style={styles.retryBtn} onPress={() => retryAssistant(item)}>
+              <Text style={styles.retryText}>重试</Text>
+            </TouchableOpacity>
+          )}
         </View>
         {isUser && (
           <View style={styles.userAvatar}>
             <Text style={styles.userAvatarText}>我</Text>
           </View>
         )}
+      </View>
+      {!isUser && item.referenceCards && item.referenceCards.length > 0 && (
+        <View style={styles.referenceWrap}>
+          <Text style={styles.referenceTitle}>参考经验</Text>
+          {item.referenceCards.map(card => (
+            <TouchableOpacity
+              key={card.experience_id}
+              style={styles.referenceCard}
+              onPress={() => handleReferencePress(item.id, card.experience_id)}
+              activeOpacity={0.76}>
+              <Text style={styles.referenceText}>{card.content}</Text>
+              <TouchableOpacity
+                style={styles.referenceSaveBtn}
+                onPress={() => {
+                  if (!card.is_collected) collectReferenceCard(item.id, card.experience_id);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={card.is_collected ? '已收藏参考经验' : '收藏参考经验'}
+                activeOpacity={0.72}>
+                <Ionicons
+                  name={card.is_collected ? 'bookmark' : 'bookmark-outline'}
+                  size={18}
+                  color={card.is_collected ? '#d59a3d' : '#8a8173'}
+                />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+      {!isUser && item.noteSuggestion?.should_show && (
+        <View style={styles.noteSuggestion}>
+          <Text style={styles.noteSuggestionText}>
+            你刚才的思考很适合总结记下一条经验，要记下吗？
+          </Text>
+          <TouchableOpacity
+            style={styles.noteSuggestionBtn}
+            onPress={() => navigation.navigate('create', {
+              prefillContent: item.noteSuggestion?.suggested_text || '',
+              defaultVisibility: 'private',
+              sourceScene: 'chat',
+              sourceMessageIds: item.noteSuggestion?.source_message_ids || [],
+            })}>
+            <Text style={styles.noteSuggestionBtnText}>记下</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       </View>
     );
   };
@@ -165,14 +422,18 @@ export default function ChatScreen({navigation}: any) {
       <SafeAreaView style={styles.container} edges={['top']}>
         <Animated.View style={[styles.flex, {transform: [{translateX: slideAnim}]}]}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-            <Text style={styles.backArrow}>←</Text>
+          <TouchableOpacity onPress={handleBack} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="返回">
+            <Ionicons name="chevron-back" size={22} color="#5c5548" />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>随便聊聊</Text>
-            <Text style={styles.headerSub}>收藏的经验我都记着</Text>
+            <Text style={styles.headerTitle}>和年糕聊聊</Text>
           </View>
-          <View style={styles.backBtn} />
+          <TouchableOpacity style={styles.topicBtn} onPress={openTopicList} accessibilityRole="button" accessibilityLabel="打开议题列表">
+            <Ionicons name="chatbubble-ellipses-outline" size={14} color="#4a7c59" />
+            <Text style={styles.topicBtnText} numberOfLines={1}>
+              {activeTopic?.title || '当前议题'}
+            </Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#4a7c59" />
@@ -187,14 +448,18 @@ export default function ChatScreen({navigation}: any) {
       <Animated.View style={[styles.flex, {transform: [{translateX: slideAnim}]}]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="返回">
+          <Ionicons name="chevron-back" size={22} color="#5c5548" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>随便聊聊</Text>
-          <Text style={styles.headerSub}>收藏的经验我都记着</Text>
+          <Text style={styles.headerTitle}>和年糕聊聊</Text>
         </View>
-        <View style={styles.backBtn} />
+        <TouchableOpacity style={styles.topicBtn} onPress={openTopicList} accessibilityRole="button" accessibilityLabel="打开议题列表">
+          <Ionicons name="chatbubble-ellipses-outline" size={14} color="#4a7c59" />
+          <Text style={styles.topicBtnText} numberOfLines={1}>
+            {activeTopic?.title || '当前议题'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Messages */}
@@ -240,6 +505,39 @@ export default function ChatScreen({navigation}: any) {
         </View>
       </KeyboardAvoidingView>
       </Animated.View>
+      <Modal visible={topicModalVisible} transparent animationType="fade">
+        <View style={styles.topicOverlay}>
+          <View style={styles.topicPanel}>
+            <View style={styles.topicPanelHead}>
+              <Text style={styles.topicPanelTitle}>最近聊过</Text>
+              <TouchableOpacity onPress={() => setTopicModalVisible(false)}>
+                <Text style={styles.topicClose}>关闭</Text>
+              </TouchableOpacity>
+            </View>
+            {topicLoading ? (
+              <ActivityIndicator color="#4a7c59" style={{marginVertical: 24}} />
+            ) : topics.length > 0 ? (
+              topics.map(topic => (
+                <TouchableOpacity
+                  key={topic.id}
+                  style={styles.topicItem}
+                  onPress={() => selectTopic(topic)}
+                  activeOpacity={0.72}>
+                  <Text style={styles.topicItemTitle} numberOfLines={1}>{topic.title || '未命名议题'}</Text>
+                  <Text style={styles.topicItemMeta} numberOfLines={1}>
+                    {[topic.domain, topic.sub_domain, topic.topic].filter(Boolean).join(' · ') || '私密议题'}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text style={styles.topicEmpty}>还没有稳定议题。</Text>
+            )}
+            <TouchableOpacity style={styles.newTopicBtn} onPress={handleStartNewTopic}>
+              <Text style={styles.newTopicText}>换个事聊</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -272,33 +570,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backArrow: {
-    fontSize: 22,
-    color: '#4a7c59',
-    fontWeight: '300',
-  },
   headerCenter: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: '700',
     color: '#1a1a1a',
   },
-  headerSub: {
+  topicBtn: {
+    minHeight: 34,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: '#f0ece3',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 5,
+    maxWidth: 138,
+  },
+  topicBtnText: {
     fontSize: 12,
-    color: '#9a9a9a',
-    marginTop: 2,
+    color: '#4a7c59',
+    fontWeight: '700',
+    flexShrink: 1,
   },
   messageList: {
     paddingHorizontal: 14,
     paddingVertical: 12,
     flexGrow: 1,
   },
+  messageBlock: {
+    marginBottom: 14,
+  },
+  messageBlockUser: {
+    alignItems: 'flex-end',
+  },
   bubbleRow: {
     flexDirection: 'row',
-    marginBottom: 14,
+    marginBottom: 0,
     alignItems: 'flex-end',
     maxWidth: '85%',
   },
@@ -355,6 +666,82 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: '#1a1a1a',
   },
+  retryBtn: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    borderRadius: 9,
+    backgroundColor: '#edf4e9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  retryText: {
+    fontSize: 12,
+    color: '#4a7c59',
+    fontWeight: '800',
+  },
+  referenceWrap: {
+    marginLeft: 36,
+    marginTop: 8,
+    width: '78%',
+  },
+  referenceTitle: {
+    fontSize: 11,
+    color: '#8a8173',
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  referenceCard: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e4ded2',
+    backgroundColor: '#fffdf8',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  referenceText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#3d3a34',
+  },
+  referenceSaveBtn: {
+    minWidth: 42,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  noteSuggestion: {
+    alignSelf: 'center',
+    marginTop: 12,
+    maxWidth: '88%',
+    borderRadius: 12,
+    backgroundColor: '#edf4e9',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  noteSuggestionText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#3d5d43',
+  },
+  noteSuggestionBtn: {
+    borderRadius: 9,
+    backgroundColor: '#4a7c59',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  noteSuggestionBtnText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '700',
+  },
   bubbleTextUser: {
     color: '#ffffff',
   },
@@ -392,5 +779,74 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  topicOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(31,29,24,0.28)',
+    justifyContent: 'flex-end',
+  },
+  topicPanel: {
+    backgroundColor: '#fffaf0',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 26,
+    borderWidth: 1,
+    borderColor: '#eadfcd',
+  },
+  topicPanelHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  topicPanelTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#211f1a',
+  },
+  topicClose: {
+    fontSize: 13,
+    color: '#8a8173',
+    fontWeight: '700',
+  },
+  topicItem: {
+    borderRadius: 12,
+    backgroundColor: '#f3eadc',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  topicItemTitle: {
+    fontSize: 15,
+    color: '#211f1a',
+    fontWeight: '800',
+  },
+  topicItemMeta: {
+    fontSize: 12,
+    color: '#8a8173',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  topicEmpty: {
+    fontSize: 13,
+    color: '#8a8173',
+    textAlign: 'center',
+    paddingVertical: 18,
+  },
+  newTopicBtn: {
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d9ccb9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  newTopicText: {
+    fontSize: 14,
+    color: '#4a7c59',
+    fontWeight: '800',
   },
 });

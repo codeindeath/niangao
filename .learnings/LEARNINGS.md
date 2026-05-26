@@ -164,3 +164,26 @@ For future PIL icon generation: skip complex shapes entirely. Offer: 1) flat typ
 ### Metadata
 - Source: user_feedback
 - Tags: design, pil, icon-generation, aesthetic-judgment
+
+---
+
+## [LRN-20260525-001] correction
+
+**Logged**: 2026-05-25T10:24:42+08:00
+**Priority**: high
+**Status**: pending
+**Area**: workflow
+
+### Summary
+Before starting non-trivial work, infer the user's real quality goal and define verification criteria before implementation.
+
+### Details
+During the golden-set work, meeting target counts and schema checks was not enough. The user expected realistic Niangao user scenarios that could stress production AI behavior. Future work must identify the underlying success standard up front, then inspect and revise the actual output before delivery.
+
+### Suggested Action
+Use the `task-quality-gate` skill for coding, product docs, AI prompts, evaluation sets, QA, deployment, research, and other tasks where shallow completion could miss the user's real goal.
+
+### Metadata
+- Source: user_feedback
+- Related Files: /Users/swt/.codex/skills/task-quality-gate/SKILL.md
+- Tags: workflow, quality-gate, verification, golden-set, product-quality

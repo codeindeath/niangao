@@ -1,0 +1,357 @@
+{
+  "generated_at": "2026-05-25T14:57:51",
+  "model": "deepseek-v4-pro",
+  "base_url": "https://api.deepseek.com",
+  "spec_path": "docs/product/niangao-ai-prompt-production-spec-v4.md",
+  "summary": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0
+  },
+  "results": [
+    {
+      "case_id": "content_042",
+      "function_type": "experience_extract",
+      "category": "content_production",
+      "title": "非经验素材拒绝提取",
+      "tags": [
+        "extract",
+        "reject"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 18078,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1390,
+      "usage": {
+        "prompt_tokens": 1324,
+        "completion_tokens": 686,
+        "total_tokens": 2010,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 595
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 940
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_extract\",\n  \"result\": {\n    \"candidates\": [],\n    \"discarded_examples\": [\n      {\n        \"text\": \"他坐在窗边喝咖啡，想起了很多往事。\",\n        \"reason\": \"personal_story\"\n      }\n    ]\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_extract",
+        "result": {
+          "candidates": [],
+          "discarded_examples": [
+            {
+              "text": "他坐在窗边喝咖啡，想起了很多往事。",
+              "reason": "personal_story"
+            }
+          ]
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "recommend_019",
+      "function_type": "recommendation_ai",
+      "category": "recommendation",
+      "title": "领域缺口诊断",
+      "tags": [
+        "domain_gap"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/recommendation.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 6014,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 941,
+        "completion_tokens": 215,
+        "total_tokens": 1156,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 941
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"recommendation_ai\",\n  \"result\": {\n    \"rerank\": [],\n    \"diagnostics\": {\n      \"too_similar\": false,\n      \"creator_concentration\": false,\n      \"source_concentration\": false,\n      \"domain_gap\": [\n        {\n          \"missing_domain\": \"工作\",\n          \"missing_sub_domain\": \"沟通\",\n          \"mismatched_candidate_ids\": [\"gap_1_a\", \"gap_1_b\", \"gap_1_c\"]\n        }\n      ],\n      \"quality_leak\": false\n    },\n    \"should_use_ai_rerank\": false\n  },\n  \"confidence\": 0.9,\n  \"warnings\": [\n    \"候选池与用户当前处境严重不匹配：用户近期领域为工作/沟通，但候选经验分别属于意义/幸福、生活/娱乐、生命/运动，无任何相关候选，因此 rerank 为空。\"\n  ]\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "recommendation_ai",
+        "result": {
+          "rerank": [],
+          "diagnostics": {
+            "too_similar": false,
+            "creator_concentration": false,
+            "source_concentration": false,
+            "domain_gap": [
+              {
+                "missing_domain": "工作",
+                "missing_sub_domain": "沟通",
+                "mismatched_candidate_ids": [
+                  "gap_1_a",
+                  "gap_1_b",
+                  "gap_1_c"
+                ]
+              }
+            ],
+            "quality_leak": false
+          },
+          "should_use_ai_rerank": false
+        },
+        "confidence": 0.9,
+        "warnings": [
+          "候选池与用户当前处境严重不匹配：用户近期领域为工作/沟通，但候选经验分别属于意义/幸福、生活/娱乐、生命/运动，无任何相关候选，因此 rerank 为空。"
+        ]
+      }
+    },
+    {
+      "case_id": "recommend_020",
+      "function_type": "recommendation_ai",
+      "category": "recommendation",
+      "title": "领域缺口诊断",
+      "tags": [
+        "domain_gap"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/recommendation.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 4322,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 941,
+        "completion_tokens": 142,
+        "total_tokens": 1083,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 685
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"recommendation_ai\",\n  \"result\": {\n    \"rerank\": [],\n    \"diagnostics\": {\n      \"too_similar\": false,\n      \"creator_concentration\": false,\n      \"source_concentration\": false,\n      \"domain_gap\": [\"工作/沟通\"],\n      \"quality_leak\": false\n    },\n    \"should_use_ai_rerank\": false\n  },\n  \"confidence\": 0.9,\n  \"warnings\": [\"候选池与用户当前处境严重不匹配，所有候选均不属于工作/沟通领域，无法进行有效重排。\"]\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "recommendation_ai",
+        "result": {
+          "rerank": [],
+          "diagnostics": {
+            "too_similar": false,
+            "creator_concentration": false,
+            "source_concentration": false,
+            "domain_gap": [
+              "工作/沟通"
+            ],
+            "quality_leak": false
+          },
+          "should_use_ai_rerank": false
+        },
+        "confidence": 0.9,
+        "warnings": [
+          "候选池与用户当前处境严重不匹配，所有候选均不属于工作/沟通领域，无法进行有效重排。"
+        ]
+      }
+    },
+    {
+      "case_id": "recommend_021",
+      "function_type": "recommendation_ai",
+      "category": "recommendation",
+      "title": "领域缺口诊断",
+      "tags": [
+        "domain_gap"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/recommendation.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 3793,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 941,
+        "completion_tokens": 142,
+        "total_tokens": 1083,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 173
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"recommendation_ai\",\n  \"result\": {\n    \"rerank\": [],\n    \"diagnostics\": {\n      \"too_similar\": false,\n      \"creator_concentration\": false,\n      \"source_concentration\": false,\n      \"domain_gap\": [\"工作/沟通\"],\n      \"quality_leak\": false\n    },\n    \"should_use_ai_rerank\": false\n  },\n  \"confidence\": 0.9,\n  \"warnings\": [\"候选池与用户当前处境严重不匹配，所有候选均不属于工作/沟通领域，无法进行有效重排。\"]\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "recommendation_ai",
+        "result": {
+          "rerank": [],
+          "diagnostics": {
+            "too_similar": false,
+            "creator_concentration": false,
+            "source_concentration": false,
+            "domain_gap": [
+              "工作/沟通"
+            ],
+            "quality_leak": false
+          },
+          "should_use_ai_rerank": false
+        },
+        "confidence": 0.9,
+        "warnings": [
+          "候选池与用户当前处境严重不匹配，所有候选均不属于工作/沟通领域，无法进行有效重排。"
+        ]
+      }
+    },
+    {
+      "case_id": "recommend_022",
+      "function_type": "recommendation_ai",
+      "category": "recommendation",
+      "title": "领域缺口诊断",
+      "tags": [
+        "domain_gap"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/recommendation.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 3700,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 941,
+        "completion_tokens": 142,
+        "total_tokens": 1083,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 173
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"recommendation_ai\",\n  \"result\": {\n    \"rerank\": [],\n    \"diagnostics\": {\n      \"too_similar\": false,\n      \"creator_concentration\": false,\n      \"source_concentration\": false,\n      \"domain_gap\": [\"工作/沟通\"],\n      \"quality_leak\": false\n    },\n    \"should_use_ai_rerank\": false\n  },\n  \"confidence\": 0.9,\n  \"warnings\": [\"候选池与用户当前处境严重不匹配，所有候选均不属于工作/沟通领域，无法进行有效重排。\"]\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "recommendation_ai",
+        "result": {
+          "rerank": [],
+          "diagnostics": {
+            "too_similar": false,
+            "creator_concentration": false,
+            "source_concentration": false,
+            "domain_gap": [
+              "工作/沟通"
+            ],
+            "quality_leak": false
+          },
+          "should_use_ai_rerank": false
+        },
+        "confidence": 0.9,
+        "warnings": [
+          "候选池与用户当前处境严重不匹配，所有候选均不属于工作/沟通领域，无法进行有效重排。"
+        ]
+      }
+    },
+    {
+      "case_id": "recommend_023",
+      "function_type": "recommendation_ai",
+      "category": "recommendation",
+      "title": "领域缺口诊断",
+      "tags": [
+        "domain_gap"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/recommendation.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 3745,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 941,
+        "completion_tokens": 142,
+        "total_tokens": 1083,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 173
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"recommendation_ai\",\n  \"result\": {\n    \"rerank\": [],\n    \"diagnostics\": {\n      \"too_similar\": false,\n      \"creator_concentration\": false,\n      \"source_concentration\": false,\n      \"domain_gap\": [\"工作/沟通\"],\n      \"quality_leak\": false\n    },\n    \"should_use_ai_rerank\": false\n  },\n  \"confidence\": 0.9,\n  \"warnings\": [\"候选池与用户当前处境严重不匹配，所有候选均不属于工作/沟通领域，无法进行有效重排。\"]\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "recommendation_ai",
+        "result": {
+          "rerank": [],
+          "diagnostics": {
+            "too_similar": false,
+            "creator_concentration": false,
+            "source_concentration": false,
+            "domain_gap": [
+              "工作/沟通"
+            ],
+            "quality_leak": false
+          },
+          "should_use_ai_rerank": false
+        },
+        "confidence": 0.9,
+        "warnings": [
+          "候选池与用户当前处境严重不匹配，所有候选均不属于工作/沟通领域，无法进行有效重排。"
+        ]
+      }
+    },
+    {
+      "case_id": "recommend_024",
+      "function_type": "recommendation_ai",
+      "category": "recommendation",
+      "title": "领域缺口诊断",
+      "tags": [
+        "domain_gap"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/recommendation.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 4121,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 941,
+        "completion_tokens": 155,
+        "total_tokens": 1096,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 173
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"recommendation_ai\",\n  \"result\": {\n    \"rerank\": [],\n    \"diagnostics\": {\n      \"too_similar\": false,\n      \"creator_concentration\": false,\n      \"source_concentration\": false,\n      \"domain_gap\": [\"gap_6_a\", \"gap_6_b\", \"gap_6_c\"],\n      \"quality_leak\": false\n    },\n    \"should_use_ai_rerank\": false\n  },\n  \"confidence\": 0.9,\n  \"warnings\": [\"候选池与用户当前处境严重不匹配，所有候选均不属于工作/沟通领域，无法进行有效重排。\"]\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "recommendation_ai",
+        "result": {
+          "rerank": [],
+          "diagnostics": {
+            "too_similar": false,
+            "creator_concentration": false,
+            "source_concentration": false,
+            "domain_gap": [
+              "gap_6_a",
+              "gap_6_b",
+              "gap_6_c"
+            ],
+            "quality_leak": false
+          },
+          "should_use_ai_rerank": false
+        },
+        "confidence": 0.9,
+        "warnings": [
+          "候选池与用户当前处境严重不匹配，所有候选均不属于工作/沟通领域，无法进行有效重排。"
+        ]
+      }
+    }
+  ]
+}

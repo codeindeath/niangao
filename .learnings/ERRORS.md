@@ -4,6 +4,63 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260525-001] local_playwright_missing
+
+**Logged**: 2026-05-25T19:46:54+08:00
+**Priority**: low
+**Status**: pending
+**Area**: frontend
+
+### Summary
+Local screenshot verification with Node Playwright failed because the project does not have `playwright` installed.
+
+### Error
+```
+Cannot find module 'playwright'
+```
+
+### Context
+- Command attempted: `node -e "console.log(require.resolve('playwright'))"`
+- Fallback: use installed Google Chrome headless screenshot mode for static design verification.
+
+### Suggested Fix
+For design-draft workflows, either add a lightweight screenshot script dependency or standardize on Chrome headless commands.
+
+### Metadata
+- Reproducible: yes
+- Related Files: docs/design-drafts/niangao-main-pages-three-directions.html
+
+---
+
+## [ERR-20260524-001] ui_ux_pro_max_missing_search_script
+
+**Logged**: 2026-05-24T15:51:52+08:00
+**Priority**: low
+**Status**: pending
+**Area**: frontend
+
+### Summary
+The ui-ux-pro-max skill documentation referenced a `scripts/search.py` helper, but the installed skill directory only contains `SKILL.md` and `_meta.json`.
+
+### Error
+```
+can't open file '/Users/swt/.codex/skills/ui-ux-pro-max-2/scripts/search.py': [Errno 2] No such file or directory
+```
+
+### Context
+- Command attempted: run the skill's documented design-system search helper for Niangao mobile design.
+- Local skill directory inspected after failure and no `scripts/` directory exists.
+- Fallback: apply the skill's design rules manually.
+
+### Suggested Fix
+Update the installed skill package to include the referenced script, or adjust `SKILL.md` to describe the no-script fallback workflow.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /Users/swt/.codex/skills/ui-ux-pro-max-2/SKILL.md
+
+---
+
 ## [ERR-20260503-001] git_push_github
 
 **Logged**: 2026-05-03T10:30:00+08:00

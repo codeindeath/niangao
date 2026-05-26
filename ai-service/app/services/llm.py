@@ -1,6 +1,6 @@
 """DeepSeek LLM 服务"""
 import logging
-from typing import AsyncIterator, Dict, List
+from typing import AsyncIterator, Dict, List, Optional
 
 from openai import AsyncOpenAI
 
@@ -22,14 +22,25 @@ class LLMService:
     async def close(self):
         await self.client.close()
 
-    async def chat(self, messages: List[Dict], stream: bool = False):
+    async def chat(
+        self,
+        messages: List[Dict],
+        stream: bool = False,
+        temperature: float = 0.7,
+        max_tokens: int = 1024,
+        response_format: Optional[Dict] = None,
+    ):
         if stream:
             return self._chat_stream(messages)
+        kwargs = {}
+        if response_format is not None:
+            kwargs["response_format"] = response_format
         response = await self.client.chat.completions.create(
             model=settings.deepseek_model,
             messages=messages,
-            temperature=0.7,
-            max_tokens=1024,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs,
         )
         return response.choices[0].message.content
 

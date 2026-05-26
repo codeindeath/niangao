@@ -1,0 +1,467 @@
+package handler
+
+import (
+	"context"
+	"errors"
+	"log"
+	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/niangao/backend/internal/middleware"
+	"github.com/niangao/backend/internal/model"
+	"github.com/niangao/backend/internal/repository"
+)
+
+type V4ChatStore interface {
+	RecentChatTopics(ctx context.Context, userID string, limit int) ([]model.ChatTopic, error)
+	ChatTopics(ctx context.Context, userID string, limit int, cursor string) (*model.ChatTopicPage, error)
+	CreateTempSession(ctx context.Context, userID string, forcedNewTopic bool) (*model.ChatTempSession, error)
+	CreateChatTopic(ctx context.Context, userID string, req model.CreateChatTopicRequest) (*model.ChatTopic, error)
+	UpdateChatTopic(ctx context.Context, userID string, topicID string, req model.UpdateChatTopicRequest) (*model.ChatTopic, error)
+	DeleteChatTopic(ctx context.Context, userID string, topicID string) error
+	ChatMessages(ctx context.Context, userID string, scope model.ChatMessageScope, limit int, cursor string) (*model.ChatMessagePage, error)
+	VerifyChatScope(ctx context.Context, userID string, scope model.ChatMessageScope) (*model.ChatScopeContext, error)
+	AddChatMessage(ctx context.Context, userID string, req model.SaveChatMessageRequest) (*model.ChatMessage, error)
+	RecentChatMessages(ctx context.Context, userID string, scope model.ChatMessageScope, limit int) ([]model.ChatMessage, error)
+	CandidateExperiencesForChat(ctx context.Context, userID string, scope model.ChatScopeContext, userMessage string, riskLevel string, limit int) ([]model.ChatCandidateExperience, error)
+	SaveChatCitations(ctx context.Context, assistantMessageID string, cards []model.ChatReferenceCard) error
+}
+
+type ChatGateway interface {
+	GenerateChatReply(ctx context.Context, req model.ChatGatewayRequest) (*model.ChatGatewayResponse, error)
+}
+
+type ChatV4Handler struct {
+	store   V4ChatStore
+	gateway ChatGateway
+}
+
+func RegisterChatV4Routes(r *gin.RouterGroup, store V4ChatStore, gateways ...ChatGateway) {
+	var gateway ChatGateway
+	if len(gateways) > 0 {
+		gateway = gateways[0]
+	}
+	h := &ChatV4Handler{store: store, gateway: gateway}
+
+	chat := r.Group("/chat", middleware.RequireAuth())
+	{
+		chat.GET("/recent-topics", h.RecentTopics)
+		chat.GET("/topics", h.Topics)
+		chat.POST("/temp-sessions", h.CreateTempSession)
+		chat.POST("/topics", h.CreateTopic)
+		chat.PATCH("/topics/:id", h.UpdateTopic)
+		chat.DELETE("/topics/:id", h.DeleteTopic)
+		chat.GET("/topics/:id/messages", h.TopicMessages)
+		chat.POST("/topics/:id/messages", h.SendTopicMessage)
+		chat.POST("/temp-sessions/:id/messages", h.SendTempSessionMessage)
+	}
+}
+
+func (h *ChatV4Handler) RecentTopics(c *gin.Context) {
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
+	topics, err := h.store.RecentChatTopics(c.Request.Context(), userID, 10)
+	if err != nil {
+		log.Printf("v4 recent topics failed user=%s: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load recent topics"})
+		return
+	}
+	if topics == nil {
+		topics = []model.ChatTopic{}
+	}
+	c.JSON(http.StatusOK, gin.H{"data": topics})
+}
+
+func (h *ChatV4Handler) Topics(c *gin.Context) {
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
+	page, err := h.store.ChatTopics(c.Request.Context(), userID, parseFeedLimit(c), c.Query("cursor"))
+	if err != nil {
+		log.Printf("v4 topics failed user=%s: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load topics"})
+		return
+	}
+	if page == nil {
+		page = &model.ChatTopicPage{Data: []model.ChatTopic{}}
+	}
+	if page.Data == nil {
+		page.Data = []model.ChatTopic{}
+	}
+	c.JSON(http.StatusOK, page)
+}
+
+func (h *ChatV4Handler) CreateTempSession(c *gin.Context) {
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
+	var req struct {
+		ForcedNewTopic bool `json:"forced_new_topic"`
+	}
+	_ = c.ShouldBindJSON(&req)
+	session, err := h.store.CreateTempSession(c.Request.Context(), userID, req.ForcedNewTopic)
+	if err != nil {
+		log.Printf("v4 create temp session failed user=%s: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create temp session"})
+		return
+	}
+	c.JSON(http.StatusCreated, session)
+}
+
+func (h *ChatV4Handler) CreateTopic(c *gin.Context) {
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
+	var req model.CreateChatTopicRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid topic payload"})
+		return
+	}
+	topic, err := h.store.CreateChatTopic(c.Request.Context(), userID, req)
+	if err != nil {
+		log.Printf("v4 create topic failed user=%s: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create topic"})
+		return
+	}
+	c.JSON(http.StatusCreated, topic)
+}
+
+func (h *ChatV4Handler) UpdateTopic(c *gin.Context) {
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
+	var req model.UpdateChatTopicRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid topic payload"})
+		return
+	}
+	topic, err := h.store.UpdateChatTopic(c.Request.Context(), userID, c.Param("id"), req)
+	if err != nil {
+		log.Printf("v4 update topic failed user=%s topic=%s: %v", userID, c.Param("id"), err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update topic"})
+		return
+	}
+	c.JSON(http.StatusOK, topic)
+}
+
+func (h *ChatV4Handler) DeleteTopic(c *gin.Context) {
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
+	if err := h.store.DeleteChatTopic(c.Request.Context(), userID, c.Param("id")); err != nil {
+		log.Printf("v4 delete topic failed user=%s topic=%s: %v", userID, c.Param("id"), err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete topic"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
+}
+
+func (h *ChatV4Handler) TopicMessages(c *gin.Context) {
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
+	scope := model.ChatMessageScope{Kind: model.ChatScopeTopic, ID: c.Param("id")}
+	page, err := h.store.ChatMessages(c.Request.Context(), userID, scope, parseFeedLimit(c), c.Query("cursor"))
+	if err != nil {
+		if errors.Is(err, repository.ErrExperienceUnavailable) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "topic not found"})
+			return
+		}
+		log.Printf("v4 chat messages failed user=%s topic=%s: %v", userID, scope.ID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load messages"})
+		return
+	}
+	if page == nil {
+		page = &model.ChatMessagePage{Data: []model.ChatMessage{}}
+	}
+	if page.Data == nil {
+		page.Data = []model.ChatMessage{}
+	}
+	c.JSON(http.StatusOK, page)
+}
+
+func (h *ChatV4Handler) SendTopicMessage(c *gin.Context) {
+	h.sendMessage(c, model.ChatMessageScope{Kind: model.ChatScopeTopic, ID: c.Param("id")})
+}
+
+func (h *ChatV4Handler) SendTempSessionMessage(c *gin.Context) {
+	h.sendMessage(c, model.ChatMessageScope{Kind: model.ChatScopeTempSession, ID: c.Param("id")})
+}
+
+func (h *ChatV4Handler) sendMessage(c *gin.Context, scope model.ChatMessageScope) {
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
+
+	var req model.SendChatMessageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid message payload"})
+		return
+	}
+	content := strings.TrimSpace(req.Content)
+	if content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "message content is required"})
+		return
+	}
+	if len([]rune(content)) > 2000 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "message content is too long"})
+		return
+	}
+
+	scopeContext, err := h.store.VerifyChatScope(c.Request.Context(), userID, scope)
+	if err != nil {
+		if errors.Is(err, repository.ErrExperienceUnavailable) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "chat scope not found"})
+			return
+		}
+		log.Printf("v4 verify chat scope failed user=%s scope=%s/%s: %v", userID, scope.Kind, scope.ID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to verify chat scope"})
+		return
+	}
+
+	pre := classifyChatMessage(content)
+	userMsg, err := h.store.AddChatMessage(c.Request.Context(), userID, model.SaveChatMessageRequest{
+		Scope:           scope,
+		Role:            "user",
+		Content:         content,
+		Status:          "sent",
+		RiskLevel:       riskLevelForStorage(pre.RiskLevel),
+		ClientMessageID: strings.TrimSpace(req.ClientMessageID),
+		Metadata: map[string]any{
+			"pre_classification": pre,
+		},
+	})
+	if err != nil {
+		log.Printf("v4 save user chat message failed user=%s scope=%s/%s: %v", userID, scope.Kind, scope.ID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save message"})
+		return
+	}
+
+	if h.gateway == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":           "chat service unavailable",
+			"retryable":       true,
+			"user_message_id": userMsg.ID,
+		})
+		return
+	}
+
+	recent, err := h.store.RecentChatMessages(c.Request.Context(), userID, scope, 12)
+	if err != nil {
+		log.Printf("v4 load recent chat messages failed user=%s scope=%s/%s: %v", userID, scope.Kind, scope.ID, err)
+		recent = []model.ChatMessage{}
+	}
+	candidates, err := h.store.CandidateExperiencesForChat(c.Request.Context(), userID, *scopeContext, content, pre.RiskLevel, 5)
+	if err != nil {
+		log.Printf("v4 load chat candidate experiences failed user=%s scope=%s/%s: %v", userID, scope.Kind, scope.ID, err)
+		candidates = []model.ChatCandidateExperience{}
+	}
+
+	gatewayReq := model.ChatGatewayRequest{
+		UserID:               userID,
+		UserMessageID:        userMsg.ID,
+		UserMessage:          content,
+		SessionState:         scopeContext.SessionState,
+		Scope:                scope,
+		Topic:                scopeContext.Topic,
+		RecentMessages:       recent,
+		PreClassification:    pre,
+		CandidateExperiences: candidates,
+		ContextFlags:         chatContextFlags(pre),
+		Limits: map[string]int{
+			"max_reply_chars_soft": 500,
+			"max_citation_cards":   maxChatCitationCards(pre),
+		},
+	}
+	aiResp, err := h.gateway.GenerateChatReply(c.Request.Context(), gatewayReq)
+	if err != nil || aiResp == nil || strings.TrimSpace(aiResp.ReplyText) == "" {
+		log.Printf("v4 chat gateway failed user=%s scope=%s/%s message=%s: %v", userID, scope.Kind, scope.ID, userMsg.ID, err)
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":           "chat service unavailable",
+			"retryable":       true,
+			"user_message_id": userMsg.ID,
+		})
+		return
+	}
+
+	cards := buildReferenceCards(candidates, aiResp.Citations, gatewayReq.Limits["max_citation_cards"])
+	refIDs := make([]string, 0, len(cards))
+	for _, card := range cards {
+		refIDs = append(refIDs, card.ExperienceID)
+	}
+	assistantMsg, err := h.store.AddChatMessage(c.Request.Context(), userID, model.SaveChatMessageRequest{
+		Scope:                   scope,
+		Role:                    "assistant",
+		Content:                 strings.TrimSpace(aiResp.ReplyText),
+		Status:                  "sent",
+		RiskLevel:               riskLevelForStorage(aiResp.RiskLevel),
+		ReferencedExperienceIDs: refIDs,
+		Metadata: map[string]any{
+			"reply_mode":    aiResp.ReplyMode,
+			"emotion_level": aiResp.EmotionLevel,
+			"warnings":      aiResp.Warnings,
+		},
+	})
+	if err != nil {
+		log.Printf("v4 save assistant chat message failed user=%s scope=%s/%s: %v", userID, scope.Kind, scope.ID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save assistant message"})
+		return
+	}
+	if len(cards) > 0 {
+		if err := h.store.SaveChatCitations(c.Request.Context(), assistantMsg.ID, cards); err != nil {
+			log.Printf("v4 save chat citations failed message=%s: %v", assistantMsg.ID, err)
+		}
+	}
+
+	noteSuggestion := model.ChatNoteSuggestion{ShouldShow: false, SourceMessageIDs: []string{}}
+	if aiResp.NoteSuggestion != nil {
+		noteSuggestion = *aiResp.NoteSuggestion
+	}
+	c.JSON(http.StatusOK, model.SendChatMessageResponse{
+		UserMessage:    *userMsg,
+		Message:        *assistantMsg,
+		ReferenceCards: cards,
+		NoteSuggestion: noteSuggestion,
+	})
+}
+
+func classifyChatMessage(content string) model.ChatPreClassification {
+	normalized := strings.ToLower(content)
+	pre := model.ChatPreClassification{
+		EmotionLevel: "low",
+		UserIntent:   "unknown",
+		RiskLevel:    "normal",
+		RiskReasons:  []string{},
+	}
+	if containsAny(normalized, []string{"烦", "崩溃", "受不了", "难过", "痛苦", "委屈", "累到", "不想解释"}) {
+		pre.EmotionLevel = "high"
+		pre.UserIntent = "vent"
+		pre.ShouldAvoidCitation = true
+	}
+	if containsAny(normalized, []string{"怎么办", "怎么做", "该不该", "要不要", "怎么选"}) {
+		pre.UserIntent = "ask_advice"
+	}
+	if containsAny(normalized, []string{"辞职", "裸辞", "分手", "离婚", "借钱", "投资", "手术", "起诉", "报警"}) {
+		pre.RiskLevel = "high_decision"
+		pre.RiskReasons = append(pre.RiskReasons, "high_impact_decision")
+	}
+	if containsAny(normalized, []string{"自杀", "轻生", "杀了", "伤害自己", "不想活"}) {
+		pre.RiskLevel = "safety_sensitive"
+		pre.RiskReasons = append(pre.RiskReasons, "safety_sensitive")
+		pre.ShouldAvoidCitation = true
+	}
+	if containsAny(normalized, []string{"诊断", "药", "律师", "合同", "股票", "基金", "保险"}) && pre.RiskLevel == "normal" {
+		pre.RiskLevel = "professional_sensitive"
+		pre.RiskReasons = append(pre.RiskReasons, "professional_sensitive")
+	}
+	if pre.UserIntent == "unknown" && containsAny(normalized, []string{"我发现", "我意识到", "突然明白", "原来"}) {
+		pre.UserIntent = "reflect"
+	}
+	return pre
+}
+
+func containsAny(text string, needles []string) bool {
+	for _, needle := range needles {
+		if strings.Contains(text, needle) {
+			return true
+		}
+	}
+	return false
+}
+
+func riskLevelForStorage(risk string) string {
+	if risk == "high_decision" || risk == "professional_sensitive" || risk == "safety_sensitive" {
+		return "high"
+	}
+	return "normal"
+}
+
+func chatContextFlags(pre model.ChatPreClassification) []string {
+	flags := []string{}
+	if pre.EmotionLevel == "high" {
+		flags = append(flags, "strong_emotion")
+	}
+	if pre.RiskLevel == "high_decision" {
+		flags = append(flags, "high_risk_decision")
+	}
+	if pre.RiskLevel == "professional_sensitive" || pre.RiskLevel == "safety_sensitive" {
+		flags = append(flags, pre.RiskLevel)
+	}
+	if pre.UserIntent == "ask_advice" {
+		flags = append(flags, "method_question")
+	}
+	if pre.ShouldAvoidCitation {
+		flags = append(flags, "avoid_citation")
+	}
+	return flags
+}
+
+func maxChatCitationCards(pre model.ChatPreClassification) int {
+	if pre.ShouldAvoidCitation || pre.EmotionLevel == "high" {
+		return 0
+	}
+	return 1
+}
+
+func buildReferenceCards(candidates []model.ChatCandidateExperience, citations []model.ChatCitationDecision, maxCards int) []model.ChatReferenceCard {
+	if maxCards <= 0 || len(candidates) == 0 || len(citations) == 0 {
+		return []model.ChatReferenceCard{}
+	}
+	candidateByID := make(map[string]model.ChatCandidateExperience, len(candidates))
+	for _, candidate := range candidates {
+		candidateByID[candidate.ExperienceID] = candidate
+	}
+	cards := make([]model.ChatReferenceCard, 0, maxCards)
+	seen := make(map[string]struct{})
+	for _, citation := range citations {
+		if !citation.ShowCard {
+			continue
+		}
+		if _, ok := seen[citation.ExperienceID]; ok {
+			continue
+		}
+		candidate, ok := candidateByID[citation.ExperienceID]
+		if !ok {
+			continue
+		}
+		cards = append(cards, model.ChatReferenceCard{
+			ExperienceID:     candidate.ExperienceID,
+			Content:          candidate.Content,
+			IsCollected:      candidate.IsCollected || candidate.SourceRelation == "collected",
+			CitationType:     citationTypeForCandidate(candidate),
+			CitationSentence: citation.CitationSentence,
+			ReasonCode:       citation.ReasonCode,
+		})
+		seen[citation.ExperienceID] = struct{}{}
+		if len(cards) >= maxCards {
+			break
+		}
+	}
+	if cards == nil {
+		return []model.ChatReferenceCard{}
+	}
+	return cards
+}
+
+func citationTypeForCandidate(candidate model.ChatCandidateExperience) string {
+	switch candidate.SourceRelation {
+	case "own":
+		return "own"
+	case "collected":
+		return "favorite"
+	case "public_original":
+		return "public_original"
+	default:
+		return "public_featured"
+	}
+}

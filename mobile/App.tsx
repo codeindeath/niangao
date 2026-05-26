@@ -10,9 +10,9 @@ import LoginScreen from './src/screens/LoginScreen';
 import SearchPage from './src/screens/SearchPage';
 import SearchCardScreen from './src/screens/SearchCardScreen';
 import ProfileEditScreen from './src/screens/ProfileEditScreen';
-import PlaceholderScreen from './src/screens/PlaceholderScreen';
-import {getToken, clearToken, API_BASE} from './src/services/config';
-import {isLoggedIn} from './src/services/auth';
+import CreateScreen from './src/screens/CreateScreen';
+import {getToken, clearToken, apiFetchWithTimeout} from './src/services/config';
+import {reportHandledError} from './src/utils/logging';
 
 const Stack = createNativeStackNavigator();
 
@@ -22,7 +22,7 @@ async function checkAndValidateToken(): Promise<boolean> {
     if (!token) return false;
 
     // Quick server-side validation
-    const res = await fetch(`${API_BASE}/api/v1/user/profile`, {
+    const res = await apiFetchWithTimeout('/api/v1/me/profile', {
       headers: {Authorization: `Bearer ${token}`},
     });
     if (res.status === 401) {
@@ -40,6 +40,7 @@ async function checkAndValidateToken(): Promise<boolean> {
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const [guestMode, setGuestMode] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -47,7 +48,7 @@ export default function App() {
         const loggedIn = await checkAndValidateToken();
         setAuthenticated(loggedIn);
       } catch (e) {
-        console.error('Failed to check login state:', e);
+        reportHandledError('App.initAuth', e);
         setAuthenticated(false);
       }
       setLoading(false);
@@ -67,18 +68,33 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" backgroundColor="#faf8f5" />
       <NavigationContainer>
-        {authenticated ? (
+        {authenticated || guestMode ? (
           <Stack.Navigator screenOptions={{headerShown: false}}>
             <Stack.Screen name="main" component={BottomTabNavigator} />
             <Stack.Screen name="detail" component={DetailScreen} />
             <Stack.Screen name="searchPage" component={SearchPage} options={{animation: 'slide_from_right'}} />
             <Stack.Screen name="searchCard" component={SearchCardScreen} options={{animation: 'slide_from_right'}} />
+            <Stack.Screen name="createEdit" component={CreateScreen} options={{animation: 'slide_from_right'}} />
             <Stack.Screen name="profileEdit" component={ProfileEditScreen} options={{animation: 'slide_from_right'}} />
-            <Stack.Screen name="placeholder" component={PlaceholderScreen} options={{animation: 'slide_from_right'}} />
-            <Stack.Screen name="login" component={LoginScreen} />
+            <Stack.Screen name="login">
+              {() => (
+                <LoginScreen
+                  onLoginSuccess={() => {
+                    setAuthenticated(true);
+                    setGuestMode(false);
+                  }}
+                />
+              )}
+            </Stack.Screen>
           </Stack.Navigator>
         ) : (
-          <LoginScreen onLoginSuccess={() => setAuthenticated(true)} />
+          <LoginScreen
+            onLoginSuccess={() => {
+              setAuthenticated(true);
+              setGuestMode(false);
+            }}
+            onSkip={() => setGuestMode(true)}
+          />
         )}
       </NavigationContainer>
     </SafeAreaProvider>

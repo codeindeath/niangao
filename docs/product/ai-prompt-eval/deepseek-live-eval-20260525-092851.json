@@ -1,0 +1,857 @@
+{
+  "generated_at": "2026-05-25T09:28:51",
+  "model": "deepseek-v4-pro",
+  "base_url": "https://api.deepseek.com",
+  "spec_path": "docs/product/niangao-ai-prompt-production-spec-v4.md",
+  "summary": {
+    "total": 16,
+    "passed": 14,
+    "failed": 2
+  },
+  "results": [
+    {
+      "case_id": "chat_001",
+      "function_type": "chat",
+      "category": "chat",
+      "title": "强情绪不引用经验",
+      "tags": [
+        "strong_emotion",
+        "no_citation"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/chat.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 3340,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 1223,
+        "completion_tokens": 151,
+        "total_tokens": 1374,
+        "prompt_tokens_details": {
+          "cached_tokens": 1152
+        },
+        "prompt_cache_hit_tokens": 1152,
+        "prompt_cache_miss_tokens": 71
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat\",\n  \"result\": {\n    \"reply_text\": \"嗯，听起来现在谁的建议都让你更烦。我就在这儿，不教你怎么做。\",\n    \"citations\": [],\n    \"note_suggestion\": {\n      \"should_show\": false,\n      \"suggested_text\": null,\n      \"source_message_ids\": []\n    },\n    \"emotion_level\": \"high\",\n    \"risk_level\": \"normal\",\n    \"reply_mode\": \"hold\",\n    \"followup_question_count\": 0,\n    \"internal_flags\": []\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat",
+        "result": {
+          "reply_text": "嗯，听起来现在谁的建议都让你更烦。我就在这儿，不教你怎么做。",
+          "citations": [],
+          "note_suggestion": {
+            "should_show": false,
+            "suggested_text": null,
+            "source_message_ids": []
+          },
+          "emotion_level": "high",
+          "risk_level": "normal",
+          "reply_mode": "hold",
+          "followup_question_count": 0,
+          "internal_flags": []
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "chat_002",
+      "function_type": "chat",
+      "category": "chat",
+      "title": "强情绪不引用经验",
+      "tags": [
+        "strong_emotion",
+        "no_citation"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/chat.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 3482,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 1225,
+        "completion_tokens": 148,
+        "total_tokens": 1373,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "prompt_cache_hit_tokens": 1024,
+        "prompt_cache_miss_tokens": 201
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat\",\n  \"result\": {\n    \"reply_text\": \"我听到了，现在不需要任何建议，只想安静。我就在这里，不打扰。\",\n    \"citations\": [],\n    \"note_suggestion\": {\n      \"should_show\": false,\n      \"suggested_text\": null,\n      \"source_message_ids\": []\n    },\n    \"emotion_level\": \"high\",\n    \"risk_level\": \"normal\",\n    \"reply_mode\": \"hold\",\n    \"followup_question_count\": 0,\n    \"internal_flags\": []\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat",
+        "result": {
+          "reply_text": "我听到了，现在不需要任何建议，只想安静。我就在这里，不打扰。",
+          "citations": [],
+          "note_suggestion": {
+            "should_show": false,
+            "suggested_text": null,
+            "source_message_ids": []
+          },
+          "emotion_level": "high",
+          "risk_level": "normal",
+          "reply_mode": "hold",
+          "followup_question_count": 0,
+          "internal_flags": []
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "privacy_001",
+      "function_type": "chat_summary",
+      "category": "privacy_summary",
+      "title": "摘要隐私抽象",
+      "tags": [
+        "privacy",
+        "summary"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/privacy-summary.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 4204,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 733,
+        "completion_tokens": 186,
+        "total_tokens": 919,
+        "prompt_tokens_details": {
+          "cached_tokens": 640
+        },
+        "prompt_cache_hit_tokens": 640,
+        "prompt_cache_miss_tokens": 93
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户提到同事在会议上公开评论其收入与工作表现，感到被侵犯边界。\",\n    \"current_state\": \"用户表达了被公开评价的不适，助手初步共情并指出可能涉及边界问题。\",\n    \"open_questions\": [],\n    \"decisions_or_insights\": [],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在工作关系中重视隐私与尊重，反感公开评价个人收入\",\n        \"source_message_ids\": [\"m1\"],\n        \"confidence\": 0.8\n      }\n    ]\n  },\n  \"confidence\": 0.8,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户提到同事在会议上公开评论其收入与工作表现，感到被侵犯边界。",
+          "current_state": "用户表达了被公开评价的不适，助手初步共情并指出可能涉及边界问题。",
+          "open_questions": [],
+          "decisions_or_insights": [],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在工作关系中重视隐私与尊重，反感公开评价个人收入",
+              "source_message_ids": [
+                "m1"
+              ],
+              "confidence": 0.8
+            }
+          ]
+        },
+        "confidence": 0.8,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "privacy_002",
+      "function_type": "chat_summary",
+      "category": "privacy_summary",
+      "title": "摘要隐私抽象",
+      "tags": [
+        "privacy",
+        "summary"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/privacy-summary.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 3423,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 734,
+        "completion_tokens": 180,
+        "total_tokens": 914,
+        "prompt_tokens_details": {
+          "cached_tokens": 640
+        },
+        "prompt_cache_hit_tokens": 640,
+        "prompt_cache_miss_tokens": 94
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户在工作中被上级当众批评，感到难受，可能涉及公开评价和边界问题。\",\n    \"current_state\": \"用户表达了事件，助手初步共情并指出可能涉及的议题。\",\n    \"open_questions\": [],\n    \"decisions_or_insights\": [],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在工作关系中重视被尊重，对公开批评敏感\",\n        \"source_message_ids\": [\"m1\"],\n        \"confidence\": 0.7\n      }\n    ]\n  },\n  \"confidence\": 0.8,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户在工作中被上级当众批评，感到难受，可能涉及公开评价和边界问题。",
+          "current_state": "用户表达了事件，助手初步共情并指出可能涉及的议题。",
+          "open_questions": [],
+          "decisions_or_insights": [],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在工作关系中重视被尊重，对公开批评敏感",
+              "source_message_ids": [
+                "m1"
+              ],
+              "confidence": 0.7
+            }
+          ]
+        },
+        "confidence": 0.8,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "classify_001",
+      "function_type": "experience_classify",
+      "category": "classification",
+      "title": "固定领域子领域分类",
+      "tags": [
+        "taxonomy",
+        "意义",
+        "幸福"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/classification.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2815,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 543,
+        "completion_tokens": 109,
+        "total_tokens": 652,
+        "prompt_tokens_details": {
+          "cached_tokens": 512
+        },
+        "prompt_cache_hit_tokens": 512,
+        "prompt_cache_miss_tokens": 31
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": \"意义\",\n    \"sub_domain\": \"幸福\",\n    \"topic\": \"幸福与兴奋的区别\",\n    \"confidence\": 0.9,\n    \"alternative\": [],\n    \"reason\": \"经验区分短暂兴奋与长期幸福，属于对幸福本质的认知判断，可复用。\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": "意义",
+          "sub_domain": "幸福",
+          "topic": "幸福与兴奋的区别",
+          "confidence": 0.9,
+          "alternative": [],
+          "reason": "经验区分短暂兴奋与长期幸福，属于对幸福本质的认知判断，可复用。"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "classify_002",
+      "function_type": "experience_classify",
+      "category": "classification",
+      "title": "固定领域子领域分类",
+      "tags": [
+        "taxonomy",
+        "意义",
+        "自我"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/classification.jsonl",
+      "status": "failed",
+      "errors": [
+        "rule_equals_failed:result.domain",
+        "rule_equals_failed:result.sub_domain"
+      ],
+      "warnings": [],
+      "elapsed_ms": 2662,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 541,
+        "completion_tokens": 104,
+        "total_tokens": 645,
+        "prompt_tokens_details": {
+          "cached_tokens": 512
+        },
+        "prompt_cache_hit_tokens": 512,
+        "prompt_cache_miss_tokens": 29
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": \"认知\",\n    \"sub_domain\": \"思维\",\n    \"topic\": \"独立思考\",\n    \"confidence\": 0.9,\n    \"alternative\": [],\n    \"reason\": \"经验强调不要盲目跟随他人，属于思维方式和认知调整，可复用性强。\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": "认知",
+          "sub_domain": "思维",
+          "topic": "独立思考",
+          "confidence": 0.9,
+          "alternative": [],
+          "reason": "经验强调不要盲目跟随他人，属于思维方式和认知调整，可复用性强。"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_016",
+      "function_type": "experience_extract",
+      "category": "content_production",
+      "title": "显性原则提取",
+      "tags": [
+        "extract",
+        "principle"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 9424,
+      "finish_reason": "stop",
+      "reasoning_content_len": 744,
+      "usage": {
+        "prompt_tokens": 1021,
+        "completion_tokens": 471,
+        "total_tokens": 1492,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 267
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 125
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_extract\",\n  \"result\": {\n    \"candidates\": [\n      {\n        \"candidate_content\": \"如果你想做出人们想要的东西，和用户交谈，而不是花几个月在自己的脑海中构建。\",\n        \"creator_name\": \"Paul Graham\",\n        \"creator_attribution_type\": \"speaker\",\n        \"source_derivation_type\": \"direct_quote\",\n        \"source_excerpt\": \"If you want to make something people want, talk to users before you spend months building in your head.\",\n        \"source_location\": \"Paul Graham素材\",\n        \"preserve_original_score\": 0.99,\n        \"extraction_confidence\": 0.99,\n        \"attitude_type\": \"practical\",\n        \"risk_notes\": []\n      }\n    ],\n    \"discarded_examples\": []\n  },\n  \"confidence\": 0.99,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_extract",
+        "result": {
+          "candidates": [
+            {
+              "candidate_content": "如果你想做出人们想要的东西，和用户交谈，而不是花几个月在自己的脑海中构建。",
+              "creator_name": "Paul Graham",
+              "creator_attribution_type": "speaker",
+              "source_derivation_type": "direct_quote",
+              "source_excerpt": "If you want to make something people want, talk to users before you spend months building in your head.",
+              "source_location": "Paul Graham素材",
+              "preserve_original_score": 0.99,
+              "extraction_confidence": 0.99,
+              "attitude_type": "practical",
+              "risk_notes": []
+            }
+          ],
+          "discarded_examples": []
+        },
+        "confidence": 0.99,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_017",
+      "function_type": "experience_extract",
+      "category": "content_production",
+      "title": "显性原则提取",
+      "tags": [
+        "extract",
+        "principle"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 5339,
+      "finish_reason": "stop",
+      "reasoning_content_len": 116,
+      "usage": {
+        "prompt_tokens": 1018,
+        "completion_tokens": 277,
+        "total_tokens": 1295,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 70
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 122
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_extract\",\n  \"result\": {\n    \"candidates\": [\n      {\n        \"candidate_content\": \"我不怕练过一万种腿法的人，我怕一种腿法练一万次的人。\",\n        \"creator_name\": \"李小龙\",\n        \"creator_attribution_type\": \"speaker\",\n        \"source_derivation_type\": \"direct_quote\",\n        \"source_excerpt\": \"我不怕练过一万种腿法的人，我怕一种腿法练一万次的人。\",\n        \"source_location\": \"李小龙采访或语录\",\n        \"preserve_original_score\": 1.0,\n        \"extraction_confidence\": 0.95,\n        \"attitude_type\": \"attitude\",\n        \"risk_notes\": []\n      }\n    ],\n    \"discarded_examples\": []\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_extract",
+        "result": {
+          "candidates": [
+            {
+              "candidate_content": "我不怕练过一万种腿法的人，我怕一种腿法练一万次的人。",
+              "creator_name": "李小龙",
+              "creator_attribution_type": "speaker",
+              "source_derivation_type": "direct_quote",
+              "source_excerpt": "我不怕练过一万种腿法的人，我怕一种腿法练一万次的人。",
+              "source_location": "李小龙采访或语录",
+              "preserve_original_score": 1.0,
+              "extraction_confidence": 0.95,
+              "attitude_type": "attitude",
+              "risk_notes": []
+            }
+          ],
+          "discarded_examples": []
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_086",
+      "function_type": "experience_interpretation",
+      "category": "content_production",
+      "title": "高质量经验解读",
+      "tags": [
+        "interpretation",
+        "low"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "failed",
+      "errors": [
+        "json_parse_error:Expecting ',' delimiter"
+      ],
+      "warnings": [],
+      "elapsed_ms": 34084,
+      "finish_reason": "length",
+      "reasoning_content_len": 2768,
+      "usage": {
+        "prompt_tokens": 504,
+        "completion_tokens": 1500,
+        "total_tokens": 2004,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1255
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 120
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_interpretation\",\n  \"result\": {\n    \"sections\": [\n      {\n        \"title\": \"适用处境\",\n        \"content\": \"当你看到他人快速取得成就，不自觉开始比较，或感到外界催促让你迷失自己的节奏时。尤其在人生关键选择时，容易受周围人进度影响。\"\n      },\n      {\n        \"title\": \"核心判断\",\n        \"content\": \"别人的速度反映的是他们的路径和资源，不是你的人生里程碑。方向来自内在价值，而非外部竞赛。盲目跟随可能导致背离真实渴望。\"\n      },\n      {\n        \"title\": \"使用方法\",\n        \"content\": \"在感到焦虑或迷茫时，把它当作自我提醒：暂停追逐，问自己真正想去哪里。这可以帮助你重新校准个人目标，摆脱无谓竞争。\"\n      },\n      {\n        \"title\": \"边界提示\",\n        \"content\": \"这并非否定参考他人经验或合作中同步进度。在团队目标一致时，速度可能需要对齐。务必区分何时应保持自主，何时需要协调。\"\n      }\n    ],\n    \"overall_length\": \"short",
+      "parsed": null
+    },
+    {
+      "case_id": "content_087",
+      "function_type": "experience_interpretation",
+      "category": "content_production",
+      "title": "高质量经验解读",
+      "tags": [
+        "interpretation",
+        "medium"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 15256,
+      "finish_reason": "stop",
+      "reasoning_content_len": 541,
+      "usage": {
+        "prompt_tokens": 513,
+        "completion_tokens": 604,
+        "total_tokens": 1117,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 262
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 129
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_interpretation\",\n  \"result\": {\n    \"sections\": [\n      {\n        \"title\": \"适用处境\",\n        \"content\": \"当面对重大决定且伴随强烈情绪时适用。比如职业转换、关系破裂、大额投资等场景，你感到焦虑、兴奋或愤怒，直觉催促你立即行动，但这正是需要暂停的时刻。\"\n      },\n      {\n        \"title\": \"关键判断\",\n        \"content\": \"核心在于区分情绪触发点与长期底线。触发情绪是临时的反应（如恐惧被拒绝），而底线是不可妥协的价值观或需求（如财务安全）。只围绕底线做决策，而非被情绪裹挟。\"\n      },\n      {\n        \"title\": \"使用方式\",\n        \"content\": \"先暂停，写下当前情绪及其来源，再明确自己的长期底线。然后设计一个代价小、可撤回的试探动作，比如先短期试岗而非直接辞职，观察结果再调整，避免一次性押注。\"\n      },\n      {\n        \"title\": \"边界与误用\",\n        \"content\": \"可逆动作虽安全，但若过度试探可能导致瘫痪或反复消耗资源。同时，一些决策本身不可逆（如手术），此时更需聚焦底线，而非执着于小动作。警惕用试探逃避真正决策。\"\n      }\n    ],\n    \"overall_length\": \"medium\",\n    \"risk_boundary_required\": true,\n    \"interpretation_style\": \"contextual\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_interpretation",
+        "result": {
+          "sections": [
+            {
+              "title": "适用处境",
+              "content": "当面对重大决定且伴随强烈情绪时适用。比如职业转换、关系破裂、大额投资等场景，你感到焦虑、兴奋或愤怒，直觉催促你立即行动，但这正是需要暂停的时刻。"
+            },
+            {
+              "title": "关键判断",
+              "content": "核心在于区分情绪触发点与长期底线。触发情绪是临时的反应（如恐惧被拒绝），而底线是不可妥协的价值观或需求（如财务安全）。只围绕底线做决策，而非被情绪裹挟。"
+            },
+            {
+              "title": "使用方式",
+              "content": "先暂停，写下当前情绪及其来源，再明确自己的长期底线。然后设计一个代价小、可撤回的试探动作，比如先短期试岗而非直接辞职，观察结果再调整，避免一次性押注。"
+            },
+            {
+              "title": "边界与误用",
+              "content": "可逆动作虽安全，但若过度试探可能导致瘫痪或反复消耗资源。同时，一些决策本身不可逆（如手术），此时更需聚焦底线，而非执着于小动作。警惕用试探逃避真正决策。"
+            }
+          ],
+          "overall_length": "medium",
+          "risk_boundary_required": true,
+          "interpretation_style": "contextual"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_056",
+      "function_type": "experience_review",
+      "category": "content_production",
+      "title": "经验质量审计",
+      "tags": [
+        "review",
+        "discard"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 20670,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1794,
+      "usage": {
+        "prompt_tokens": 920,
+        "completion_tokens": 967,
+        "total_tokens": 1887,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 785
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 152
+      },
+      "raw_content": "{\"schema_version\":\"1.1\",\"function_type\":\"experience_review\",\"result\":{\"decision\":\"discard\",\"delete_category\":\"chicken_soup\",\"cleaned_content\":\"相信自己，一切都会好。\",\"cleaning_level\":\"none\",\"ai_quality_score\":1.5,\"score_breakdown\":{\"clarity\":5,\"transferability\":1,\"judgment\":1,\"boundary\":1,\"non_obviousness\":1,\"attitude\":2,\"usefulness\":1},\"quality_tier\":\"public_visible\",\"ai_citable\":false,\"recommendation_eligible\":false,\"misuse_risk_level\":\"low\",\"misuse_risk_notes\":[],\"review_reason\":\"纯励志安慰，无判断条件，空泛无实质经验价值。\",\"needs_human_attention\":false},\"confidence\":0.95,\"warnings\":[]}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "discard",
+          "delete_category": "chicken_soup",
+          "cleaned_content": "相信自己，一切都会好。",
+          "cleaning_level": "none",
+          "ai_quality_score": 1.5,
+          "score_breakdown": {
+            "clarity": 5,
+            "transferability": 1,
+            "judgment": 1,
+            "boundary": 1,
+            "non_obviousness": 1,
+            "attitude": 2,
+            "usefulness": 1
+          },
+          "quality_tier": "public_visible",
+          "ai_citable": false,
+          "recommendation_eligible": false,
+          "misuse_risk_level": "low",
+          "misuse_risk_notes": [],
+          "review_reason": "纯励志安慰，无判断条件，空泛无实质经验价值。",
+          "needs_human_attention": false
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_057",
+      "function_type": "experience_review",
+      "category": "content_production",
+      "title": "经验质量审计",
+      "tags": [
+        "review",
+        "candidate_review"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 18957,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1437,
+      "usage": {
+        "prompt_tokens": 926,
+        "completion_tokens": 895,
+        "total_tokens": 1821,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 630
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 158
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_review\",\n  \"result\": {\n    \"decision\": \"candidate_review\",\n    \"delete_category\": null,\n    \"cleaned_content\": \"创业早期不要用想象替代用户反馈。\",\n    \"cleaning_level\": \"none\",\n    \"ai_quality_score\": 7.0,\n    \"score_breakdown\": {\n      \"clarity\": 8,\n      \"transferability\": 8,\n      \"judgment\": 7,\n      \"boundary\": 5,\n      \"non_obviousness\": 6,\n      \"attitude\": 7,\n      \"usefulness\": 7\n    },\n    \"quality_tier\": \"recommend_candidate\",\n    \"ai_citable\": false,\n    \"recommendation_eligible\": true,\n    \"misuse_risk_level\": \"low\",\n    \"misuse_risk_notes\": [],\n    \"review_reason\": \"清晰的创业原则，强调验证假设，可迁移至多种早期项目，但边界较宽泛，表达简练。\",\n    \"needs_human_attention\": false\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "candidate_review",
+          "delete_category": null,
+          "cleaned_content": "创业早期不要用想象替代用户反馈。",
+          "cleaning_level": "none",
+          "ai_quality_score": 7.0,
+          "score_breakdown": {
+            "clarity": 8,
+            "transferability": 8,
+            "judgment": 7,
+            "boundary": 5,
+            "non_obviousness": 6,
+            "attitude": 7,
+            "usefulness": 7
+          },
+          "quality_tier": "recommend_candidate",
+          "ai_citable": false,
+          "recommendation_eligible": true,
+          "misuse_risk_level": "low",
+          "misuse_risk_notes": [],
+          "review_reason": "清晰的创业原则，强调验证假设，可迁移至多种早期项目，但边界较宽泛，表达简练。",
+          "needs_human_attention": false
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "recommend_001",
+      "function_type": "recommendation_ai",
+      "category": "recommendation",
+      "title": "创作者集中诊断",
+      "tags": [
+        "creator_concentration"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/recommendation.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 6758,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 719,
+        "completion_tokens": 353,
+        "total_tokens": 1072,
+        "prompt_tokens_details": {
+          "cached_tokens": 640
+        },
+        "prompt_cache_hit_tokens": 640,
+        "prompt_cache_miss_tokens": 79
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"recommendation_ai\",\n  \"result\": {\n    \"rerank\": [\n      {\n        \"experience_id\": \"creator_1_a\",\n        \"rank\": 1,\n        \"reason\": \"直接匹配用户工作沟通领域，质量高，且与正反馈领域一致\"\n      },\n      {\n        \"experience_id\": \"creator_1_b\",\n        \"rank\": 2,\n        \"reason\": \"同样匹配工作沟通，但内容与第一条相似，可提供补充视角\"\n      },\n      {\n        \"experience_id\": \"creator_1_c\",\n        \"rank\": 3,\n        \"reason\": \"相关但质量稍低，作为补充\"\n      },\n      {\n        \"experience_id\": \"creator_1_d\",\n        \"rank\": 4,\n        \"reason\": \"领域不完全匹配，但表达主题与沟通相关，质量高，提供差异视角\"\n      }\n    ],\n    \"diagnostics\": {\n      \"too_similar\": true,\n      \"creator_concentration\": true,\n      \"source_concentration\": false,\n      \"domain_gap\": [\n        {\n          \"experience_id\": \"creator_1_low\",\n          \"gap\": \"领域不相关且质量过低\"\n        }\n      ],\n      \"quality_leak\": true\n    },\n    \"should_use_ai_rerank\": true\n  },\n  \"confidence\": 0.85,\n  \"warnings\": [\n    \"候选经验中创作者A过于集中，建议打散\",\n    \"前两条经验高度相似，可能造成信息冗余\",\n    \"存在低质量经验混入，已过滤\"\n  ]\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "recommendation_ai",
+        "result": {
+          "rerank": [
+            {
+              "experience_id": "creator_1_a",
+              "rank": 1,
+              "reason": "直接匹配用户工作沟通领域，质量高，且与正反馈领域一致"
+            },
+            {
+              "experience_id": "creator_1_b",
+              "rank": 2,
+              "reason": "同样匹配工作沟通，但内容与第一条相似，可提供补充视角"
+            },
+            {
+              "experience_id": "creator_1_c",
+              "rank": 3,
+              "reason": "相关但质量稍低，作为补充"
+            },
+            {
+              "experience_id": "creator_1_d",
+              "rank": 4,
+              "reason": "领域不完全匹配，但表达主题与沟通相关，质量高，提供差异视角"
+            }
+          ],
+          "diagnostics": {
+            "too_similar": true,
+            "creator_concentration": true,
+            "source_concentration": false,
+            "domain_gap": [
+              {
+                "experience_id": "creator_1_low",
+                "gap": "领域不相关且质量过低"
+              }
+            ],
+            "quality_leak": true
+          },
+          "should_use_ai_rerank": true
+        },
+        "confidence": 0.85,
+        "warnings": [
+          "候选经验中创作者A过于集中，建议打散",
+          "前两条经验高度相似，可能造成信息冗余",
+          "存在低质量经验混入，已过滤"
+        ]
+      }
+    },
+    {
+      "case_id": "recommend_002",
+      "function_type": "recommendation_ai",
+      "category": "recommendation",
+      "title": "创作者集中诊断",
+      "tags": [
+        "creator_concentration"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/recommendation.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 7736,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 719,
+        "completion_tokens": 428,
+        "total_tokens": 1147,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 335
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"recommendation_ai\",\n  \"result\": {\n    \"rerank\": [\n      {\n        \"experience_id\": \"creator_2_a\",\n        \"rank\": 1,\n        \"reason\": \"与用户当前工作沟通领域高度相关，质量高，可作为首选\"\n      },\n      {\n        \"experience_id\": \"creator_2_b\",\n        \"rank\": 2,\n        \"reason\": \"与用户当前工作沟通领域高度相关，质量高，但内容与第一条相似，可提供补充视角\"\n      },\n      {\n        \"experience_id\": \"creator_2_c\",\n        \"rank\": 3,\n        \"reason\": \"与用户当前工作沟通领域相关，质量稍低，但仍有参考价值\"\n      },\n      {\n        \"experience_id\": \"creator_2_d\",\n        \"rank\": 4,\n        \"reason\": \"领域为认知表达，与工作沟通有一定关联，质量高，可提供差异视角\"\n      },\n      {\n        \"experience_id\": \"creator_2_low\",\n        \"rank\": 5,\n        \"reason\": \"领域为意义幸福，与当前处境相关性低，且质量最低，排在最后\"\n      }\n    ],\n    \"diagnostics\": {\n      \"too_similar\": true,\n      \"creator_concentration\": true,\n      \"source_concentration\": false,\n      \"domain_gap\": [\n        {\n          \"experience_id\": \"creator_2_low\",\n          \"gap\": \"领域为意义幸福，与用户当前工作沟通领域差距大\"\n        }\n      ],\n      \"quality_leak\": true\n    },\n    \"should_use_ai_rerank\": true\n  },\n  \"confidence\": 0.85,\n  \"warnings\": [\n    \"候选经验中创作者A集中度过高，前三条均来自同一创作者\",\n    \"前两条经验内容高度相似，存在同质化\",\n    \"存在低质量经验（public_visible）混入候选\"\n  ]\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "recommendation_ai",
+        "result": {
+          "rerank": [
+            {
+              "experience_id": "creator_2_a",
+              "rank": 1,
+              "reason": "与用户当前工作沟通领域高度相关，质量高，可作为首选"
+            },
+            {
+              "experience_id": "creator_2_b",
+              "rank": 2,
+              "reason": "与用户当前工作沟通领域高度相关，质量高，但内容与第一条相似，可提供补充视角"
+            },
+            {
+              "experience_id": "creator_2_c",
+              "rank": 3,
+              "reason": "与用户当前工作沟通领域相关，质量稍低，但仍有参考价值"
+            },
+            {
+              "experience_id": "creator_2_d",
+              "rank": 4,
+              "reason": "领域为认知表达，与工作沟通有一定关联，质量高，可提供差异视角"
+            },
+            {
+              "experience_id": "creator_2_low",
+              "rank": 5,
+              "reason": "领域为意义幸福，与当前处境相关性低，且质量最低，排在最后"
+            }
+          ],
+          "diagnostics": {
+            "too_similar": true,
+            "creator_concentration": true,
+            "source_concentration": false,
+            "domain_gap": [
+              {
+                "experience_id": "creator_2_low",
+                "gap": "领域为意义幸福，与用户当前工作沟通领域差距大"
+              }
+            ],
+            "quality_leak": true
+          },
+          "should_use_ai_rerank": true
+        },
+        "confidence": 0.85,
+        "warnings": [
+          "候选经验中创作者A集中度过高，前三条均来自同一创作者",
+          "前两条经验内容高度相似，存在同质化",
+          "存在低质量经验（public_visible）混入候选"
+        ]
+      }
+    },
+    {
+      "case_id": "content_001",
+      "function_type": "translation_normalization",
+      "category": "content_production",
+      "title": "素材翻译归一保留原作者语气",
+      "tags": [
+        "translation",
+        "en"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2708,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 466,
+        "completion_tokens": 111,
+        "total_tokens": 577,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 82
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"translation_normalization\",\n  \"result\": {\n    \"detected_language\": \"en\",\n    \"normalized_text\": \"别让别人的地图变成你的牢笼。选你的路，然后付它的代价。\",\n    \"translation_notes\": [],\n    \"low_confidence_spans\": [],\n    \"preserve_voice_score\": 0.9\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "translation_normalization",
+        "result": {
+          "detected_language": "en",
+          "normalized_text": "别让别人的地图变成你的牢笼。选你的路，然后付它的代价。",
+          "translation_notes": [],
+          "low_confidence_spans": [],
+          "preserve_voice_score": 0.9
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_002",
+      "function_type": "translation_normalization",
+      "category": "content_production",
+      "title": "素材翻译归一保留原作者语气",
+      "tags": [
+        "translation",
+        "en"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2469,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 458,
+        "completion_tokens": 108,
+        "total_tokens": 566,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 74
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"translation_normalization\",\n  \"result\": {\n    \"detected_language\": \"en\",\n    \"normalized_text\": \"如果你没有对你的产品的第一个版本感到尴尬，那你就发布得太晚了。\",\n    \"translation_notes\": [],\n    \"low_confidence_spans\": [],\n    \"preserve_voice_score\": 0.9\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "translation_normalization",
+        "result": {
+          "detected_language": "en",
+          "normalized_text": "如果你没有对你的产品的第一个版本感到尴尬，那你就发布得太晚了。",
+          "translation_notes": [],
+          "low_confidence_spans": [],
+          "preserve_voice_score": 0.9
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    }
+  ]
+}

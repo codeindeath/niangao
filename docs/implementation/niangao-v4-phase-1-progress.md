@@ -1,0 +1,839 @@
+# Niangao V4 Phase 1 Progress
+
+Date: 2026-05-26
+
+## 1. Current Slice
+
+Phase 1 has started with the backend contract and schema foundation slice.
+
+Completed in this slice:
+
+- Created Phase 1 execution plan:
+  - `docs/superpowers/plans/2026-05-26-niangao-v4-phase-1-backend-contracts.md`
+- Created App/backend contract baseline:
+  - `docs/implementation/niangao-v4-phase-1-contracts.md`
+- Added V4 backend model facts:
+  - `ExperienceType`
+  - `Visibility`
+  - `LifecycleStatus`
+  - `QualityTier`
+  - `RecommendationStatus`
+  - `InterpretationStatus`
+  - `SourceScene`
+- Added V4 eligibility helpers:
+  - `CanDistributePublicly`
+  - `CanBeAICitedPublicly`
+- Added model tests for V4 enum validity, public recommendation eligibility, and public AI citation eligibility.
+- Added a defensive model test so unknown quality tiers cannot satisfy tier comparison helpers.
+- Added migration:
+  - `backend/migrations/017_v4_core_foundation.sql`
+- Added V4 feed endpoints and repository methods:
+  - `GET /api/v1/feed/recommend`
+  - `GET /api/v1/feed/collections`
+  - `GET /api/v1/feed/mine`
+- Added V4 interaction endpoints and repository methods:
+  - `POST /api/v1/experiences/:id/inspire`
+  - `POST /api/v1/experiences/:id/collect`
+  - `DELETE /api/v1/experiences/:id/collect`
+- Updated mobile feed API compatibility layer so 首页/看看 can consume V4 feed endpoints while existing card components are migrated incrementally.
+- Updated 记下 create/update request normalization:
+  - content is 1-100 runes
+  - `visibility` defaults to `public`
+  - legacy `is_private` maps to `visibility=private`
+  - `domain`, `sub_domain`, and `topic` are optional
+  - invalid domain/subdomain combinations are rejected
+  - public saves require user `display_name`
+  - create response no longer exposes moderation/review failure details to the user
+- Added V4 search endpoint:
+  - `GET /api/v1/search/experiences`
+- Added V4 我的 stats endpoints:
+  - `GET /api/v1/me/stats/assets`
+  - `GET /api/v1/me/stats/contribution`
+  - `GET /api/v1/me/stats/change`
+- Added V4 我的 profile endpoints:
+  - `GET /api/v1/me/profile`
+  - `PATCH /api/v1/me/profile`
+- Added V4 聊聊 topic/session endpoints:
+  - `GET /api/v1/chat/recent-topics`
+  - `GET /api/v1/chat/topics`
+  - `POST /api/v1/chat/temp-sessions`
+  - `POST /api/v1/chat/topics`
+  - `PATCH /api/v1/chat/topics/:id`
+  - `DELETE /api/v1/chat/topics/:id`
+- Added V4 聊聊 message endpoints and AI Gateway connection:
+  - `GET /api/v1/chat/topics/:id/messages`
+  - `POST /api/v1/chat/topics/:id/messages`
+  - `POST /api/v1/chat/temp-sessions/:id/messages`
+  - user messages are saved before AI calls
+  - AI failures keep the user message and return a retryable error
+  - candidate experience citations are filtered to in-scope candidates before cards or `chat_citations` are saved
+  - Go backend calls Python AI Gateway at `/api/v1/ai-gateway/call` with `function_type=chat`
+- Added Python AI Gateway chat entry:
+  - renders the production chat prompt contract
+  - requests `response_format={"type":"json_object"}`
+  - validates schema, non-empty `reply_text`, citation scope, and max citation cards
+- Added V4 `帮我改改` rewrite endpoint:
+  - `POST /api/v1/experiences/rewrite`
+  - authenticated and not saved automatically
+  - validates source, default visibility, optional user-selected domain/subdomain, and raw text length
+  - calls AI Gateway `function_type=experience_rewrite`
+  - rejects invalid AI output and returns retryable fallback errors so the App can keep the original text
+- Added Python AI Gateway `experience_rewrite` entry:
+  - renders the production rewrite prompt contract
+  - requests `response_format={"type":"json_object"}`
+  - validates `can_rewrite`, 100-character output limit, and retries once when the model returns overlong content
+- Started mobile V4 App integration:
+  - bottom navigation labels now use 看看 / 聊聊 / 记下 / 我的
+  - 看看 tab order is 推荐 / 收藏 / 我的
+  - experience card source label uses 精选 / 原创 and the action wording uses 有启发 instead of 点赞
+  - 聊聊 starts from V4 temp sessions and sends messages to `/api/v1/chat/temp-sessions/:id/messages`
+  - 聊聊 renders compact reference cards and centered note suggestions from V4 response data
+  - 记下 adds `帮我改改` through `/api/v1/experiences/rewrite`
+  - mobile no longer exposes direct Python AI service calls through `AI_BASE` / `aiPost`
+- Completed the next mobile V4 semantics cleanup:
+  - detail/search actions now use one-way 有启发 semantics and explicit collect/uncollect behavior
+  - detail/search no longer show user-facing 点赞 / 获赞 / 平台生产 / 官 semantics
+  - rejected review state is no longer shown to users on detail
+  - 我的 page reads V4 `/me/profile` and `/me/stats/*` APIs instead of legacy `/user/stats`
+  - profile edit writes `display_name`, `free_description`, and lightweight `common_issues`
+- Added missing 我的 page backend contracts and implementation:
+  - `GET /api/v1/me/stats/recent-harvest?range=7d|30d|all`
+  - `GET /api/v1/me/recent-responded-experiences?limit=3`
+  - App recent harvest tabs now use the range-aware backend API
+  - App recent responded section now uses real responded experience cards with star rating, domain/subdomain, 有启发 count, and collection count
+- Started remaining App state implementation:
+  - login uses the selected full-screen background asset `mobile/assets/niangao-login-bg.png`
+  - login copy is reduced to `年糕` and `生活有态度`
+  - login actions are `Apple登录` and `先看看`
+  - unauthenticated users can enter guest mode through `先看看`
+  - token validation now uses V4 `/api/v1/me/profile`
+  - 记下 `帮我改改` now shows an AI rewrite candidate first and only replaces original text after user confirmation
+  - 记下 rewrite failure copy matches the PRD: `暂时改不了，原文可以直接记下`
+  - own experience detail now exposes edit, delete, and turn-private actions
+  - edit opens the 记下 editor in edit mode and saving public edits tells the user `修改后会重新处理`
+  - turn-private asks for confirmation and uses the update endpoint to stop public display/recommendation/AI citation
+  - 聊聊 current-topic button now opens recent topics
+  - selecting a recent topic restores its message history through `/api/v1/chat/topics/:id/messages`
+  - sending uses topic message API when a stable topic is active and temp-session API otherwise
+  - AI reply failure keeps the user message and shows a retry action on the assistant bubble
+  - reference experience cards can open full detail and return to the chat stack position
+  - reference experience cards can be collected in-place and update their collected state optimistically
+  - 聊聊进入 `记下这点` 后默认私密，保存前弹出 `保持私密 / 匿名贡献`，匿名贡献走公开原创保存但不公开聊天上下文
+  - 看看 feed now respects backend `has_more` instead of inferring only from page size
+  - 看看 load-more failures preserve existing cards and show an inline retry state
+  - 看看 recommend end state uses `这轮先看到这里` with a refresh action
+  - 看看 empty states now match 推荐 / 收藏 / 我的 tab semantics
+  - guest mode now keeps public browsing available but gates personal actions before API calls:
+    - bottom-tab 聊聊 and 记下 open login instead of hitting authenticated APIs
+  - 看看-收藏 / 看看-我的 prompt login before loading private feeds
+  - 有启发 and 收藏 prompt login before optimistic updates
+  - login from inside the guest stack updates App auth state
+  - 我的 page section order now matches the V4 product/design baseline: 最近收获 -> 最近有回应的经验 -> 我的积累 -> bottom actions
+  - 我的 page bottom actions now match first-phase scope: 意见反馈, 退出登录 confirmation, 注销账号 confirmation; future 对话风格/设置 placeholders were removed
+- Added V4 feedback support:
+  - `POST /api/v1/me/feedback`
+  - migration 017 now creates the `feedback` operations table
+  - mobile submits feedback with app/device context from 我的 page
+- Aligned account cancellation endpoint with the V4 我的 contract:
+  - backend registers `DELETE /api/v1/me/account`
+  - mobile `deleteAccount` now calls `/api/v1/me/account` instead of legacy `/api/v1/user/account`
+  - legacy hard-delete/anonymization behavior remains a deployment decision risk before production migration
+- Hardened V4 owner-delete semantics:
+  - public approved deletes keep the row for audit/history but now set `lifecycle_status='deleted'`
+  - deleted public rows now set `recommendation_status='suppressed'` and `ai_citable=FALSE`
+  - repository contract coverage prevents future soft deletes from leaving V4 lifecycle/public-AI facts inconsistent
+- Hardened V4 edit semantics:
+  - public edits now set `lifecycle_status='needs_review'` while exiting recommendation and public AI citation
+  - private edits and turn-private operations keep `lifecycle_status='active'`
+  - edit/update no longer rewrites the original `source_scene`, so chat-sourced notes remain counted as chat-sourced after later edits
+
+## 2. Migration Scope
+
+Migration `017_v4_core_foundation.sql` adds V4 canonical fields and parallel tables while keeping legacy fields intact.
+
+New / updated user fields:
+
+- `display_name`
+- `display_name_updated_at`
+- `user_settings`
+
+New experience fields:
+
+- `owner_user_id`
+- `creator_id`
+- `creator_display_name`
+- `experience_type`
+- `visibility`
+- `lifecycle_status`
+- `source_scene`
+- `topic`
+- `quality_tier`
+- `source_reliability`
+- `recommendation_status`
+- `ai_citable`
+- `inspiration_count`
+- `collection_count`
+- `interpretation_status`
+- source and chat linkage fields
+
+New V4 tables:
+
+- `experience_collections`
+- `experience_inspirations`
+- `experience_events`
+- `experience_metrics`
+- `recommendation_sessions`
+- `search_sessions`
+- `chat_topics`
+- `chat_temp_sessions`
+- `chat_messages`
+- `chat_citations`
+- `ai_function_configs`
+- `ai_prompt_registry`
+- `ai_call_logs`
+- `ai_jobs`
+- `feedback`
+
+Backfill rules:
+
+- `display_name` from `nickname`.
+- `owner_user_id` from `author_id`.
+- `experience_type` from `source_type` / `is_official`.
+- `visibility` from `is_private`.
+- `lifecycle_status` from `deleted_at`, `status`, and `review_status`.
+- `quality_tier` from `visibility`, `review_status`, and `quality_score`.
+- `recommendation_status` and `ai_citable` from V4 eligibility rules.
+- `experience_collections` from `bookmarks`.
+- `experience_inspirations` from `likes`.
+- `experience_metrics(all)` from legacy bookmark/like counters.
+
+## 3. Verification
+
+Ran:
+
+```bash
+$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/model -run 'TestV4' -count=1 -v
+./scripts/backend-test.sh
+./scripts/backend-build-linux.sh /tmp/niangao-backend-phase1-final
+./scripts/backend-build-linux.sh /tmp/niangao-backend-phase1-v4
+cd mobile && npm run test
+cd mobile && npm run typecheck
+cd mobile && npm run expo:check
+cd ai-service && ./venv/bin/python -m pytest -q
+cd ai-service && ./venv/bin/python -m ruff check .
+git diff --check
+rg -n "[ \t]+$|^(<{7}|={7}|>{7})" <changed key files>
+rg -n "点赞|获赞|平台生产| · 官|>官<|fetchUserStats|/api/v1/user/profile|/api/v1/user/stats|aiPost|AI_BASE|generateInterpretation|initChat|sendChatMessage|未通过审核|审核" mobile/src
+scp backend/migrations/017_v4_core_foundation.sql root@115.190.177.146:/tmp/017_v4_core_foundation.sql
+ssh root@115.190.177.146 '<create disposable DB from production schema, apply 017, verify V4 tables, drop disposable DB>'
+ssh root@115.190.177.146 '<create disposable DB from full production dump, apply 017 twice, verify V4 backfill counts, drop disposable DB>'
+```
+
+Current result:
+
+- V4 model tests pass.
+- Full backend tests pass.
+- Linux backend binary builds successfully at `/tmp/niangao-backend-phase1-v4`.
+- Mobile Jest tests pass.
+- Mobile TypeScript check passes.
+- Expo dependency check passes.
+- AI service pytest suite passes.
+- AI service ruff check passes.
+- Git whitespace/conflict-marker diff check passes.
+- Key changed files have no trailing-whitespace or conflict-marker matches.
+- Static migration scan confirms migration 017 contains the expected V4 table/index/config statements.
+- V4 feed route tests pass for guest recommend, authenticated collections, authenticated mine, envelope shape, and store failure behavior.
+- V4 interaction route tests pass for auth requirements, inspire conflict handling, collect/uncollect, unavailable resources, and store failure behavior.
+- V4 create request normalization tests pass for public defaults, optional classification fields, legacy private mapping, invalid subdomain rejection, and content/topic limits.
+- V4 search route tests pass for guest search, empty-query behavior, authenticated private scope, envelope shape, and store failure behavior.
+- V4 我的 stats route tests pass for auth requirements, response shape, user scope, and store failure behavior.
+- V4 我的 profile route tests pass for auth requirements, get/patch response, patch payload propagation, and display-name length validation.
+- V4 聊聊 topic/session route tests pass for auth requirements, response shapes, user scope, and store failure behavior.
+- V4 聊聊 message route tests pass for auth, topic/temp scopes, save-before-AI behavior, retryable AI failure, empty message rejection, and out-of-scope citation filtering.
+- AI Gateway chat tests pass for structured output, prompt contract use, markdown JSON fence parsing, unsupported function rejection, and empty reply rejection.
+- V4 experience rewrite route tests pass for auth, gateway payload propagation, retryable gateway failure, and overlong AI output rejection.
+- AI Gateway rewrite tests pass for structured output, prompt contract use, overlong output retry, and can-not-rewrite responses.
+- Cloud PostgreSQL migration validation passed on a disposable database created from the production schema only:
+  - copied production schema into a temporary `niangao_migtest_*` database
+  - applied `/tmp/017_v4_core_foundation.sql` with `ON_ERROR_STOP=1`
+  - verified `chat_topics`, `chat_messages`, `ai_call_logs`, and `experience_collections` exist
+  - dropped the disposable database afterward; follow-up check found `0` remaining `niangao_migtest_*` databases
+- Cloud service health after validation:
+  - Go API `http://115.190.177.146:8080/health` returns `{"status":"ok"}`
+  - AI service `http://115.190.177.146:8000/health` returns `{"status":"ok"}`
+- Cloud PostgreSQL migration validation also passed on a disposable database restored from a full production dump:
+  - production database size checked at `11 MB`
+  - restored production data into a temporary `niangao_migdata_*` database
+  - applied `/tmp/017_v4_core_foundation.sql` with `ON_ERROR_STOP=1`
+  - verified V4 core tables count: `5`
+  - verified `experiences_missing_v4=0`
+  - verified `users_missing_display_backfill=0`
+  - verified backfilled `experience_collections=19`
+  - applied migration 017 a second time successfully to validate idempotence
+  - dropped the disposable database afterward; follow-up check found `0` remaining `niangao_migdata_*` or `niangao_migtest_*` databases
+- Mobile V4 integration smoke checks pass:
+  - `cd mobile && npm run test`
+  - `cd mobile && npm run typecheck`
+  - `cd mobile && npm run expo:check`
+- Mobile V4 detail/search/profile cleanup checks pass:
+  - `npm run test -- --runInBand`
+  - `npm run typecheck`
+  - `npm run expo:check`
+  - old mobile user-facing semantics scan returns no matches for 点赞/获赞/平台生产/官/legacy AI direct calls/legacy user stats routes
+- Login/guest entry checks pass:
+  - `npm run typecheck`
+  - `npm run test -- --runInBand`
+- 记下 rewrite confirmation check passes:
+  - `npm run typecheck`
+  - static scan confirms `帮我改改` no longer calls `setContent(result.rewritten_content)` directly
+- 记下 edit/delete/turn-private check passes:
+  - `npm run typecheck`
+  - `npm run test -- --runInBand`
+- 聊聊 topic restore/retry check passes:
+  - `npm run typecheck`
+  - `npm run test -- --runInBand`
+- 聊聊 reference-card check passes:
+  - `npm run typecheck`
+  - `npm run test -- --runInBand`
+- V4 我的 recent-harvest/responded-experience route tests pass.
+- 看看 end/error/empty state checks pass:
+  - `npm run test -- --runInBand`
+  - added regression coverage for backend `has_more=false`
+  - added regression coverage for load-more failure preserving already loaded cards
+  - `npm run typecheck`
+  - `npm run expo:check`
+  - `git diff --check`
+  - key-file whitespace/conflict-marker scan has no matches
+  - old mobile semantics scan returns no matches for 点赞/获赞/平台生产/官/legacy AI direct calls/legacy user stats routes
+- Guest/auth gate checks pass:
+  - `npm run test -- --runInBand`
+  - `npm run typecheck`
+- iOS simulator runtime smoke progressed:
+  - local CocoaPods is available through `/Users/swt/.rbenv/shims/pod`; the default shell `PATH` did not include `pod`
+  - `pod install` refreshed stale native Pods and aligned `RNWorklets` from `0.8.0` to the installed JS package version `0.5.1`
+  - direct simulator build passes:
+    - `xcodebuild -workspace ios/mobile.xcworkspace -configuration Debug -scheme mobile -destination 'id=A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14' build`
+  - fixed iOS Debug Metro configuration:
+    - `mobile/ios/mobile/AppDelegate.swift` no longer hard-codes stale `http://192.168.1.49:8081`
+    - Debug builds now use `RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")`
+    - because `mobile/ios` is generated and gitignored, the fix is also persisted through tracked Expo config plugin `mobile/plugins/withDynamicIosBundleUrl.js`
+  - after rebuilding/reinstalling on iPhone 17 simulator, Metro bundles successfully and the login screen renders without the development-server red screen
+  - runtime evidence screenshot:
+    - `/tmp/niangao-ios-login-final.png`
+  - post-fix checks pass:
+    - `npx expo config --type public --json`
+    - `npm run test -- --runInBand` (16 suites, 61 tests)
+    - `npm run typecheck`
+    - `npm run expo:check`
+    - `git diff --check`
+    - stale iOS bundle URL scan has no matches in tracked mobile source/config
+- 我的 page partial-failure handling checks pass:
+  - stats endpoints are loaded independently after profile succeeds
+  - a failed stats request no longer sends the user to the login gate
+  - the page keeps the profile visible and shows `部分信息暂时没取到`
+  - successful stats are cached locally for weak-network states
+  - unavailable stats now reuse cached values when present, otherwise render placeholders and an inline `重试` action instead of misleading zero totals
+  - profile `401` still shows the login gate and does not call stats APIs
+  - regression coverage added in `ProfileScreen.test.tsx`
+- App post-login runtime hardening checks pass:
+  - `LoginScreen.test.tsx` covers guest `先看看`, dev-login session storage, Apple cancel, and missing Apple identity-token rejection before backend calls
+  - `protectedTab.test.ts` covers guest and authenticated bottom-tab routing for `聊聊` / `记下`, including token lookup failure fallback to login
+  - `authGate.test.ts` covers nested-navigation login routing from Home card actions and personal feeds
+  - `HomeScreen.test.tsx` covers guest recommendation browsing, personal tab login prompts, and guest card actions not reaching backend APIs
+  - `ChatScreen.test.tsx` covers temp-session initialization, successful AI reply rendering, compact reference cards, note suggestion, reference collection, and AI failure preserving the user message with retry
+  - verification:
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `npm run expo:check`
+    - `git diff --check`
+    - key changed-file whitespace/conflict-marker scan has no matches
+    - old mobile semantics scan returns no matches for 点赞/获赞/平台生产/官/legacy AI direct calls/legacy user stats routes
+- 我的 bottom-action and feedback checks pass:
+  - backend `POST /api/v1/me/feedback` route tests cover auth, content validation, and client-context propagation
+  - mobile `ProfileScreen.test.tsx` covers first-phase bottom actions, removal of future settings placeholders, and logout confirmation
+  - backend `DELETE /api/v1/me/account` route is registered behind auth for V4 account cancellation
+  - mobile account cancellation calls the V4 `/me/account` route instead of the legacy `/user/account` route
+  - verification:
+    - `go test ./internal/handler -run TestV4MeFeedback -count=1 -v`
+    - `go test ./internal/handler -run TestV4MeAccountRequiresAuth -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `npm run test -- ProfileScreen.test.tsx --runInBand`
+    - `npm run test -- apiAccount.test.ts --runInBand`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `npm run expo:check`
+    - `git diff --check`
+    - key changed-file whitespace/conflict-marker scan has no matches
+    - runtime mobile source scan returns no matches for legacy semantics or future `对话风格` / generic `设置` placeholders
+- 聊聊-to-记下 source handoff checks pass:
+  - 聊聊的 `记下` suggestion now opens 记下 with `suggested_text` prefilled instead of an empty editor
+  - notes created from 聊聊 default to private and carry `source_scene=chat`
+  - chat-sourced notes now ask whether to keep private or anonymously contribute before saving
+  - anonymous contribution saves as public original while preserving only source metadata internally
+  - normal notes created directly from 记下 still default to public and carry `source_scene=note`
+  - 记下 `帮我改改` now sends `source=chat_note` and `source_message_ids` when entered from 聊聊
+  - regression coverage added in `ChatScreen.test.tsx` and `CreateScreen.test.tsx`
+  - verification:
+    - `npm run test -- ChatScreen.test.tsx CreateScreen.test.tsx --runInBand`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+- Search page behavior checks pass:
+  - search results now display `creator_display_name` before legacy creator/author names
+  - empty search state now matches the PRD copy `没找到特别贴近的，换个说法试试`
+  - empty search state includes a `去聊聊` entry, guarded by login before navigating to the chat tab
+  - regression coverage added in `SearchPage.test.tsx`
+  - verification:
+    - `npm run test -- SearchPage.test.tsx --runInBand`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+- Backend chat-note source persistence checks pass:
+  - `POST /api/v1/experiences` now accepts chat source fields for notes created from 聊聊:
+    - `source_chat_topic_id`
+    - `source_chat_message_id`
+    - `source_chat_message_snapshot`
+    - `source_message_ids`
+  - backend compacts empty `source_message_ids`, derives `source_chat_message_id` from the latest valid source message ID, and preserves source IDs in `source_chat_message_snapshot` when no explicit snapshot is provided
+  - `CreateWithReview` now inserts chat source fields into the V4 `experiences` columns added by migration 017
+  - contract baseline updated in `niangao-v4-phase-1-contracts.md`
+  - regression coverage added in `experience_create_v4_test.go`
+  - verification:
+    - `go test ./internal/handler -run TestNormalizeCreateExperienceRequestChatSourceMessageIDs -count=1 -v`
+    - `go test ./internal/handler ./internal/model -count=1`
+    - `./scripts/backend-test.sh`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `npm run expo:check`
+    - `git diff --check`
+- Experience event tracking checks pass:
+  - added V4 passive event endpoint:
+    - `POST /api/v1/experiences/:id/events`
+  - passive event endpoint accepts anonymous events for visible public experiences and records logged-in events with `user_id`
+  - passive event endpoint allows only `expose`, `flip`, `search_click`, `chat_citation_show`, and `chat_citation_click`; `inspire`, `collect`, and `uncollect` still require dedicated authenticated endpoints
+  - Search results now record `search_click` before opening full-screen search cards
+  - Card exposure now records V4 `expose` events for guest and logged-in users; logged-in users still write legacy `/view` for current `user_views` compatibility
+  - Card flips now record V4 `flip` events when a user opens the interpretation side
+  - contract baseline updated in `niangao-v4-phase-1-contracts.md`
+  - regression coverage added in `SearchPage.test.tsx`, `HomeScreen.test.tsx`, `apiEvents.test.ts`, and `experience_actions_v4_test.go`
+  - verification:
+    - `go test ./internal/handler -run 'TestV4ExperienceEvent|TestV4ExperienceActions|TestV4Inspire|TestV4Collect' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `npm run test -- SearchPage.test.tsx --runInBand`
+    - `npm run test -- apiEvents.test.ts --runInBand`
+    - `npm run test -- HomeScreen.test.tsx --runInBand`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+- First-public-note display-name gate checks pass:
+  - mobile API errors now preserve structured backend error codes such as `display_name_required`
+  - 记下 public save no longer falls back to a generic `发布失败` alert when the backend requires `display_name`
+  - first public save without `display_name` opens a lightweight name modal only after the backend requires it
+  - entering a name updates `/me/profile`, then retries the original save with the same content, classification fields, visibility, and source metadata
+  - cancelling the name modal keeps the draft editable and keeps the weak public/private control available
+  - regression coverage added in `config.test.ts` and `CreateScreen.test.tsx`
+  - verification:
+    - `npm run test -- config.test.ts --runInBand`
+    - `npm run test -- CreateScreen.test.tsx --runInBand`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `npm run expo:check`
+    - `./scripts/backend-test.sh`
+    - `git diff --check`
+- Chat citation event tracking checks pass:
+  - 聊聊 reference cards now record `chat_citation_show` when AI response cards are attached to the assistant message
+  - tapping a reference card now records `chat_citation_click` before opening full detail
+  - event metadata includes the assistant message id and either `temp_session_id` or `topic_id`
+  - regression coverage added in `ChatScreen.test.tsx`
+  - verification:
+    - `npm run test -- ChatScreen.test.tsx --runInBand`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `npm run expo:check`
+    - `./scripts/backend-test.sh`
+    - `git diff --check`
+- Public own experience delete safety checks pass:
+  - Detail delete confirmation now treats `转为私密` as the safer path for public own experiences while still allowing explicit destructive deletion
+  - public own delete confirmation orders `转为私密` before destructive `删除`
+  - `转为私密` keeps the user on the detail page, updates the experience through the existing update endpoint, and stops public display/recommendation/AI citation semantics
+  - explicit deletion still calls the delete endpoint and returns to the previous screen
+  - Detail owner actions now use V4 `owner_user_id` first and legacy `author_id` only as fallback
+  - 看看 and search full-screen cards now also use V4 `owner_user_id` for owner actions
+  - card-level public delete confirmation now offers `转为私密` before destructive `删除`
+  - V4 recommend/collections/mine/search card queries now return `owner_user_id`, and mobile feed normalization preserves it for real backend responses
+  - backend detail selects expose V4 ownership/display/count fields required by the App detail page
+  - contract baseline updated in `niangao-v4-phase-1-contracts.md`
+  - regression coverage added in `DetailScreen.test.tsx`, `HomeScreen.test.tsx`, `SearchCardScreen.test.tsx`, `apiFeed.test.ts`, `experience_v4_detail_contract_test.go`, and `experience_v4_feed_contract_test.go`
+  - verification:
+    - `npm run test -- DetailScreen.test.tsx --runInBand`
+    - `npm run test -- HomeScreen.test.tsx --runInBand`
+    - `npm run test -- SearchCardScreen.test.tsx --runInBand`
+    - `npm run test -- apiFeed.test.ts --runInBand`
+    - `go test ./internal/repository -run TestExperienceSelectColsExposeV4DetailOwnershipFields -count=1 -v`
+    - `go test ./internal/repository -run TestV4FeedQueriesExposeOwnerUserID -count=1 -v`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `npm run expo:check`
+    - `./scripts/backend-test.sh`
+    - `git diff --check`
+- Simulator runtime checks resumed after mac interaction access was enabled:
+  - heartbeat automation `niangao-v4-overnight-continuation` is active at `FREQ=MINUTELY;INTERVAL=30`; the cadence is only for interruption recovery, and normal work should continue task-to-task without waiting
+  - production migrations, deployments, or data mutations are authorized for the active development plan; they still require backup, migration, deploy, smoke, cleanup, and rollback gates
+  - iOS Simulator can be controlled through direct CGEvent taps and screenshots
+  - Metro/dev build launches the App and renders the selected login page
+  - login page copy/actions are present: `年糕`, `生活有态度`, `Apple登录`, `先看看`, and dev-only `开发模拟登录`
+  - guest `先看看` enters the main tab shell
+  - at this earlier checkpoint, the cloud backend was still the pre-V4 runtime for App traffic: `GET /api/v1/feed/recommend` and `POST /api/v1/auth/dev/login` returned 404 on `115.190.177.146:8080`; this deployment gap was closed by the later production V4 deployment
+  - because of that then-current deployment gap, feed showed the intended inline `加载失败` state rather than real cards
+  - guest tapping protected `聊聊` and `记下` routes returns to login instead of calling authenticated APIs
+  - fixed a simulator-only blocking bug where handled feed failures called `console.error`, causing the React Native dev red screen to cover the intended error state
+  - dev-only simulated login now shows `开发登录不可用` with a V4-test-backend hint when the current backend returns 404, instead of leaking `404 page not found`
+  - App API base can now be overridden with `EXPO_PUBLIC_API_BASE`, and auth calls share the same base URL instead of hard-coding a separate host
+  - regression coverage added in `configBaseUrl.test.ts` and `HomeScreen.test.tsx`
+  - verification:
+    - `npm run test -- configBaseUrl.test.ts --runInBand`
+    - `npm run test -- HomeScreen.test.tsx --runInBand`
+    - `npm run test -- LoginScreen.test.tsx --runInBand`
+    - `npm run test -- HomeScreen.test.tsx configBaseUrl.test.ts --runInBand`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `npm run expo:check`
+    - `git diff --check`
+- Legacy placeholder route cleanup checks pass:
+  - removed the unused root `placeholder` stack route from the V4 App shell
+  - deleted legacy unfinished `PlaceholderScreen` and unused `FriendsScreen`, which only rendered `晚点做~`
+  - deleted the unused legacy `SearchScreen`; the V4 App shell keeps `SearchPage` + `SearchCardScreen` as the only search flow
+  - added App route regression coverage so the placeholder route and unfinished screens cannot return silently
+  - bottom tab icons now use `@expo/vector-icons/Ionicons` instead of raw glyph placeholders
+  - added direct `@expo/vector-icons` dependency declaration so the App does not rely on Expo's transitive dependency
+  - Expo dependency check is stable when run without the local HTTP proxy environment; Node/undici proxy fetches against Expo APIs were intermittently failing while direct access succeeded
+  - verification:
+    - `npm run test -- appRoutes.test.ts --runInBand`
+    - `npm run test -- --runInBand` (16 suites, 61 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "SearchScreen|PlaceholderScreen|FriendsScreen|console\\.error\\(" mobile/App.tsx mobile/src`
+- React Native warning-overlay cleanup checks pass:
+  - recoverable passive event, exposure compatibility, and chat initialization/topic-load failures now use unified handled logging instead of `console.warn`
+  - no project-owned `console.warn` or `console.error` calls remain under `mobile/src` or `mobile/App.tsx`
+  - regression coverage added in `apiEvents.test.ts` and `ChatScreen.test.tsx`
+  - verification:
+    - `npm run test -- apiEvents.test.ts --runInBand`
+    - `npm run test -- ChatScreen.test.tsx --runInBand`
+    - `rg -n "console\\.warn\\(" mobile/src mobile/App.tsx -g '!mobile/node_modules'`
+    - `rg -n "console\\.error\\(" mobile/src mobile/App.tsx -g '!mobile/node_modules'`
+- Home search icon runtime cleanup checks pass:
+  - 看看页右上搜索入口 now uses `Ionicons` `search-outline` instead of the emoji glyph that rendered as a boxed question mark in iOS Simulator
+  - search entry now exposes `搜索经验` as an explicit button accessibility label and has expanded hit slop for more reliable tapping
+  - simulator screenshot confirmed the search icon renders correctly after Metro reload:
+    - `/tmp/niangao-v4-search-icon-fixed-main.png`
+  - regression coverage added in `appRoutes.test.ts`
+  - verification:
+    - `npm run test -- appRoutes.test.ts --runInBand`
+    - `npm run test -- --runInBand` (16 suites, 65 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - follow-up full mobile verification after accessibility/hit-target hardening: `npm run test -- --runInBand` (16 suites, 68 tests), `npm run typecheck`, `npm run expo:check`, `git diff --check`
+- Experience-card icon cleanup checks pass:
+  - experience-card creator names now use `Ionicons` `person-circle-outline` instead of a raw glyph prefix
+  - experience-card action buttons now use `Ionicons` `sparkles`, `star`, and `star-outline` instead of raw text glyph placeholders
+  - top 看看 tabs now expose explicit accessibility labels such as `收藏分页`, avoiding ambiguity with card-level 收藏 actions in tests and accessibility tree
+  - simulator screenshot confirmed the guest 看看 page renders real icon controls and the 先看看 path still enters the main tab shell:
+    - `/tmp/niangao-v4-posttap.png`
+  - regression coverage added in `appRoutes.test.ts` and `HomeScreen.test.tsx`
+  - verification:
+    - `npm run test -- appRoutes.test.ts --runInBand`
+    - `npm run test -- HomeScreen.test.tsx --runInBand`
+    - `npm run test -- --runInBand` (16 suites, 66 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+- Chat/detail icon cleanup checks pass:
+  - 聊聊 current-topic button now uses `Ionicons` `chatbubble-ellipses-outline` instead of the raw `◎` glyph
+  - 聊聊 reference cards now use `Ionicons` `bookmark` / `bookmark-outline` and expose `收藏参考经验` / `已收藏参考经验` accessibility labels
+  - 详情页 private marker now uses `Ionicons` `lock-closed-outline` instead of the lock emoji
+  - 详情页 有启发 / 收藏 actions now use `Ionicons` `sparkles` and `bookmark` icons with explicit accessibility labels
+  - 详情页 经验解读 heading and experience-card 原文 label now use `Ionicons` `book-outline` instead of book emoji glyphs
+  - regression coverage added in `appRoutes.test.ts`, `ChatScreen.test.tsx`, and `DetailScreen.test.tsx`
+  - verification:
+    - `npm run test -- appRoutes.test.ts --runInBand`
+    - `npm run test -- ChatScreen.test.tsx --runInBand`
+    - `npm run test -- DetailScreen.test.tsx --runInBand`
+    - `npm run test -- --runInBand` (16 suites, 68 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - raw placeholder glyph scan returns matches only in regression-test forbidden strings
+- V4 recommendation feed hardening checks pass:
+  - recommended feed now uses existing V4 behavior signals for light personalization:
+    - collections
+    - 有启发
+    - flip/search/chat-citation click events
+    - user's own created-experience domains
+  - recommended feed now prioritizes recent unseen cards for logged-in users using `experience_events` and legacy `user_views`
+  - guest feed keeps the high-quality public pool behavior without requiring a user profile or interest setup
+  - public recommendation filters now use direct V4 fields (`visibility`, `lifecycle_status`, `recommendation_status`, `quality_tier`) so PostgreSQL can use `idx_exp_v4_public_recommend`
+  - cloud PostgreSQL read-only `EXPLAIN` verified the updated recommendation filter uses `idx_exp_v4_public_recommend`; no data was changed
+  - regression coverage added in `experience_v4_feed_contract_test.go`
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestV4RecommendQuery|TestV4FeedQueriesExposeOwnerUserID' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-recommend-check`
+    - `git diff --check`
+- Production V4 backend/AI deployment checks pass:
+  - production V4 backend/AI deployment has already been applied in a previous checkpoint
+  - the active thread now authorizes continuing production deployment/mutation as needed to complete the App/backend plan; each mutation still needs backups, repeatable migration checks, deployment gates, smoke checks, cleanup, and rollback readiness
+  - built Linux backend artifact on this Mac and uploaded it to `/root/niangao/deployments/20260526123834/server`
+  - created production backups before applying changes:
+    - `/root/niangao/backups/server.before-v4.20260526123834`
+    - `/root/niangao/backups/niangao-before-v4-20260526123834.dump`
+  - synced AI service code to `/root/niangao/ai-service`, installed requirements, and restarted `niangao-ai`
+  - applied migration `017_v4_core_foundation.sql` to production PostgreSQL
+  - fixed and re-applied migration 017 after smoke test exposed missing application-role grants on new V4 tables
+  - replaced `/root/niangao/backend/server` with the V4 backend artifact and restarted `niangao-backend`
+  - production services are active:
+    - `niangao-ai`
+    - `niangao-backend`
+  - production health checks pass:
+    - `http://115.190.177.146:8000/health`
+    - `http://115.190.177.146:8080/health`
+  - V4 feed endpoint now returns 200 through both direct backend and Nginx paths:
+    - `http://115.190.177.146:8080/api/v1/feed/recommend?limit=2`
+    - `http://115.190.177.146/api/v1/feed/recommend?limit=2`
+  - authenticated production smoke passed with a temporary JWT user and was cleaned up:
+    - `GET /api/v1/me/profile` -> 200
+    - `GET /api/v1/me/stats/assets` -> 200
+    - `GET /api/v1/feed/mine?limit=2` -> 200
+    - `POST /api/v1/chat/temp-sessions` -> 201
+    - `POST /api/v1/experiences` private note with no domain/subdomain -> 201
+  - smoke cleanup confirmed:
+    - temporary users: 0
+    - temporary smoke experiences: 0
+    - orphan temp chat sessions: 0
+    - recent backend error count after the corrected smoke: 0
+  - verification:
+    - `./scripts/backend-test.sh`
+    - `cd ai-service && ./venv/bin/python -m pytest -q`
+    - `cd ai-service && ./venv/bin/python -m ruff check .`
+    - `npm run test -- --runInBand` (16 suites, 64 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `python3 scripts/test_ai_golden_set.py`
+    - `python3 scripts/test_eval_deepseek_prompts.py`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-deploy-20260526123355`
+    - `git diff --check`
+- App runtime checks against deployed V4 backend pass for guest/public flows:
+  - iOS Simulator launches the App through Metro and renders the selected login page
+  - `先看看` enters the V4 看看 tab shell against `http://115.190.177.146`
+  - 看看推荐 loads real production V4 cards rather than local mock data
+  - guest card actions such as 收藏 show the login prompt before hitting protected APIs
+  - guest protected bottom tabs 聊聊 / 记下 return to login instead of calling authenticated APIs
+  - 看看右上搜索 opens the V4 search page in simulator runtime
+  - fixed a runtime hit-target issue where the top 看看 tabs/search could be visually rendered but hard to tap under the full-screen `FlatList`; the root screen now has a tested top-bar tap fallback while preserving accessibility labels and normal Touchable controls
+  - runtime evidence screenshots:
+    - `/tmp/niangao-v4-prod-root-hit-fallback-feed.png`
+    - `/tmp/niangao-v4-prod-search-sweep-y.png`
+  - regression coverage added in `HomeScreen.test.tsx`
+  - verification:
+    - `npm run test -- HomeScreen.test.tsx --runInBand`
+    - `npm run test -- --runInBand` (16 suites, 69 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+- App runtime checks against deployed V4 backend pass for authenticated App flows through a temporary simulator JWT user:
+  - injected a temporary production JWT user into the iOS simulator AsyncStorage without printing token material
+  - authenticated 看看 loaded real production V4 cards from `http://115.190.177.146`
+  - authenticated 我的 page rendered against deployed `/api/v1/me/profile` and stats endpoints
+  - authenticated 聊聊 page rendered and opened with the current-topic control
+  - authenticated 记下 page rendered with the selected V4 editor semantics:
+    - content limit shown as `0/100` then updated after input
+    - direct 记下 defaults to weak public state
+    - domain/subdomain selector appears after selecting a first-level domain
+  - 记下 production AI rewrite smoke passed:
+    - `帮我改改` called the deployed backend/AI Gateway path
+    - App showed a candidate rewrite card and did not auto-replace the draft
+  - 记下 production save smoke passed:
+    - saved a temporary public original note through deployed backend APIs
+    - App showed `已记下 / 你的经验已保存`
+    - returned to 看看 after confirmation
+  - all temporary production data from the simulator auth/runtime smoke was cleaned up:
+    - temporary users: 0
+    - temporary experiences: 0
+    - temporary events: 0
+    - simulator AsyncStorage auth manifest removed
+  - backend/AI service logs after the authenticated runtime smoke showed no panic, fatal error, permission-denied error, traceback, or real 5xx response
+  - runtime evidence screenshots:
+    - `/tmp/niangao-v4-prod-auth-injected-after-wait.png`
+    - `/tmp/niangao-v4-prod-auth-profile-after-activate.png`
+    - `/tmp/niangao-v4-prod-auth-chat.png`
+    - `/tmp/niangao-v4-prod-auth-create-tab.png`
+    - `/tmp/niangao-v4-prod-auth-create-filled.png`
+    - `/tmp/niangao-v4-prod-auth-create-after-save.png`
+    - `/tmp/niangao-v4-prod-auth-create-save-tap.png`
+    - `/tmp/niangao-v4-prod-auth-create-after-ok3.png`
+  - verification:
+    - production database cleanup verification confirmed temporary user, experience, and event counts were `0`
+    - `journalctl` scans for backend and AI services found no relevant runtime errors after the smoke
+- HomeScreen no-cache and experience-card accessibility hardening checks pass:
+  - fixed a Jest no-cache instability where static imports and auto-mocked modules could report stale API mock call counts even while the component rendered mocked feed data
+  - HomeScreen tests now declare mocks before requiring the screen and assert stable user/runtime outcomes instead of relying on the unstable initial API mock reference
+  - experience cards now expose a stable `经验卡片，...` accessibility label and deterministic `experience-card-<id>` test id for runtime/E2E validation
+  - regression coverage still verifies guest public browsing, protected personal tabs, guest action login gates, flip events, owner delete/turn-private semantics, and top-bar search/tabs fallback
+  - verification:
+    - `npm run test -- HomeScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- appRoutes.test.ts ChatScreen.test.tsx DetailScreen.test.tsx HomeScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (16 suites, 69 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+- App API timeout hardening checks pass:
+  - all App API calls now use a shared timeout wrapper instead of waiting indefinitely on weak network or stalled backend responses
+  - normal API calls time out after 15 seconds and return structured `ApiError(status=0, code=request_timeout)`
+  - AI-facing App calls that naturally take longer, including 聊聊 message calls and `帮我改改`, use a 60-second budget before returning the same structured timeout error
+  - auth logout/refresh and App startup token validation now use the same timeout wrapper instead of raw `fetch`
+  - static scan now shows the only remaining direct `fetch(` in App source is the shared wrapper implementation in `mobile/src/services/config.ts`
+  - existing screen-level fallbacks continue to own user-facing copy:
+    - 看看 keeps existing cards or shows retry/end states
+    - 聊聊 keeps the user message and shows retry on the assistant bubble
+    - 记下 `帮我改改` falls back to `暂时改不了，原文可以直接记下`
+  - regression coverage added in `config.test.ts` and `configBaseUrl.test.ts`
+  - verification:
+    - `npm run test -- config.test.ts --runInBand --no-cache`
+    - `npm run test -- config.test.ts configBaseUrl.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (16 suites, 72 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "\\bfetch\\(" mobile/App.tsx mobile/src -g '!mobile/src/__tests__/**'`
+- 我的 page first-phase action polish checks pass:
+  - bottom actions now use `Ionicons` instead of crude text glyph placeholders
+  - profile row and bottom actions expose explicit button semantics and accessibility labels for runtime/E2E validation
+  - regression coverage checks that first-phase actions are present, future settings placeholders stay absent, and glyph placeholders do not return
+  - verification:
+    - `npm run test -- ProfileScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- appRoutes.test.ts ChatScreen.test.tsx DetailScreen.test.tsx HomeScreen.test.tsx ProfileScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (16 suites, 72 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+- App-wide crude text glyph polish checks pass:
+  - user-facing back/forward affordances in 聊聊, 记下, 详情, 搜索, 搜索卡片, and 编辑个人信息 now use `Ionicons` instead of `←` / `›` text glyphs
+  - affected back controls expose explicit `返回` accessibility labels where they did not already have semantic labels
+  - added `uiGlyphs.test.js` as a static regression guard against reintroducing text glyph placeholders in screen/component UI
+  - verification:
+    - `npm run test -- uiGlyphs.test.js --runInBand --no-cache`
+    - `npm run test -- ChatScreen.test.tsx CreateScreen.test.tsx DetailScreen.test.tsx SearchPage.test.tsx SearchCardScreen.test.tsx uiGlyphs.test.js --runInBand --no-cache`
+    - `npm run test -- --runInBand` (17 suites, 73 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+- App exposure tracking now uses only the V4 passive event contract:
+  - `recordView` no longer sends the legacy auth-only `/api/v1/experiences/:id/view` request after writing the V4 `expose` event
+  - guest and authenticated exposure paths now share the same `/api/v1/experiences/:id/events` contract, reducing duplicate traffic and legacy stats coupling
+  - regression coverage in `apiEvents.test.ts` prevents the legacy view call from returning
+  - verification:
+    - `npm run test -- apiEvents.test.ts --runInBand --no-cache`
+    - `npm run test -- apiEvents.test.ts HomeScreen.test.tsx SearchCardScreen.test.tsx SearchPage.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (17 suites, 73 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+- Production health and secret-scan hardening checks pass:
+  - public Nginx health routes now exist for deployment/monitoring smoke:
+    - `GET http://115.190.177.146/health` proxies to the Go backend health endpoint
+    - `GET http://115.190.177.146/ai/health` proxies to the AI service health endpoint
+  - Nginx config was backed up outside `sites-enabled`, because backups left inside `sites-enabled` are loaded as live config and cause duplicate server warnings
+  - `nginx -t` passes without warnings after moving the backup to `/root/niangao/backups/nginx`
+  - production public smoke still passes after reload:
+    - `/health` -> 200
+    - `/ai/health` -> 200
+    - `/api/v1/feed/recommend?limit=2` -> 200
+  - secret scan found hardcoded old admin credentials in legacy documentation and removed them from:
+    - `docs/admin-prd-v1.md`
+    - `docs/PRD.md`
+  - follow-up exact scan confirms the removed password string no longer exists in the repository
+  - high-confidence key pattern scan found no `sk-*`, AWS, or Google-style key literals outside dependency folders and lockfiles
+  - verification:
+    - `nginx -t`
+    - `curl http://115.190.177.146/health`
+    - `curl http://115.190.177.146/ai/health`
+    - `curl 'http://115.190.177.146/api/v1/feed/recommend?limit=2'`
+    - `rg -n -F '<removed admin password>' --glob '!**/node_modules/**' .`
+    - `rg -n "sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}" --glob '!**/node_modules/**' --glob '!**/package-lock.json' .`
+- Final App/backend/AI verification gate checks pass:
+  - stabilized `ChatScreen.test.tsx` under Jest no-cache by using the same mock-before-require pattern as the stable HomeScreen tests and by waiting for the user-visible welcome text directly
+  - full mobile regression now passes without the previous `VirtualizedList` act warning output
+  - backend full tests pass
+  - AI service tests and lint pass
+  - mobile typecheck and Expo dependency checks pass
+  - Linux backend production artifact builds successfully at `/tmp/niangao-backend-v4-final-check`
+  - local AI golden-set and DeepSeek eval runner unit checks pass
+  - project-owned mobile runtime source has no `console.warn` or `console.error` calls
+  - verification:
+    - `./scripts/backend-test.sh`
+    - `cd mobile && npm run test -- ChatScreen.test.tsx --runInBand --no-cache`
+    - `cd mobile && npm run test -- --runInBand`
+    - `cd mobile && npm run typecheck`
+    - `cd mobile && env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `cd ai-service && ./venv/bin/python -m pytest -q`
+    - `cd ai-service && ./venv/bin/python -m ruff check .`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-final-check`
+    - `python3 scripts/test_ai_golden_set.py`
+    - `python3 scripts/test_eval_deepseek_prompts.py`
+    - `git diff --check`
+    - `rg -n "console\\.(warn|error)\\(" mobile/src mobile/App.tsx -g '!mobile/node_modules'`
+- Final production redeploy and smoke checks pass:
+  - local final Linux backend artifact `/tmp/niangao-backend-v4-final-check` was uploaded to `/root/niangao/deployments/20260526175734/server`
+  - current production backend binary hash now matches the local final artifact:
+    - `19b17b9bec9e95a4bb8d0a612254138cce376ab3f46104da18dfe4e1d8aa81a6`
+  - production backups were created before replacement:
+    - `/root/niangao/backups/server.before-v4-final.20260526175734`
+    - `/root/niangao/backups/ai-service.before-v4-final.20260526175734.tgz`
+  - first direct overwrite attempt hit `Text file busy`; deployment was corrected by stopping `niangao-backend`, replacing the binary, and starting it again
+  - latest AI service source was synced with `venv`, caches, and `.env` excluded, requirements were checked, and `niangao-ai` was restarted
+  - production services are active after redeploy:
+    - `niangao-backend`
+    - `niangao-ai`
+    - `nginx`
+    - `postgresql`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/ai/health` -> 200
+    - `/api/v1/feed/recommend?limit=2` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+  - post-deploy authenticated smoke passed with a temporary JWT user and cleanup:
+    - `GET /api/v1/me/profile` -> 200
+    - `GET /api/v1/me/stats/assets` -> 200
+    - `GET /api/v1/feed/mine?limit=2` -> 200
+    - `POST /api/v1/chat/temp-sessions` -> 201
+    - `POST /api/v1/experiences/rewrite` -> 200
+    - `POST /api/v1/experiences` private note -> 201
+    - cleanup temporary users -> 0
+  - post-deploy backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, or real 5xx response
+  - verification:
+    - `sha256sum /root/niangao/backend/server`
+    - `systemctl is-active niangao-backend niangao-ai nginx postgresql`
+    - production public `curl` smoke checks
+    - production authenticated temporary JWT smoke
+    - production cleanup verification
+    - backend/AI `journalctl` error scans
+
+Not verified yet:
+
+- Real Apple Sign in on a physical device / Apple-authenticated simulator session has not been verified in this checkpoint. Authenticated App runtime was validated through a temporary JWT simulator injection and cleaned up afterward.
+
+## 4. Next Slice
+
+Next implementation slice should be:
+
+1. Continue App/backend production hardening after authenticated runtime smoke, focusing on remaining weak-network/empty/error states and any App/backend contract mismatches found by static scans or simulator checks.
+2. Prepare the next deployable checkpoint after hardening changes pass backend, mobile, AI, and smoke gates.
+3. Continue the development plan task-to-task until the App/backend plan and deployment are complete.
+
+## 5. Remaining Risks
+
+- Migration 017 has been applied to production and application-role grants have been fixed after smoke testing exposed missing grants; production migrations, deployments, or data mutations are authorized for the active development plan and must still pass backup, repeatable migration, deployment, smoke, cleanup, and rollback gates.
+- New model fields are present, but older non-V4 repository queries still scan legacy columns.
+- V4 feed and related App endpoints are now deployed; production `dev-login` remains unavailable by design because the backend is running in production mode.
+- Legacy `likes` and `bookmarks` still exist; they are compatibility sources until the new interaction endpoints are implemented and data parity is confirmed.
+- 我的 page stats now has 7d/30d/all and recent responded APIs, and partial stats failures no longer collapse the whole page into login.
+- iOS simulator runtime now reaches login, guest browsing, real production feed, protected-route gating, search page, authenticated 看看/聊聊/记下/我的, deployed AI rewrite, and deployed save. Real Apple Sign in remains unverified in this checkpoint; production `dev-login` remains unavailable by design.

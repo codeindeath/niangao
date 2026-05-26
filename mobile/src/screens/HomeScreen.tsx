@@ -11,19 +11,23 @@ import {
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   fetchRecommendations,
-  fetchExperiences,
   fetchMyExperiences,
   fetchMyBookmarks,
   Experience,
   toggleLike,
   toggleBookmark,
+  updateExperience,
   deleteExperience,
+  recordView,
+  recordExperienceEvent,
 } from '../services/api';
 import {getToken, getUserInfo} from '../services/config';
 import FlipCard from '../components/ExperienceCard';
-import {recordView} from '../services/api';
+import {requireLogin} from '../utils/authGate';
+import {reportHandledError} from '../utils/logging';
 
 // Module-level tab refresh trigger (called from CreateScreen after publish)
 let _pendingTabRefresh: string | null = null;
@@ -32,7 +36,11 @@ export function triggerTabRefresh(tab: string) { _pendingTabRefresh = tab; }
 // Tab bar height (React Navigation bottom tab + safe area ≈ 80px)
 const TAB_BAR_ESTIMATE = 80;
 const TOP_TABS_HEIGHT = 44; // 方案A 顶部三标签栏
+const TOP_HIT_HEIGHT = 58;
+const TOP_HIT_HORIZONTAL_PADDING = 24;
+const SEARCH_HIT_WIDTH = 64;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
+const SCREEN_WIDTH = Dimensions.get('window').width;
 const PAGE_SIZE = 20;
 
 const DOMAIN_LABELS: Record<string, string> = {
@@ -66,7 +74,7 @@ export default function HomeScreen() {
   const CONTENT_TOP = insets.top + TOP_TABS_HEIGHT + 12;
 
   type TabName = 'recommend' | 'my' | 'bookmarks';
-  const tabOrder: TabName[] = ['recommend', 'my', 'bookmarks'];
+  const tabOrder: TabName[] = ['recommend', 'bookmarks', 'my'];
   const [activeTab, setActiveTab] = useState<TabName>('recommend');
 
   type TabCache = { items: Experience[]; offset: number; hasMore: boolean; loaded: boolean };
@@ -77,6 +85,7 @@ export default function HomeScreen() {
 
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPersonalized, setIsPersonalized] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -93,7 +102,10 @@ export default function HomeScreen() {
   const hasMore = tabCaches[activeTab].hasMore;
 
   useEffect(() => {
-    getToken().then(t => { tokenRef.current = t; loadInitial('recommend'); });
+    getToken().then(t => {
+      tokenRef.current = t;
+      loadInitial('recommend');
+    });
     getUserInfo().then(u => setCurrentUserId(u?.id || null));
   }, []);
 
@@ -113,21 +125,18 @@ export default function HomeScreen() {
 
   const loadPage = useCallback(async (offset: number, append: boolean, tab: TabName) => {
     let result;
-    if (!tokenRef.current || tab !== 'recommend') {
-      if (tab === 'bookmarks') {
-        result = await fetchMyBookmarks(Math.floor(offset / PAGE_SIZE) + 1);
-      } else if (tab === 'my') {
-        result = await fetchMyExperiences(Math.floor(offset / PAGE_SIZE) + 1);
-      } else {
-        result = await fetchExperiences(Math.floor(offset / PAGE_SIZE) + 1);
-      }
+    if (tab === 'bookmarks') {
+      result = await fetchMyBookmarks(Math.floor(offset / PAGE_SIZE) + 1);
+      setIsPersonalized(false);
+    } else if (tab === 'my') {
+      result = await fetchMyExperiences(Math.floor(offset / PAGE_SIZE) + 1);
       setIsPersonalized(false);
     } else {
       result = await fetchRecommendations(PAGE_SIZE, offset);
-      setIsPersonalized(true);
+      setIsPersonalized(Boolean(tokenRef.current));
     }
     const data = Array.isArray(result?.data) ? result.data : [];
-    const noMore = data.length < PAGE_SIZE;
+    const noMore = typeof result?.has_more === 'boolean' ? !result.has_more : data.length < PAGE_SIZE;
 
     setTabCaches(prev => {
       const cache = prev[tab];
@@ -143,12 +152,13 @@ export default function HomeScreen() {
         [tab]: { items, offset: offset + data.length, hasMore: !noMore, loaded: true },
       };
     });
+    setLoadMoreError(null);
     return data.length;
   }, []);
 
   const loadInitial = useCallback(async (tab: TabName) => {
     try { await loadPage(0, false, tab); }
-    catch (e) { console.error(e); setError('加载失败'); }
+    catch (e) { reportHandledError('HomeScreen.loadInitial', e); setError('加载失败'); }
     finally { setLoading(false); }
   }, [loadPage]);
 
@@ -158,16 +168,33 @@ export default function HomeScreen() {
     loadingMoreRef.current = true;
     setLoadingMore(true);
     try { await loadPage(cache.offset, true, activeTab); }
-    catch (e) { console.error(e); }
+    catch (e) { reportHandledError('HomeScreen.handleLoadMore', e); setLoadMoreError('网络不稳，点一下重试'); }
     finally { loadingMoreRef.current = false; setLoadingMore(false); }
   }, [loadPage, activeTab, tabCaches]);
 
-  const handleTabChange = (tab: TabName) => {
+  const handleRefreshCurrentTab = () => {
+    setError(null);
+    setLoadMoreError(null);
+    setTabCaches(prev => ({
+      ...prev,
+      [activeTab]: { items: [], offset: 0, hasMore: true, loaded: false },
+    }));
+    setLoading(true);
+    loadPage(0, false, activeTab)
+      .catch(e => { reportHandledError('HomeScreen.handleRefreshCurrentTab', e); setError('加载失败'); })
+      .finally(() => setLoading(false));
+  };
+
+  const handleTabChange = async (tab: TabName) => {
     if (tab === activeTab) return;
+    if ((tab === 'bookmarks' || tab === 'my') && !(await requireLogin(navigation, '登录后可以查看收藏和自己记下的经验。'))) {
+      return;
+    }
     // Save current scroll index
     tabScrollIndex.current[activeTab] = tabScrollIndex.current[activeTab] || 0;
     setActiveTab(tab);
     setError(null);
+    setLoadMoreError(null);
     const cache = tabCaches[tab];
     if (cache.loaded) {
       // Restore cached data + scroll position
@@ -179,17 +206,20 @@ export default function HomeScreen() {
       }, 50);
     } else {
       setLoading(true);
-      loadPage(0, false, tab).catch(e => { console.error(e); setError('加载失败'); }).finally(() => setLoading(false));
+      loadPage(0, false, tab).catch(e => { reportHandledError('HomeScreen.handleTabChange', e); setError('加载失败'); }).finally(() => setLoading(false));
     }
   };
 
   const handleLike = async (id: string) => {
+    if (!(await requireLogin(navigation, '登录后可以标记有启发，年糕也会更懂你的偏好。'))) return;
+    const current = tabCaches[activeTab].items.find(e => e.id === id);
+    if (!current || current.is_liked) return;
     setTabCaches(prev => ({
       ...prev,
       [activeTab]: {
         ...prev[activeTab],
         items: prev[activeTab].items.map(e =>
-          e.id === id ? {...e, is_liked: !e.is_liked, like_count: e.is_liked ? e.like_count - 1 : e.like_count + 1} : e
+          e.id === id ? {...e, is_liked: true, like_count: e.like_count + 1} : e
         ),
       },
     }));
@@ -199,7 +229,7 @@ export default function HomeScreen() {
         [activeTab]: {
           ...prev[activeTab],
           items: prev[activeTab].items.map(e =>
-            e.id === id ? {...e, is_liked: !e.is_liked, like_count: e.is_liked ? e.like_count - 1 : e.like_count + 1} : e
+            e.id === id ? {...e, is_liked: false, like_count: Math.max(e.like_count - 1, 0)} : e
           ),
         },
       }));
@@ -207,42 +237,98 @@ export default function HomeScreen() {
   };
 
   const handleBookmark = async (id: string) => {
+    if (!(await requireLogin(navigation, '登录后可以收藏经验，之后在看看里随时翻回来。'))) return;
+    const current = tabCaches[activeTab].items.find(e => e.id === id);
+    if (!current) return;
+    const nextBookmarked = !current?.is_bookmarked;
     setTabCaches(prev => ({
       ...prev,
       [activeTab]: {
         ...prev[activeTab],
-        items: prev[activeTab].items.map(e => e.id === id ? {...e, is_bookmarked: !e.is_bookmarked} : e),
+        items: prev[activeTab].items.map(e => e.id === id ? {
+          ...e,
+          is_bookmarked: nextBookmarked,
+          bookmark_count: nextBookmarked ? e.bookmark_count + 1 : Math.max(e.bookmark_count - 1, 0),
+        } : e),
       },
     }));
-    try { await toggleBookmark(id); } catch {
+    try { await toggleBookmark(id, nextBookmarked); } catch {
       setTabCaches(prev => ({
         ...prev,
         [activeTab]: {
           ...prev[activeTab],
-          items: prev[activeTab].items.map(e => e.id === id ? {...e, is_bookmarked: !e.is_bookmarked} : e),
+          items: prev[activeTab].items.map(e => e.id === id ? {
+            ...e,
+            is_bookmarked: !nextBookmarked,
+            bookmark_count: nextBookmarked ? Math.max(e.bookmark_count - 1, 0) : e.bookmark_count + 1,
+          } : e),
         },
       }));
     }
   };
 
+  const patchExperienceInCurrentTab = (id: string, patch: Partial<Experience>) => {
+    setTabCaches(prev => ({
+      ...prev,
+      [activeTab]: {
+        ...prev[activeTab],
+        items: prev[activeTab].items.map(e => e.id === id ? {...e, ...patch} : e),
+      },
+    }));
+  };
+
+  const removeExperienceFromCurrentTab = (id: string) => {
+    setTabCaches(prev => ({
+      ...prev,
+      [activeTab]: {
+        ...prev[activeTab],
+        items: prev[activeTab].items.filter(e => e.id !== id),
+      },
+    }));
+  };
+
   const handleDelete = (id: string) => {
-    Alert.alert('删除经验', '确定要删除这条经验吗？', [
-      {text: '取消', style: 'cancel'},
-      {text: '删除', style: 'destructive', onPress: async () => {
-        try {
-          await deleteExperience(id);
-          setTabCaches(prev => ({
-            ...prev,
-            [activeTab]: {
-              ...prev[activeTab],
-              items: prev[activeTab].items.filter(e => e.id !== id),
-            },
-          }));
-        } catch (e: any) {
-          Alert.alert('删除失败', e?.message || '请稍后再试');
-        }
-      }},
-    ]);
+    const item = tabCaches[activeTab].items.find(e => e.id === id);
+    const isPublic = item && !item.is_private && item.visibility !== 'private';
+    const turnPrivate = async () => {
+      if (!item) return;
+      try {
+        await updateExperience(
+          item.id,
+          item.content,
+          item.domain,
+          item.sub_domain,
+          true,
+          item.interpretation,
+          item.topics,
+        );
+        patchExperienceInCurrentTab(item.id, {
+          is_private: true,
+          visibility: 'private',
+          review_status: 'private',
+        });
+      } catch (e: any) {
+        Alert.alert('操作失败', e?.message || '请稍后再试');
+      }
+    };
+    Alert.alert(
+      '删除经验',
+      isPublic
+        ? '删除后，他人收藏和历史引用会显示不可见。你也可以先转为私密，只停止公开展示、推荐和 AI 引用。'
+        : '确定要删除这条经验吗？',
+      [
+        {text: '取消', style: 'cancel'},
+        ...(isPublic ? [{text: '转为私密', onPress: turnPrivate}] : []),
+        {text: '删除', style: 'destructive', onPress: async () => {
+          try {
+            await deleteExperience(id);
+            removeExperienceFromCurrentTab(id);
+          } catch (e: any) {
+            Alert.alert('删除失败', e?.message || '请稍后再试');
+          }
+        }},
+      ],
+    );
   };
 
   const handleFlipChange = useCallback((id: string, isFlipped: boolean) => {
@@ -251,7 +337,13 @@ export default function HomeScreen() {
       if (isFlipped) next.add(id); else next.delete(id);
       return next;
     });
-  }, []);
+    if (isFlipped) {
+      recordExperienceEvent(id, 'flip', 'feed', {
+        tab: activeTab,
+        side: 'back',
+      });
+    }
+  }, [activeTab]);
 
   const viewabilityConfig = useRef({itemVisiblePercentThreshold: 50}).current;
 
@@ -265,8 +357,8 @@ export default function HomeScreen() {
   }).current;
 
   // ═══ 左右滑动切标签（Touch 事件，不干扰 FlatList/卡片） ═══
-  // 左滑(dx<0): 推荐→我的→收藏→推荐（循环）
-  // 右滑(dx>0): 推荐→收藏→我的→推荐（循环）
+  // 左滑(dx<0): 推荐→收藏→我的→推荐（循环）
+  // 右滑(dx>0): 推荐→我的→收藏→推荐（循环）
   const swipeStart = useRef<{x: number; y: number} | null>(null);
 
   const handleTouchStart = (e: any) => {
@@ -280,6 +372,25 @@ export default function HomeScreen() {
     if (!s) return;
     const dx = e.nativeEvent.pageX - s.x;
     const dy = e.nativeEvent.pageY - s.y;
+    if (Math.abs(dx) < 12 && Math.abs(dy) < 12) {
+      const tapX = e.nativeEvent.pageX;
+      const tapY = e.nativeEvent.pageY;
+      const topStart = insets.top;
+      const topEnd = topStart + TOP_HIT_HEIGHT;
+      if (tapY >= topStart && tapY <= topEnd) {
+        if (tapX >= SCREEN_WIDTH - SEARCH_HIT_WIDTH) {
+          navigation.navigate('searchPage');
+          return;
+        }
+        const tabsWidth = SCREEN_WIDTH - TOP_HIT_HORIZONTAL_PADDING * 2 - SEARCH_HIT_WIDTH;
+        const localX = tapX - TOP_HIT_HORIZONTAL_PADDING;
+        if (localX >= 0 && localX <= tabsWidth) {
+          const idx = Math.min(tabOrder.length - 1, Math.max(0, Math.floor(localX / (tabsWidth / tabOrder.length))));
+          handleTabChange(tabOrder[idx]);
+          return;
+        }
+      }
+    }
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 2) {
       const idx = tabOrder.indexOf(activeTab);
       const n = tabOrder.length;
@@ -299,7 +410,7 @@ export default function HomeScreen() {
       <View style={s.container}>
         <View style={{flex:1,justifyContent:'center',alignItems:'center',paddingBottom:80}}>
           <Text style={{fontSize:15,color:'#9a9a9a',marginBottom:16}}>{error}</Text>
-          <TouchableOpacity style={{backgroundColor:'#4a7c59',borderRadius:20,paddingHorizontal:24,paddingVertical:10}} onPress={() => { setError(null); loadInitial(activeTab); }}>
+          <TouchableOpacity style={{backgroundColor:'#4a7c59',borderRadius:20,paddingHorizontal:24,paddingVertical:10}} onPress={handleRefreshCurrentTab}>
             <Text style={{color:'#fff',fontSize:14,fontWeight:'600'}}>重试</Text>
           </TouchableOpacity>
         </View>
@@ -309,28 +420,16 @@ export default function HomeScreen() {
 
   return (
     <View
+      testID="home-screen"
       style={s.container}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* ═══ 方案A 顶部三标签 + 搜索图标 ═══ */}
-      <View style={[s.tabBar, {top: insets.top}]}>
-        <View style={s.tabBarInner}>
-          {tabOrder.map(tab => (
-            <TouchableOpacity key={tab} onPress={() => handleTabChange(tab)} style={s.tabItem}>
-              <Text style={[s.tabLabel, activeTab === tab && s.tabLabelActive]}>
-                {tab === 'recommend' ? '推荐' : tab === 'my' ? '我的' : '收藏'}
-              </Text>
-              {activeTab === tab && <View style={s.tabUnderline} />}
-            </TouchableOpacity>
-          ))}
-        </View>
-        <TouchableOpacity onPress={() => navigation.navigate('searchPage')} style={s.searchIconBtn}>
-          <Text style={s.searchIconText}>🔍</Text>
-        </TouchableOpacity>
-      </View>
-
       <FlatList
+        testID="home-feed-list"
+        style={s.feedList}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         ref={flatListRef}
         data={experiences}
         keyExtractor={item => item.id}
@@ -374,10 +473,10 @@ export default function HomeScreen() {
         ListEmptyComponent={
           <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5', justifyContent: 'center', alignItems: 'center'}}>
             <Text style={{fontSize:15,color:'#9a9a9a'}}>
-              {activeTab === 'recommend' ? '暂无推荐内容' : activeTab === 'my' ? '你还没有发布经验' : '你还没有收藏经验'}
+              {activeTab === 'recommend' ? '暂无推荐内容' : activeTab === 'bookmarks' ? '你还没有收藏经验' : '你还没有记下经验'}
             </Text>
             <Text style={{fontSize:12,color:'#b5b0a8',marginTop:6}}>
-              {activeTab === 'recommend' ? '发布经验后，推荐会更精准' : activeTab === 'my' ? '分享一条你的经验吧' : '去发现页面收藏喜欢的经验'}
+              {activeTab === 'recommend' ? '先随便看看也可以' : activeTab === 'bookmarks' ? '看到有用的经验可以先收藏' : '把最近想明白的一点记下来'}
             </Text>
           </View>
         }
@@ -386,13 +485,56 @@ export default function HomeScreen() {
             <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5', justifyContent: 'center', alignItems: 'center'}}>
               <ActivityIndicator size="small" color="#4a7c59" />
             </View>
+          ) : loadMoreError ? (
+            <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5', justifyContent: 'center', alignItems: 'center'}}>
+              <Text style={{fontSize:14,color:'#9a9a9a',marginBottom:12}}>{loadMoreError}</Text>
+              <TouchableOpacity style={s.footerRetryBtn} onPress={handleLoadMore}>
+                <Text style={s.footerRetryText}>重试</Text>
+              </TouchableOpacity>
+            </View>
           ) : !hasMore && experiences.length > 0 ? (
             <View style={{height: CARD_HEIGHT, backgroundColor: '#faf8f5', justifyContent: 'center', alignItems: 'center'}}>
-              <Text style={{fontSize:14,color:'#b5b0a8'}}>— 已经到底了 —</Text>
+              <Text style={{fontSize:14,color:'#b5b0a8',marginBottom:12}}>
+                {activeTab === 'recommend' ? '这轮先看到这里' : '先看到这里'}
+              </Text>
+              {activeTab === 'recommend' ? (
+                <TouchableOpacity style={s.footerRetryBtn} onPress={handleRefreshCurrentTab}>
+                  <Text style={s.footerRetryText}>刷新</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           ) : null
         }
       />
+      {/* ═══ 方案A 顶部三标签 + 搜索图标 ═══ */}
+      <View style={[s.tabBar, {top: insets.top}]}>
+        <View style={s.tabBarInner}>
+          {tabOrder.map(tab => (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => handleTabChange(tab)}
+              style={s.tabItem}
+              hitSlop={{top: 12, right: 10, bottom: 12, left: 10}}
+              accessibilityRole="tab"
+              accessibilityLabel={`${tab === 'recommend' ? '推荐' : tab === 'bookmarks' ? '收藏' : '我的'}分页`}
+            >
+              <Text style={[s.tabLabel, activeTab === tab && s.tabLabelActive]}>
+                {tab === 'recommend' ? '推荐' : tab === 'bookmarks' ? '收藏' : '我的'}
+              </Text>
+              {activeTab === tab && <View style={s.tabUnderline} />}
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('searchPage')}
+          style={s.searchIconBtn}
+          accessibilityRole="button"
+          accessibilityLabel="搜索经验"
+          hitSlop={{top: 14, right: 14, bottom: 14, left: 14}}
+        >
+          <Ionicons name="search-outline" size={22} color="#1a1a1a" />
+        </TouchableOpacity>
+      </View>
       {/* ═══ Flip hint: screen-level overlay, bottom:0 touches tab bar ═══ */}
       {(() => {
         const vExp = visibleCardId ? experiences.find(e => e.id === visibleCardId) : null;
@@ -409,13 +551,15 @@ export default function HomeScreen() {
 
 const s = StyleSheet.create({
   container: {flex: 1, backgroundColor: '#faf8f5'},
+  feedList: {zIndex: 0},
 
   // ═══ 方案A 顶部三标签 + 搜索 ═══
   tabBar: {
-    position: 'absolute', left: 0, right: 0, zIndex: 10,
+    position: 'absolute', left: 0, right: 0, zIndex: 100, elevation: 100,
+    height: 58,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 24, paddingTop: 8, paddingBottom: 6,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(250,248,245,0.01)',
   },
   tabBarInner: {
     flexDirection: 'row', justifyContent: 'space-around', flex: 1,
@@ -425,8 +569,7 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     marginLeft: 4,
   },
-  searchIconText: {fontSize: 18},
-  tabItem: { alignItems: 'center', paddingHorizontal: 8 },
+  tabItem: { minHeight: 36, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },
   tabLabel: { fontSize: 15, fontWeight: '500', color: '#b5b0a8' },
   tabLabelActive: { color: '#1a1a1a', fontWeight: '700' },
   tabUnderline: { width: 20, height: 3, backgroundColor: '#4a7c59', borderRadius: 2, marginTop: 4 },
@@ -526,6 +669,15 @@ const s = StyleSheet.create({
     borderWidth: 0.5, borderColor: '#fce8e8',
   },
   deleteText: {fontSize: 13, color: '#e85d5d', fontWeight: '500'},
+  footerRetryBtn: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#d9e4d5',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+  },
+  footerRetryText: {fontSize: 13, color: '#4a7c59', fontWeight: '700'},
 
   // ═══ Flip hint (bottom right) ═══
   flipHintText: {fontSize: 10, color: '#c4c0b8', fontWeight: '400'},

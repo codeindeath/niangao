@@ -179,6 +179,162 @@ const (
 )
 
 // ============================================================
+// V4 experience facts
+// ============================================================
+type ExperienceType string
+
+const (
+	ExperienceTypePlatformSelected ExperienceType = "platform_selected"
+	ExperienceTypeUserOriginal     ExperienceType = "user_original"
+)
+
+var ValidExperienceTypes = map[ExperienceType]struct{}{
+	ExperienceTypePlatformSelected: {},
+	ExperienceTypeUserOriginal:     {},
+}
+
+func IsValidExperienceType(v ExperienceType) bool {
+	_, ok := ValidExperienceTypes[v]
+	return ok
+}
+
+type Visibility string
+
+const (
+	VisibilityPublic  Visibility = "public"
+	VisibilityPrivate Visibility = "private"
+)
+
+var ValidVisibilities = map[Visibility]struct{}{
+	VisibilityPublic:  {},
+	VisibilityPrivate: {},
+}
+
+func IsValidVisibility(v Visibility) bool {
+	_, ok := ValidVisibilities[v]
+	return ok
+}
+
+type LifecycleStatus string
+
+const (
+	LifecycleActive      LifecycleStatus = "active"
+	LifecycleHidden      LifecycleStatus = "hidden"
+	LifecycleDeleted     LifecycleStatus = "deleted"
+	LifecycleNeedsReview LifecycleStatus = "needs_review"
+)
+
+var ValidLifecycleStatuses = map[LifecycleStatus]struct{}{
+	LifecycleActive:      {},
+	LifecycleHidden:      {},
+	LifecycleDeleted:     {},
+	LifecycleNeedsReview: {},
+}
+
+func IsValidLifecycleStatus(v LifecycleStatus) bool {
+	_, ok := ValidLifecycleStatuses[v]
+	return ok
+}
+
+type QualityTier string
+
+const (
+	QualityTierUnreviewed         QualityTier = "unreviewed"
+	QualityTierPrivateOnly        QualityTier = "private_only"
+	QualityTierPublicVisible      QualityTier = "public_visible"
+	QualityTierRecommendCandidate QualityTier = "recommend_candidate"
+	QualityTierAICitable          QualityTier = "ai_citable"
+	QualityTierHighTrust          QualityTier = "high_trust"
+)
+
+var ValidQualityTiers = map[QualityTier]struct{}{
+	QualityTierUnreviewed:         {},
+	QualityTierPrivateOnly:        {},
+	QualityTierPublicVisible:      {},
+	QualityTierRecommendCandidate: {},
+	QualityTierAICitable:          {},
+	QualityTierHighTrust:          {},
+}
+
+var QualityTierRank = map[QualityTier]int{
+	QualityTierUnreviewed:         0,
+	QualityTierPrivateOnly:        1,
+	QualityTierPublicVisible:      2,
+	QualityTierRecommendCandidate: 3,
+	QualityTierAICitable:          4,
+	QualityTierHighTrust:          5,
+}
+
+func IsValidQualityTier(v QualityTier) bool {
+	_, ok := ValidQualityTiers[v]
+	return ok
+}
+
+func QualityTierAtLeast(v QualityTier, min QualityTier) bool {
+	rank, ok := QualityTierRank[v]
+	if !ok {
+		return false
+	}
+
+	minRank, ok := QualityTierRank[min]
+	if !ok {
+		return false
+	}
+
+	return rank >= minRank
+}
+
+type RecommendationStatus string
+
+const (
+	RecommendationEligible   RecommendationStatus = "eligible"
+	RecommendationIneligible RecommendationStatus = "ineligible"
+	RecommendationSuppressed RecommendationStatus = "suppressed"
+)
+
+var ValidRecommendationStatuses = map[RecommendationStatus]struct{}{
+	RecommendationEligible:   {},
+	RecommendationIneligible: {},
+	RecommendationSuppressed: {},
+}
+
+func IsValidRecommendationStatus(v RecommendationStatus) bool {
+	_, ok := ValidRecommendationStatuses[v]
+	return ok
+}
+
+type InterpretationStatus string
+
+const (
+	InterpretationNone    InterpretationStatus = "none"
+	InterpretationPending InterpretationStatus = "pending"
+	InterpretationReady   InterpretationStatus = "ready"
+	InterpretationStale   InterpretationStatus = "stale"
+	InterpretationFailed  InterpretationStatus = "failed"
+)
+
+type SourceScene string
+
+const (
+	SourceSceneNote SourceScene = "note"
+	SourceSceneChat SourceScene = "chat"
+)
+
+func CanDistributePublicly(visibility Visibility, lifecycle LifecycleStatus, qualityTier QualityTier, recommendationStatus RecommendationStatus) bool {
+	return visibility == VisibilityPublic &&
+		lifecycle == LifecycleActive &&
+		recommendationStatus == RecommendationEligible &&
+		QualityTierAtLeast(qualityTier, QualityTierRecommendCandidate)
+}
+
+func CanBeAICitedPublicly(visibility Visibility, lifecycle LifecycleStatus, qualityTier QualityTier, aiCitable bool) bool {
+	return visibility == VisibilityPublic &&
+		lifecycle == LifecycleActive &&
+		aiCitable &&
+		QualityTierAtLeast(qualityTier, QualityTierAICitable)
+}
+
+// ============================================================
 // Structs
 // ============================================================
 
@@ -186,6 +342,7 @@ type User struct {
 	ID              string  `json:"id"`
 	AppleUserID     *string `json:"-"`
 	Nickname        string  `json:"nickname"`
+	DisplayName     *string `json:"display_name,omitempty"`
 	AvatarURL       *string `json:"avatar_url,omitempty"`
 	Bio             *string `json:"bio,omitempty"`
 	Title           *string `json:"title,omitempty"`
@@ -195,32 +352,50 @@ type User struct {
 }
 
 type Experience struct {
-	ID                      string     `json:"id"`
-	AuthorID                string     `json:"author_id"`
-	Content                 string     `json:"content"`
-	Interpretation          *string    `json:"interpretation,omitempty"`
-	Domain                  Domain     `json:"domain"`
-	SubDomain               *string    `json:"sub_domain,omitempty"`
-	Topics                  string     `json:"topics"`
-	IsOfficial              bool       `json:"is_official"`
-	IsPrivate               bool       `json:"is_private"`
-	SourceLabel             *string    `json:"source_label,omitempty"`
-	LikeCount               int        `json:"like_count"`
-	BookmarkCount           int        `json:"bookmark_count"`
-	InterpretationGenerated bool       `json:"interpretation_generated"`
-	Status                  string     `json:"status"`
-	ReviewStatus            string     `json:"review_status"`
-	ReviewReason            *string    `json:"review_reason,omitempty"`
-	QualityScore            *float64   `json:"quality_score,omitempty"`
-	ScoreDetails            *string    `json:"score_details,omitempty"`
-	CreatorName             *string    `json:"creator_name,omitempty"`
-	SourceType              string     `json:"source_type"`
-	ScoreReason             *string    `json:"score_reason,omitempty"`
-	OriginalText            *string    `json:"original_text,omitempty"`
-	CreatedAt               time.Time  `json:"created_at"`
-	UpdatedAt               time.Time  `json:"updated_at"`
-	DeletedAt               *time.Time `json:"deleted_at,omitempty"`
-	RandomSort              float64    `json:"-"`
+	ID                        string     `json:"id"`
+	AuthorID                  string     `json:"author_id"`
+	OwnerUserID               *string    `json:"owner_user_id,omitempty"`
+	Content                   string     `json:"content"`
+	Interpretation            *string    `json:"interpretation,omitempty"`
+	ExperienceType            string     `json:"experience_type,omitempty"`
+	Visibility                string     `json:"visibility,omitempty"`
+	LifecycleStatus           string     `json:"lifecycle_status,omitempty"`
+	Domain                    Domain     `json:"domain"`
+	SubDomain                 *string    `json:"sub_domain,omitempty"`
+	Topics                    string     `json:"topics"`
+	Topic                     string     `json:"topic,omitempty"`
+	IsOfficial                bool       `json:"is_official"`
+	IsPrivate                 bool       `json:"is_private"`
+	SourceLabel               *string    `json:"source_label,omitempty"`
+	LikeCount                 int        `json:"like_count"`
+	BookmarkCount             int        `json:"bookmark_count"`
+	InspirationCount          int        `json:"inspiration_count,omitempty"`
+	CollectionCount           int        `json:"collection_count,omitempty"`
+	InterpretationGenerated   bool       `json:"interpretation_generated"`
+	InterpretationStatus      string     `json:"interpretation_status,omitempty"`
+	Status                    string     `json:"status"`
+	ReviewStatus              string     `json:"review_status"`
+	ReviewReason              *string    `json:"review_reason,omitempty"`
+	QualityScore              *float64   `json:"quality_score,omitempty"`
+	QualityTier               string     `json:"quality_tier,omitempty"`
+	ScoreDetails              *string    `json:"score_details,omitempty"`
+	CreatorName               *string    `json:"creator_name,omitempty"`
+	CreatorDisplayName        *string    `json:"creator_display_name,omitempty"`
+	SourceType                string     `json:"source_type"`
+	SourceScene               string     `json:"source_scene,omitempty"`
+	SourceChatTopicID         *string    `json:"source_chat_topic_id,omitempty"`
+	SourceChatMessageID       *string    `json:"source_chat_message_id,omitempty"`
+	SourceChatMessageSnapshot *string    `json:"source_chat_message_snapshot,omitempty"`
+	SourceReliability         string     `json:"source_reliability,omitempty"`
+	RecommendationStatus      string     `json:"recommendation_status,omitempty"`
+	AICitable                 bool       `json:"ai_citable,omitempty"`
+	StarRating                int        `json:"star_rating,omitempty"`
+	ScoreReason               *string    `json:"score_reason,omitempty"`
+	OriginalText              *string    `json:"original_text,omitempty"`
+	CreatedAt                 time.Time  `json:"created_at"`
+	UpdatedAt                 time.Time  `json:"updated_at"`
+	DeletedAt                 *time.Time `json:"deleted_at,omitempty"`
+	RandomSort                float64    `json:"-"`
 	// Joined fields
 	AuthorName   *string `json:"author_name,omitempty"`
 	AuthorAvatar *string `json:"author_avatar,omitempty"`
@@ -229,13 +404,331 @@ type Experience struct {
 	IsBookmarked bool    `json:"is_bookmarked"`
 }
 
+type ExperienceCard struct {
+	ID                             string `json:"id"`
+	OwnerUserID                    string `json:"owner_user_id,omitempty"`
+	Content                        string `json:"content,omitempty"`
+	ExperienceType                 string `json:"experience_type,omitempty"`
+	Visibility                     string `json:"visibility,omitempty"`
+	LifecycleStatus                string `json:"lifecycle_status,omitempty"`
+	Domain                         string `json:"domain,omitempty"`
+	SubDomain                      string `json:"sub_domain,omitempty"`
+	Topic                          string `json:"topic,omitempty"`
+	CreatorDisplayName             string `json:"creator_display_name,omitempty"`
+	InterpretationStatus           string `json:"interpretation_status,omitempty"`
+	InterpretationSummaryAvailable bool   `json:"interpretation_summary_available"`
+	QualityTier                    string `json:"quality_tier,omitempty"`
+	StarRating                     int    `json:"star_rating,omitempty"`
+	InspirationCount               int    `json:"inspiration_count,omitempty"`
+	CollectionCount                int    `json:"collection_count,omitempty"`
+	IsCollected                    bool   `json:"is_collected"`
+	IsInspired                     bool   `json:"is_inspired"`
+	UnavailableReason              string `json:"unavailable_reason,omitempty"`
+}
+
+type ExperienceEventRequest struct {
+	EventType     string         `json:"event_type"`
+	SourceContext string         `json:"source_context,omitempty"`
+	ContextID     string         `json:"context_id,omitempty"`
+	Metadata      map[string]any `json:"metadata,omitempty"`
+}
+
+type FeedPage struct {
+	Data       []ExperienceCard `json:"data"`
+	NextCursor string           `json:"next_cursor"`
+	SessionID  string           `json:"session_id"`
+	HasMore    bool             `json:"has_more"`
+}
+
+type AssetStats struct {
+	MyExperiences      int `json:"my_experiences"`
+	Collections        int `json:"collections"`
+	MonthAdded         int `json:"month_added"`
+	PublicExperiences  int `json:"public_experiences"`
+	PrivateExperiences int `json:"private_experiences"`
+	FromNote           int `json:"from_note"`
+	FromChat           int `json:"from_chat"`
+}
+
+type ContributionStats struct {
+	InspiredUsers      int `json:"inspired_users"`
+	CollectedCount     int `json:"collected_count"`
+	MonthInspiredUsers int `json:"month_inspired_users"`
+	MonthCollected     int `json:"month_collected"`
+}
+
+type ChangeStats struct {
+	ChatTopics           int `json:"chat_topics"`
+	ClearerCount         int `json:"clearer_count"`
+	MonthChatExperiences int `json:"month_chat_experiences"`
+}
+
+type RecentHarvestStats struct {
+	Range           string `json:"range"`
+	NoteAdded       int    `json:"note_added"`
+	ChatExperiences int    `json:"chat_experiences"`
+	InspiredUsers   int    `json:"inspired_users"`
+	CollectedCount  int    `json:"collected_count"`
+}
+
+type RespondedExperienceCard struct {
+	ID               string    `json:"id"`
+	Content          string    `json:"content"`
+	Domain           string    `json:"domain"`
+	SubDomain        string    `json:"sub_domain,omitempty"`
+	StarRating       int       `json:"star_rating"`
+	InspirationCount int       `json:"inspiration_count"`
+	CollectionCount  int       `json:"collection_count"`
+	LastRespondedAt  time.Time `json:"last_responded_at"`
+}
+
+type MeProfile struct {
+	DisplayName        string   `json:"display_name"`
+	CareerStage        string   `json:"career_stage,omitempty"`
+	RelationshipStatus string   `json:"relationship_status,omitempty"`
+	IsParent           *bool    `json:"is_parent,omitempty"`
+	CommonIssues       []string `json:"common_issues"`
+	FreeDescription    string   `json:"free_description,omitempty"`
+	ProfileVersion     int      `json:"profile_version"`
+}
+
+type MeProfilePatch struct {
+	DisplayName        *string   `json:"display_name"`
+	CareerStage        *string   `json:"career_stage"`
+	RelationshipStatus *string   `json:"relationship_status"`
+	IsParent           *bool     `json:"is_parent"`
+	CommonIssues       *[]string `json:"common_issues"`
+	FreeDescription    *string   `json:"free_description"`
+}
+
+type ChatTopic struct {
+	ID           string     `json:"id"`
+	Status       string     `json:"status"`
+	Title        string     `json:"title"`
+	Domain       string     `json:"domain,omitempty"`
+	SubDomain    string     `json:"sub_domain,omitempty"`
+	Topic        string     `json:"topic,omitempty"`
+	ClarityScore *float64   `json:"clarity_score,omitempty"`
+	Summary      string     `json:"summary,omitempty"`
+	LastOpenedAt *time.Time `json:"last_opened_at,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+}
+
+type ChatTopicPage struct {
+	Data       []ChatTopic `json:"data"`
+	NextCursor string      `json:"next_cursor"`
+	HasMore    bool        `json:"has_more"`
+}
+
+type ChatTempSession struct {
+	ID              string     `json:"id"`
+	Status          string     `json:"status"`
+	ForcedNewTopic  bool       `json:"forced_new_topic"`
+	PromotedTopicID *string    `json:"promoted_topic_id,omitempty"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	DiscardedAt     *time.Time `json:"discarded_at,omitempty"`
+	PurgeAfter      *time.Time `json:"purge_after,omitempty"`
+}
+
+type CreateChatTopicRequest struct {
+	Title     string `json:"title"`
+	Domain    string `json:"domain"`
+	SubDomain string `json:"sub_domain"`
+	Topic     string `json:"topic"`
+}
+
+type UpdateChatTopicRequest struct {
+	Title     *string `json:"title"`
+	Domain    *string `json:"domain"`
+	SubDomain *string `json:"sub_domain"`
+	Topic     *string `json:"topic"`
+}
+
+type ChatScopeKind string
+
+const (
+	ChatScopeTopic       ChatScopeKind = "topic"
+	ChatScopeTempSession ChatScopeKind = "temp_session"
+)
+
+type ChatMessageScope struct {
+	Kind ChatScopeKind `json:"kind"`
+	ID   string        `json:"id"`
+}
+
+type ChatScopeContext struct {
+	Scope        ChatMessageScope `json:"scope"`
+	SessionState string           `json:"session_state"`
+	Topic        *ChatTopic       `json:"topic,omitempty"`
+	TempSession  *ChatTempSession `json:"temp_session,omitempty"`
+}
+
+type ChatMessage struct {
+	ID                      string    `json:"id"`
+	UserID                  string    `json:"user_id,omitempty"`
+	TopicID                 *string   `json:"topic_id,omitempty"`
+	TempSessionID           *string   `json:"temp_session_id,omitempty"`
+	Role                    string    `json:"role"`
+	Content                 string    `json:"content"`
+	Status                  string    `json:"status"`
+	RiskLevel               string    `json:"risk_level"`
+	ClientMessageID         *string   `json:"client_message_id,omitempty"`
+	ReferencedExperienceIDs []string  `json:"referenced_experience_ids"`
+	CreatedAt               time.Time `json:"created_at"`
+}
+
+type ChatMessagePage struct {
+	Data       []ChatMessage `json:"data"`
+	NextCursor string        `json:"next_cursor"`
+	HasMore    bool          `json:"has_more"`
+}
+
+type SaveChatMessageRequest struct {
+	Scope                   ChatMessageScope `json:"scope"`
+	Role                    string           `json:"role"`
+	Content                 string           `json:"content"`
+	Status                  string           `json:"status"`
+	RiskLevel               string           `json:"risk_level"`
+	ClientMessageID         string           `json:"client_message_id,omitempty"`
+	ReferencedExperienceIDs []string         `json:"referenced_experience_ids,omitempty"`
+	Metadata                map[string]any   `json:"metadata,omitempty"`
+}
+
+type SendChatMessageRequest struct {
+	Content         string `json:"content"`
+	ClientMessageID string `json:"client_message_id"`
+}
+
+type ChatPreClassification struct {
+	EmotionLevel        string   `json:"emotion_level"`
+	UserIntent          string   `json:"user_intent"`
+	RiskLevel           string   `json:"risk_level"`
+	RiskReasons         []string `json:"risk_reasons"`
+	ShouldAvoidCitation bool     `json:"should_avoid_citation"`
+}
+
+type ChatCandidateExperience struct {
+	ExperienceID         string `json:"experience_id"`
+	Content              string `json:"content"`
+	CreatorName          string `json:"creator_name"`
+	SourceRelation       string `json:"source_relation"`
+	Visibility           string `json:"visibility"`
+	QualityTier          string `json:"quality_tier"`
+	SourceReliability    string `json:"source_reliability,omitempty"`
+	SourceDerivationType string `json:"source_derivation_type,omitempty"`
+	CitationPolicy       string `json:"citation_policy"`
+	RelevanceReason      string `json:"relevance_reason"`
+	IsCollected          bool   `json:"is_collected"`
+}
+
+type ChatCitationDecision struct {
+	ExperienceID     string `json:"experience_id"`
+	UsageType        string `json:"usage_type"`
+	ShowCard         bool   `json:"show_card"`
+	CitationSentence string `json:"citation_sentence"`
+	ReasonCode       string `json:"reason_code"`
+	Strength         string `json:"strength"`
+}
+
+type ChatReferenceCard struct {
+	ExperienceID     string `json:"experience_id"`
+	Content          string `json:"content"`
+	IsCollected      bool   `json:"is_collected"`
+	CitationType     string `json:"citation_type"`
+	CitationSentence string `json:"citation_sentence,omitempty"`
+	ReasonCode       string `json:"reason_code,omitempty"`
+}
+
+type ChatNoteSuggestion struct {
+	ShouldShow       bool     `json:"should_show"`
+	SuggestedText    *string  `json:"suggested_text,omitempty"`
+	SourceMessageIDs []string `json:"source_message_ids"`
+}
+
+type ChatGatewayRequest struct {
+	UserID               string                    `json:"user_id"`
+	UserMessageID        string                    `json:"message_id"`
+	UserMessage          string                    `json:"user_message"`
+	SessionState         string                    `json:"session_state"`
+	Scope                ChatMessageScope          `json:"scope"`
+	Topic                *ChatTopic                `json:"topic,omitempty"`
+	RecentMessages       []ChatMessage             `json:"recent_messages"`
+	PreClassification    ChatPreClassification     `json:"pre_classification"`
+	CandidateExperiences []ChatCandidateExperience `json:"candidate_experiences"`
+	ContextFlags         []string                  `json:"context_flags"`
+	Limits               map[string]int            `json:"limits"`
+}
+
+type ChatGatewayResponse struct {
+	ReplyText      string                 `json:"reply_text"`
+	Citations      []ChatCitationDecision `json:"citations"`
+	NoteSuggestion *ChatNoteSuggestion    `json:"note_suggestion,omitempty"`
+	EmotionLevel   string                 `json:"emotion_level"`
+	RiskLevel      string                 `json:"risk_level"`
+	ReplyMode      string                 `json:"reply_mode,omitempty"`
+	Confidence     float64                `json:"confidence,omitempty"`
+	Warnings       []string               `json:"warnings,omitempty"`
+}
+
+type SendChatMessageResponse struct {
+	UserMessage    ChatMessage         `json:"user_message"`
+	Message        ChatMessage         `json:"message"`
+	ReferenceCards []ChatReferenceCard `json:"reference_cards"`
+	NoteSuggestion ChatNoteSuggestion  `json:"note_suggestion"`
+	Retryable      bool                `json:"retryable,omitempty"`
+}
+
+type ExperienceRewriteRequest struct {
+	Content               string     `json:"content"`
+	Source                string     `json:"source"`
+	SourceMessageIDs      []string   `json:"source_message_ids"`
+	DefaultVisibility     Visibility `json:"default_visibility"`
+	UserSelectedDomain    Domain     `json:"user_selected_domain"`
+	UserSelectedSubDomain SubDomain  `json:"user_selected_sub_domain"`
+	TopicContext          string     `json:"topic_context"`
+}
+
+type ExperienceRewriteGatewayRequest struct {
+	UserID                string     `json:"user_id"`
+	Source                string     `json:"source"`
+	RawText               string     `json:"raw_text"`
+	SourceMessageIDs      []string   `json:"source_message_ids"`
+	DefaultVisibility     Visibility `json:"default_visibility"`
+	UserSelectedDomain    Domain     `json:"user_selected_domain,omitempty"`
+	UserSelectedSubDomain SubDomain  `json:"user_selected_sub_domain,omitempty"`
+	TopicContext          string     `json:"topic_context,omitempty"`
+}
+
+type ExperienceRewriteGatewayResponse struct {
+	CanRewrite         bool     `json:"can_rewrite"`
+	RewrittenContent   string   `json:"rewritten_content"`
+	Domain             string   `json:"domain,omitempty"`
+	SubDomain          string   `json:"sub_domain,omitempty"`
+	Topic              string   `json:"topic,omitempty"`
+	RewriteLevel       string   `json:"rewrite_level,omitempty"`
+	SourcePreservation string   `json:"source_preservation,omitempty"`
+	NeedsUserEdit      bool     `json:"needs_user_edit"`
+	Reason             string   `json:"reason,omitempty"`
+	Confidence         float64  `json:"confidence,omitempty"`
+	Warnings           []string `json:"warnings"`
+}
+
 type CreateExperienceRequest struct {
-	Content        string    `json:"content" binding:"required"`
-	Domain         Domain    `json:"domain"`
-	SubDomain      SubDomain `json:"sub_domain"`
-	Interpretation string    `json:"interpretation"`
-	Topics         string    `json:"topics"`
-	IsPrivate      bool      `json:"is_private"`
+	Content                   string     `json:"content" binding:"required"`
+	Visibility                Visibility `json:"visibility"`
+	Domain                    Domain     `json:"domain"`
+	SubDomain                 SubDomain  `json:"sub_domain"`
+	Interpretation            string     `json:"interpretation"`
+	Topics                    string     `json:"topics"`
+	Topic                     string     `json:"topic"`
+	SourceScene               string     `json:"source_scene"`
+	SourceChatTopicID         string     `json:"source_chat_topic_id"`
+	SourceChatMessageID       string     `json:"source_chat_message_id"`
+	SourceChatMessageSnapshot string     `json:"source_chat_message_snapshot"`
+	SourceMessageIDs          []string   `json:"source_message_ids"`
+	IsPrivate                 bool       `json:"is_private"`
 }
 
 type ExperienceListQuery struct {

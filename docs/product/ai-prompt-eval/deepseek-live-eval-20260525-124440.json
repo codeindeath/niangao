@@ -1,0 +1,1803 @@
+{
+  "generated_at": "2026-05-25T12:44:40",
+  "model": "deepseek-v4-pro",
+  "base_url": "https://api.deepseek.com",
+  "spec_path": "docs/product/niangao-ai-prompt-production-spec-v4.md",
+  "summary": {
+    "total": 33,
+    "passed": 31,
+    "failed": 2
+  },
+  "results": [
+    {
+      "case_id": "classify_003",
+      "function_type": "experience_classify",
+      "category": "classification",
+      "title": "固定领域子领域分类",
+      "tags": [
+        "taxonomy",
+        "意义",
+        "情绪"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/classification.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 3447,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 865,
+        "completion_tokens": 111,
+        "total_tokens": 976,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 865
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": \"意义\",\n    \"sub_domain\": \"情绪\",\n    \"topic\": \"情绪管理\",\n    \"confidence\": 0.9,\n    \"alternative\": [],\n    \"reason\": \"经验强调情绪上头时先别急着行动，属于处理情绪的策略，符合意义/情绪的边界锚点。\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": "意义",
+          "sub_domain": "情绪",
+          "topic": "情绪管理",
+          "confidence": 0.9,
+          "alternative": [],
+          "reason": "经验强调情绪上头时先别急着行动，属于处理情绪的策略，符合意义/情绪的边界锚点。"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "classify_004",
+      "function_type": "experience_classify",
+      "category": "classification",
+      "title": "固定领域子领域分类",
+      "tags": [
+        "taxonomy",
+        "意义",
+        "使命"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/classification.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2872,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 864,
+        "completion_tokens": 113,
+        "total_tokens": 977,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 96
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": \"意义\",\n    \"sub_domain\": \"使命\",\n    \"topic\": \"长期工作方向\",\n    \"confidence\": 0.9,\n    \"alternative\": [],\n    \"reason\": \"经验强调选择工作时明确长期愿意解决的问题，属于长期责任和方向，符合意义/使命的边界锚点。\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": "意义",
+          "sub_domain": "使命",
+          "topic": "长期工作方向",
+          "confidence": 0.9,
+          "alternative": [],
+          "reason": "经验强调选择工作时明确长期愿意解决的问题，属于长期责任和方向，符合意义/使命的边界锚点。"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "classify_009",
+      "function_type": "experience_classify",
+      "category": "classification",
+      "title": "固定领域子领域分类",
+      "tags": [
+        "taxonomy",
+        "认知",
+        "信息"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/classification.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2864,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 863,
+        "completion_tokens": 113,
+        "total_tokens": 976,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 95
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": \"认知\",\n    \"sub_domain\": \"信息\",\n    \"topic\": \"信息与判断\",\n    \"confidence\": 0.9,\n    \"alternative\": [],\n    \"reason\": \"经验强调不要用刷信息替代形成判断，核心是信息摄入与判断的关系，属于认知/信息领域。\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": "认知",
+          "sub_domain": "信息",
+          "topic": "信息与判断",
+          "confidence": 0.9,
+          "alternative": [],
+          "reason": "经验强调不要用刷信息替代形成判断，核心是信息摄入与判断的关系，属于认知/信息领域。"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "classify_028",
+      "function_type": "experience_classify",
+      "category": "classification",
+      "title": "固定领域子领域分类",
+      "tags": [
+        "taxonomy",
+        "生活",
+        "养护"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/classification.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2867,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 864,
+        "completion_tokens": 102,
+        "total_tokens": 966,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 96
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": \"生活\",\n    \"sub_domain\": \"养护\",\n    \"topic\": \"房间整理\",\n    \"confidence\": 0.9,\n    \"alternative\": [],\n    \"reason\": \"经验涉及整理房间的具体方法，属于生活领域的养护子领域。\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": "生活",
+          "sub_domain": "养护",
+          "topic": "房间整理",
+          "confidence": 0.9,
+          "alternative": [],
+          "reason": "经验涉及整理房间的具体方法，属于生活领域的养护子领域。"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "classify_029",
+      "function_type": "experience_classify",
+      "category": "classification",
+      "title": "固定领域子领域分类",
+      "tags": [
+        "taxonomy",
+        "生活",
+        "购物"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/classification.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2557,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 866,
+        "completion_tokens": 105,
+        "total_tokens": 971,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 98
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": \"生活\",\n    \"sub_domain\": \"购物\",\n    \"topic\": \"消费决策\",\n    \"confidence\": 0.9,\n    \"alternative\": [],\n    \"reason\": \"经验关于购物前的自我提问，区分需求与焦虑，属于消费决策范畴。\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": "生活",
+          "sub_domain": "购物",
+          "topic": "消费决策",
+          "confidence": 0.9,
+          "alternative": [],
+          "reason": "经验关于购物前的自我提问，区分需求与焦虑，属于消费决策范畴。"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "classify_036",
+      "function_type": "experience_classify",
+      "category": "classification",
+      "title": "扩展分类样例",
+      "tags": [
+        "taxonomy_extra",
+        "工作",
+        "效率"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/classification.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 3072,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 864,
+        "completion_tokens": 117,
+        "total_tokens": 981,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 96
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": \"工作\",\n    \"sub_domain\": \"效率\",\n    \"topic\": \"成长与不适的区分\",\n    \"confidence\": 0.85,\n    \"alternative\": [],\n    \"reason\": \"经验涉及工作中对不适感的判断，强调不要混淆成长与单纯的不舒服，属于工作场景下的效率与自我管理。\"\n  },\n  \"confidence\": 0.85,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": "工作",
+          "sub_domain": "效率",
+          "topic": "成长与不适的区分",
+          "confidence": 0.85,
+          "alternative": [],
+          "reason": "经验涉及工作中对不适感的判断，强调不要混淆成长与单纯的不舒服，属于工作场景下的效率与自我管理。"
+        },
+        "confidence": 0.85,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "classify_039",
+      "function_type": "experience_classify",
+      "category": "classification",
+      "title": "扩展分类样例",
+      "tags": [
+        "taxonomy_extra",
+        "意义",
+        "自我"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/classification.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2557,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 867,
+        "completion_tokens": 108,
+        "total_tokens": 975,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 99
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": \"意义\",\n    \"sub_domain\": \"自我\",\n    \"topic\": \"生活方式选择\",\n    \"confidence\": 0.9,\n    \"alternative\": [],\n    \"reason\": \"讨论生活方式选择与消耗，涉及自我方向与活法选择，属于意义/自我范畴。\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": "意义",
+          "sub_domain": "自我",
+          "topic": "生活方式选择",
+          "confidence": 0.9,
+          "alternative": [],
+          "reason": "讨论生活方式选择与消耗，涉及自我方向与活法选择，属于意义/自我范畴。"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "classify_041",
+      "function_type": "experience_classify",
+      "category": "classification",
+      "title": "扩展分类样例",
+      "tags": [
+        "taxonomy_extra",
+        "意义",
+        "使命"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/classification.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2996,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 867,
+        "completion_tokens": 122,
+        "total_tokens": 989,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 99
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": \"意义\",\n    \"sub_domain\": \"使命\",\n    \"topic\": \"反复付出的方向\",\n    \"confidence\": 0.9,\n    \"alternative\": [],\n    \"reason\": \"经验讨论意义来源于长期愿意反复付出的方向，符合意义/使命的边界锚点：长期愿意解决什么问题、反复付出的方向、使命感和长期责任。\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": "意义",
+          "sub_domain": "使命",
+          "topic": "反复付出的方向",
+          "confidence": 0.9,
+          "alternative": [],
+          "reason": "经验讨论意义来源于长期愿意反复付出的方向，符合意义/使命的边界锚点：长期愿意解决什么问题、反复付出的方向、使命感和长期责任。"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "classify_044",
+      "function_type": "experience_classify",
+      "category": "classification",
+      "title": "扩展分类样例",
+      "tags": [
+        "taxonomy_extra",
+        "生活",
+        "购物"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/classification.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2840,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 867,
+        "completion_tokens": 106,
+        "total_tokens": 973,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 99
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": \"生活\",\n    \"sub_domain\": \"购物\",\n    \"topic\": \"冲动消费\",\n    \"confidence\": 0.9,\n    \"alternative\": [],\n    \"reason\": \"经验关于购物前的等待策略，旨在控制冲动消费，符合生活/购物领域。\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": "生活",
+          "sub_domain": "购物",
+          "topic": "冲动消费",
+          "confidence": 0.9,
+          "alternative": [],
+          "reason": "经验关于购物前的等待策略，旨在控制冲动消费，符合生活/购物领域。"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_036",
+      "function_type": "experience_extract",
+      "category": "content_production",
+      "title": "非经验素材拒绝提取",
+      "tags": [
+        "extract",
+        "reject"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 11982,
+      "finish_reason": "stop",
+      "reasoning_content_len": 912,
+      "usage": {
+        "prompt_tokens": 1285,
+        "completion_tokens": 457,
+        "total_tokens": 1742,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 393
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 1029
+      },
+      "raw_content": "{\"schema_version\":\"1.1\",\"function_type\":\"experience_extract\",\"result\":{\"candidates\":[],\"discarded_examples\":[{\"text\":\"他连续十年每天五点起床训练，后来拿了冠军。\",\"reason\":\"personal_story\"}]},\"confidence\":0.0,\"warnings\":[]}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_extract",
+        "result": {
+          "candidates": [],
+          "discarded_examples": [
+            {
+              "text": "他连续十年每天五点起床训练，后来拿了冠军。",
+              "reason": "personal_story"
+            }
+          ]
+        },
+        "confidence": 0.0,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_045",
+      "function_type": "experience_extract",
+      "category": "content_production",
+      "title": "非经验素材拒绝提取",
+      "tags": [
+        "extract",
+        "reject"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 16693,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1598,
+      "usage": {
+        "prompt_tokens": 1281,
+        "completion_tokens": 746,
+        "total_tokens": 2027,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 637
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 897
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_extract\",\n  \"result\": {\n    \"candidates\": [],\n    \"discarded_examples\": [\n      {\n        \"text\": \"坚持就会成功\",\n        \"reason\": \"unsupported_inference\"\n      },\n      {\n        \"text\": \"这家店的招牌菜是红烧肉\",\n        \"reason\": \"objective_description\"\n      }\n    ]\n  },\n  \"confidence\": 0.1,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_extract",
+        "result": {
+          "candidates": [],
+          "discarded_examples": [
+            {
+              "text": "坚持就会成功",
+              "reason": "unsupported_inference"
+            },
+            {
+              "text": "这家店的招牌菜是红烧肉",
+              "reason": "objective_description"
+            }
+          ]
+        },
+        "confidence": 0.1,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_046",
+      "function_type": "experience_extract",
+      "category": "content_production",
+      "title": "高风险观点可保留但必须标风险",
+      "tags": [
+        "extract",
+        "high_risk"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 25803,
+      "finish_reason": "stop",
+      "reasoning_content_len": 2320,
+      "usage": {
+        "prompt_tokens": 1275,
+        "completion_tokens": 1234,
+        "total_tokens": 2509,
+        "prompt_tokens_details": {
+          "cached_tokens": 1152
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 993
+        },
+        "prompt_cache_hit_tokens": 1152,
+        "prompt_cache_miss_tokens": 123
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_extract\",\n  \"result\": {\n    \"candidates\": [\n      {\n        \"candidate_content\": \"创业就是 all in，别留退路。\",\n        \"creator_name\": \"观点创作者\",\n        \"creator_attribution_type\": \"speaker\",\n        \"source_derivation_type\": \"direct_quote\",\n        \"source_excerpt\": \"创业就是 all in，别留退路。\",\n        \"source_location\": \"访谈片段\",\n        \"preserve_original_score\": 1.0,\n        \"extraction_confidence\": 0.9,\n        \"attitude_type\": \"attitude\",\n        \"risk_notes\": [\n          \"此原则为个人经验表达，无具体适用条件，可能不适合普通人，存在财务、心理等高风险，易被误用。\"\n        ]\n      }\n    ],\n    \"discarded_examples\": []\n  },\n  \"confidence\": 0.9,\n  \"warnings\": [\n    \"素材中该原则缺乏适用条件，且由上下文提示可能被误用。\"\n  ]\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_extract",
+        "result": {
+          "candidates": [
+            {
+              "candidate_content": "创业就是 all in，别留退路。",
+              "creator_name": "观点创作者",
+              "creator_attribution_type": "speaker",
+              "source_derivation_type": "direct_quote",
+              "source_excerpt": "创业就是 all in，别留退路。",
+              "source_location": "访谈片段",
+              "preserve_original_score": 1.0,
+              "extraction_confidence": 0.9,
+              "attitude_type": "attitude",
+              "risk_notes": [
+                "此原则为个人经验表达，无具体适用条件，可能不适合普通人，存在财务、心理等高风险，易被误用。"
+              ]
+            }
+          ],
+          "discarded_examples": []
+        },
+        "confidence": 0.9,
+        "warnings": [
+          "素材中该原则缺乏适用条件，且由上下文提示可能被误用。"
+        ]
+      }
+    },
+    {
+      "case_id": "content_055",
+      "function_type": "experience_extract",
+      "category": "content_production",
+      "title": "高风险观点可保留但必须标风险",
+      "tags": [
+        "extract",
+        "high_risk"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 8906,
+      "finish_reason": "stop",
+      "reasoning_content_len": 454,
+      "usage": {
+        "prompt_tokens": 1273,
+        "completion_tokens": 368,
+        "total_tokens": 1641,
+        "prompt_tokens_details": {
+          "cached_tokens": 1152
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 212
+        },
+        "prompt_cache_hit_tokens": 1152,
+        "prompt_cache_miss_tokens": 121
+      },
+      "raw_content": "{\"schema_version\":\"1.1\",\"function_type\":\"experience_extract\",\"result\":{\"candidates\":[{\"candidate_content\":\"工作不爽就走，解释都是消耗。\",\"creator_name\":\"观点创作者\",\"creator_attribution_type\":\"speaker\",\"source_derivation_type\":\"expressed_principle\",\"source_excerpt\":\"工作不爽就走，解释都是消耗。\",\"source_location\":\"访谈片段\",\"preserve_original_score\":1.0,\"extraction_confidence\":0.9,\"attitude_type\":\"attitude\",\"risk_notes\":[\"高风险：涉及职业离职决策，未提供适用条件，容易被年轻人误用，需谨慎判断个人情况。\"]}],\"discarded_examples\":[]},\"confidence\":0.9,\"warnings\":[]}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_extract",
+        "result": {
+          "candidates": [
+            {
+              "candidate_content": "工作不爽就走，解释都是消耗。",
+              "creator_name": "观点创作者",
+              "creator_attribution_type": "speaker",
+              "source_derivation_type": "expressed_principle",
+              "source_excerpt": "工作不爽就走，解释都是消耗。",
+              "source_location": "访谈片段",
+              "preserve_original_score": 1.0,
+              "extraction_confidence": 0.9,
+              "attitude_type": "attitude",
+              "risk_notes": [
+                "高风险：涉及职业离职决策，未提供适用条件，容易被年轻人误用，需谨慎判断个人情况。"
+              ]
+            }
+          ],
+          "discarded_examples": []
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_061",
+      "function_type": "experience_review",
+      "category": "content_production",
+      "title": "经验质量审计",
+      "tags": [
+        "review",
+        "auto_import"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 21346,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1513,
+      "usage": {
+        "prompt_tokens": 1067,
+        "completion_tokens": 951,
+        "total_tokens": 2018,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 694
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1067
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_review\",\n  \"result\": {\n    \"decision\": \"auto_import\",\n    \"delete_category\": null,\n    \"cleaned_content\": \"不要把别人的速度当成自己的方向。\",\n    \"cleaning_level\": \"none\",\n    \"ai_quality_score\": 8.0,\n    \"score_breakdown\": {\n      \"clarity\": 9,\n      \"transferability\": 9,\n      \"judgment\": 8,\n      \"boundary\": 7,\n      \"non_obviousness\": 7,\n      \"attitude\": 9,\n      \"usefulness\": 8\n    },\n    \"quality_tier\": \"ai_citable\",\n    \"ai_citable\": true,\n    \"recommendation_eligible\": true,\n    \"misuse_risk_level\": \"low\",\n    \"misuse_risk_notes\": [],\n    \"review_reason\": \"清晰且可迁移的活法原则，有明确判断和态度，适合推荐和AI引用。\",\n    \"needs_human_attention\": false\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "auto_import",
+          "delete_category": null,
+          "cleaned_content": "不要把别人的速度当成自己的方向。",
+          "cleaning_level": "none",
+          "ai_quality_score": 8.0,
+          "score_breakdown": {
+            "clarity": 9,
+            "transferability": 9,
+            "judgment": 8,
+            "boundary": 7,
+            "non_obviousness": 7,
+            "attitude": 9,
+            "usefulness": 8
+          },
+          "quality_tier": "ai_citable",
+          "ai_citable": true,
+          "recommendation_eligible": true,
+          "misuse_risk_level": "low",
+          "misuse_risk_notes": [],
+          "review_reason": "清晰且可迁移的活法原则，有明确判断和态度，适合推荐和AI引用。",
+          "needs_human_attention": false
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_063",
+      "function_type": "experience_review",
+      "category": "content_production",
+      "title": "经验质量审计",
+      "tags": [
+        "review",
+        "candidate_review"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 13881,
+      "finish_reason": "stop",
+      "reasoning_content_len": 875,
+      "usage": {
+        "prompt_tokens": 1069,
+        "completion_tokens": 649,
+        "total_tokens": 1718,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 371
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1069
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_review\",\n  \"result\": {\n    \"decision\": \"candidate_review\",\n    \"delete_category\": null,\n    \"cleaned_content\": \"年轻人就应该裸辞去追梦。\",\n    \"cleaning_level\": \"none\",\n    \"ai_quality_score\": 5.0,\n    \"score_breakdown\": {\n      \"clarity\": 8,\n      \"transferability\": 3,\n      \"judgment\": 6,\n      \"boundary\": 2,\n      \"non_obviousness\": 4,\n      \"attitude\": 7,\n      \"usefulness\": 3\n    },\n    \"quality_tier\": \"public_visible\",\n    \"ai_citable\": false,\n    \"recommendation_eligible\": false,\n    \"misuse_risk_level\": \"high\",\n    \"misuse_risk_notes\": [\n      \"可能误导年轻人不考虑现实情况冲动辞职\",\n      \"缺乏对个人财务状况和风险的评估指导\"\n    ],\n    \"review_reason\": \"高风险有态度观点，需人工复核，不建议 AI 引用或强推荐\",\n    \"needs_human_attention\": true\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "candidate_review",
+          "delete_category": null,
+          "cleaned_content": "年轻人就应该裸辞去追梦。",
+          "cleaning_level": "none",
+          "ai_quality_score": 5.0,
+          "score_breakdown": {
+            "clarity": 8,
+            "transferability": 3,
+            "judgment": 6,
+            "boundary": 2,
+            "non_obviousness": 4,
+            "attitude": 7,
+            "usefulness": 3
+          },
+          "quality_tier": "public_visible",
+          "ai_citable": false,
+          "recommendation_eligible": false,
+          "misuse_risk_level": "high",
+          "misuse_risk_notes": [
+            "可能误导年轻人不考虑现实情况冲动辞职",
+            "缺乏对个人财务状况和风险的评估指导"
+          ],
+          "review_reason": "高风险有态度观点，需人工复核，不建议 AI 引用或强推荐",
+          "needs_human_attention": true
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_071",
+      "function_type": "experience_review",
+      "category": "content_production",
+      "title": "经验质量审计",
+      "tags": [
+        "review",
+        "auto_import"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 15358,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1001,
+      "usage": {
+        "prompt_tokens": 1067,
+        "completion_tokens": 710,
+        "total_tokens": 1777,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 456
+        },
+        "prompt_cache_hit_tokens": 1024,
+        "prompt_cache_miss_tokens": 43
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_review\",\n  \"result\": {\n    \"decision\": \"auto_import\",\n    \"delete_category\": null,\n    \"cleaned_content\": \"不要把别人的速度当成自己的方向。\",\n    \"cleaning_level\": \"none\",\n    \"ai_quality_score\": 7.8,\n    \"score_breakdown\": {\n      \"clarity\": 8,\n      \"transferability\": 9,\n      \"judgment\": 8,\n      \"boundary\": 6,\n      \"non_obviousness\": 7,\n      \"attitude\": 9,\n      \"usefulness\": 8\n    },\n    \"quality_tier\": \"recommend_candidate\",\n    \"ai_citable\": true,\n    \"recommendation_eligible\": true,\n    \"misuse_risk_level\": \"low\",\n    \"misuse_risk_notes\": [],\n    \"review_reason\": \"表达清晰，态度鲜明，可迁移性强，提供了有效的自我节奏判断原则。\",\n    \"needs_human_attention\": false\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "auto_import",
+          "delete_category": null,
+          "cleaned_content": "不要把别人的速度当成自己的方向。",
+          "cleaning_level": "none",
+          "ai_quality_score": 7.8,
+          "score_breakdown": {
+            "clarity": 8,
+            "transferability": 9,
+            "judgment": 8,
+            "boundary": 6,
+            "non_obviousness": 7,
+            "attitude": 9,
+            "usefulness": 8
+          },
+          "quality_tier": "recommend_candidate",
+          "ai_citable": true,
+          "recommendation_eligible": true,
+          "misuse_risk_level": "low",
+          "misuse_risk_notes": [],
+          "review_reason": "表达清晰，态度鲜明，可迁移性强，提供了有效的自我节奏判断原则。",
+          "needs_human_attention": false
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_072",
+      "function_type": "experience_review",
+      "category": "content_production",
+      "title": "经验质量审计",
+      "tags": [
+        "review",
+        "auto_import"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 20444,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1350,
+      "usage": {
+        "prompt_tokens": 1085,
+        "completion_tokens": 879,
+        "total_tokens": 1964,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 688
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 189
+      },
+      "raw_content": "{\"schema_version\":\"1.1\",\"function_type\":\"experience_review\",\"result\":{\"decision\":\"auto_import\",\"delete_category\":null,\"cleaned_content\":\"朋友帮忙前先说清边界，比事后靠默契更不伤关系。\",\"cleaning_level\":\"none\",\"ai_quality_score\":7.5,\"score_breakdown\":{\"clarity\":9,\"transferability\":8,\"judgment\":8,\"boundary\":5,\"non_obviousness\":6,\"attitude\":7,\"usefulness\":8},\"quality_tier\":\"recommend_candidate\",\"ai_citable\":false,\"recommendation_eligible\":true,\"misuse_risk_level\":\"low\",\"misuse_risk_notes\":[],\"review_reason\":\"清晰的实践原则，有明确判断和可迁移性，适合推荐。\",\"needs_human_attention\":false},\"confidence\":0.9,\"warnings\":[]}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "auto_import",
+          "delete_category": null,
+          "cleaned_content": "朋友帮忙前先说清边界，比事后靠默契更不伤关系。",
+          "cleaning_level": "none",
+          "ai_quality_score": 7.5,
+          "score_breakdown": {
+            "clarity": 9,
+            "transferability": 8,
+            "judgment": 8,
+            "boundary": 5,
+            "non_obviousness": 6,
+            "attitude": 7,
+            "usefulness": 8
+          },
+          "quality_tier": "recommend_candidate",
+          "ai_citable": false,
+          "recommendation_eligible": true,
+          "misuse_risk_level": "low",
+          "misuse_risk_notes": [],
+          "review_reason": "清晰的实践原则，有明确判断和可迁移性，适合推荐。",
+          "needs_human_attention": false
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_073",
+      "function_type": "experience_review",
+      "category": "content_production",
+      "title": "经验质量审计",
+      "tags": [
+        "review",
+        "candidate_review"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 15393,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1142,
+      "usage": {
+        "prompt_tokens": 1069,
+        "completion_tokens": 790,
+        "total_tokens": 1859,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 525
+        },
+        "prompt_cache_hit_tokens": 1024,
+        "prompt_cache_miss_tokens": 45
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_review\",\n  \"result\": {\n    \"decision\": \"candidate_review\",\n    \"delete_category\": null,\n    \"cleaned_content\": \"年轻人就应该裸辞去追梦。\",\n    \"cleaning_level\": \"none\",\n    \"ai_quality_score\": 5.0,\n    \"score_breakdown\": {\n      \"clarity\": 7,\n      \"transferability\": 6,\n      \"judgment\": 5,\n      \"boundary\": 2,\n      \"non_obviousness\": 4,\n      \"attitude\": 8,\n      \"usefulness\": 4\n    },\n    \"quality_tier\": \"public_visible\",\n    \"ai_citable\": false,\n    \"recommendation_eligible\": false,\n    \"misuse_risk_level\": \"high\",\n    \"misuse_risk_notes\": [\n      \"可能鼓励冲动裸辞，忽视经济个人情况，导致负面后果\"\n    ],\n    \"review_reason\": \"观点明确但高风险，需人工复核\",\n    \"needs_human_attention\": true\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "candidate_review",
+          "delete_category": null,
+          "cleaned_content": "年轻人就应该裸辞去追梦。",
+          "cleaning_level": "none",
+          "ai_quality_score": 5.0,
+          "score_breakdown": {
+            "clarity": 7,
+            "transferability": 6,
+            "judgment": 5,
+            "boundary": 2,
+            "non_obviousness": 4,
+            "attitude": 8,
+            "usefulness": 4
+          },
+          "quality_tier": "public_visible",
+          "ai_citable": false,
+          "recommendation_eligible": false,
+          "misuse_risk_level": "high",
+          "misuse_risk_notes": [
+            "可能鼓励冲动裸辞，忽视经济个人情况，导致负面后果"
+          ],
+          "review_reason": "观点明确但高风险，需人工复核",
+          "needs_human_attention": true
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_081",
+      "function_type": "experience_review",
+      "category": "content_production",
+      "title": "经验质量审计",
+      "tags": [
+        "review",
+        "auto_import"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 25091,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1918,
+      "usage": {
+        "prompt_tokens": 1067,
+        "completion_tokens": 1181,
+        "total_tokens": 2248,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 921
+        },
+        "prompt_cache_hit_tokens": 1024,
+        "prompt_cache_miss_tokens": 43
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_review\",\n  \"result\": {\n    \"decision\": \"auto_import\",\n    \"delete_category\": null,\n    \"cleaned_content\": \"不要把别人的速度当成自己的方向。\",\n    \"cleaning_level\": \"none\",\n    \"ai_quality_score\": 7.9,\n    \"score_breakdown\": {\n      \"clarity\": 9,\n      \"transferability\": 9,\n      \"judgment\": 8,\n      \"boundary\": 5,\n      \"non_obviousness\": 7,\n      \"attitude\": 9,\n      \"usefulness\": 8\n    },\n    \"quality_tier\": \"recommend_candidate\",\n    \"ai_citable\": false,\n    \"recommendation_eligible\": true,\n    \"misuse_risk_level\": \"low\",\n    \"misuse_risk_notes\": [],\n    \"review_reason\": \"清晰、有态度的原则，具有高可迁移性和实用价值。边界略弱但整体质量优秀。\",\n    \"needs_human_attention\": false\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "auto_import",
+          "delete_category": null,
+          "cleaned_content": "不要把别人的速度当成自己的方向。",
+          "cleaning_level": "none",
+          "ai_quality_score": 7.9,
+          "score_breakdown": {
+            "clarity": 9,
+            "transferability": 9,
+            "judgment": 8,
+            "boundary": 5,
+            "non_obviousness": 7,
+            "attitude": 9,
+            "usefulness": 8
+          },
+          "quality_tier": "recommend_candidate",
+          "ai_citable": false,
+          "recommendation_eligible": true,
+          "misuse_risk_level": "low",
+          "misuse_risk_notes": [],
+          "review_reason": "清晰、有态度的原则，具有高可迁移性和实用价值。边界略弱但整体质量优秀。",
+          "needs_human_attention": false
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_082",
+      "function_type": "experience_review",
+      "category": "content_production",
+      "title": "经验质量审计",
+      "tags": [
+        "review",
+        "auto_import"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 16690,
+      "finish_reason": "stop",
+      "reasoning_content_len": 906,
+      "usage": {
+        "prompt_tokens": 1085,
+        "completion_tokens": 691,
+        "total_tokens": 1776,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 428
+        },
+        "prompt_cache_hit_tokens": 1024,
+        "prompt_cache_miss_tokens": 61
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_review\",\n  \"result\": {\n    \"decision\": \"auto_import\",\n    \"delete_category\": null,\n    \"cleaned_content\": \"朋友帮忙前先说清边界，比事后靠默契更不伤关系。\",\n    \"cleaning_level\": \"none\",\n    \"ai_quality_score\": 7.5,\n    \"score_breakdown\": {\n      \"clarity\": 8,\n      \"transferability\": 8,\n      \"judgment\": 8,\n      \"boundary\": 6,\n      \"non_obviousness\": 6,\n      \"attitude\": 8,\n      \"usefulness\": 8\n    },\n    \"quality_tier\": \"ai_citable\",\n    \"ai_citable\": true,\n    \"recommendation_eligible\": true,\n    \"misuse_risk_level\": \"low\",\n    \"misuse_risk_notes\": [],\n    \"review_reason\": \"经验清晰，有明确判断和可迁移原则，符合推荐与AI引用标准。\",\n    \"needs_human_attention\": false\n  },\n  \"confidence\": 0.8,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "auto_import",
+          "delete_category": null,
+          "cleaned_content": "朋友帮忙前先说清边界，比事后靠默契更不伤关系。",
+          "cleaning_level": "none",
+          "ai_quality_score": 7.5,
+          "score_breakdown": {
+            "clarity": 8,
+            "transferability": 8,
+            "judgment": 8,
+            "boundary": 6,
+            "non_obviousness": 6,
+            "attitude": 8,
+            "usefulness": 8
+          },
+          "quality_tier": "ai_citable",
+          "ai_citable": true,
+          "recommendation_eligible": true,
+          "misuse_risk_level": "low",
+          "misuse_risk_notes": [],
+          "review_reason": "经验清晰，有明确判断和可迁移原则，符合推荐与AI引用标准。",
+          "needs_human_attention": false
+        },
+        "confidence": 0.8,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_083",
+      "function_type": "experience_review",
+      "category": "content_production",
+      "title": "经验质量审计",
+      "tags": [
+        "review",
+        "candidate_review"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 16805,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1218,
+      "usage": {
+        "prompt_tokens": 1069,
+        "completion_tokens": 821,
+        "total_tokens": 1890,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 556
+        },
+        "prompt_cache_hit_tokens": 1024,
+        "prompt_cache_miss_tokens": 45
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_review\",\n  \"result\": {\n    \"decision\": \"candidate_review\",\n    \"delete_category\": null,\n    \"cleaned_content\": \"年轻人就应该裸辞去追梦。\",\n    \"cleaning_level\": \"none\",\n    \"ai_quality_score\": 5.0,\n    \"score_breakdown\": {\n      \"clarity\": 8,\n      \"transferability\": 5,\n      \"judgment\": 4,\n      \"boundary\": 0,\n      \"non_obviousness\": 6,\n      \"attitude\": 9,\n      \"usefulness\": 3\n    },\n    \"quality_tier\": \"public_visible\",\n    \"ai_citable\": false,\n    \"recommendation_eligible\": false,\n    \"misuse_risk_level\": \"high\",\n    \"misuse_risk_notes\": [\n      \"绝对化建议，无视个体差异和财务风险，可能导致盲目裸辞\"\n    ],\n    \"review_reason\": \"高风险争议观点，需要人工复核\",\n    \"needs_human_attention\": true\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "candidate_review",
+          "delete_category": null,
+          "cleaned_content": "年轻人就应该裸辞去追梦。",
+          "cleaning_level": "none",
+          "ai_quality_score": 5.0,
+          "score_breakdown": {
+            "clarity": 8,
+            "transferability": 5,
+            "judgment": 4,
+            "boundary": 0,
+            "non_obviousness": 6,
+            "attitude": 9,
+            "usefulness": 3
+          },
+          "quality_tier": "public_visible",
+          "ai_citable": false,
+          "recommendation_eligible": false,
+          "misuse_risk_level": "high",
+          "misuse_risk_notes": [
+            "绝对化建议，无视个体差异和财务风险，可能导致盲目裸辞"
+          ],
+          "review_reason": "高风险争议观点，需要人工复核",
+          "needs_human_attention": true
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_084",
+      "function_type": "experience_review",
+      "category": "content_production",
+      "title": "经验质量审计",
+      "tags": [
+        "review",
+        "auto_import"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 12854,
+      "finish_reason": "stop",
+      "reasoning_content_len": 825,
+      "usage": {
+        "prompt_tokens": 1073,
+        "completion_tokens": 571,
+        "total_tokens": 1644,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 377
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 177
+      },
+      "raw_content": "{\"schema_version\":\"1.1\",\"function_type\":\"experience_review\",\"result\":{\"decision\":\"auto_import\",\"delete_category\":null,\"cleaned_content\":\"运动开始先守住频率，再追强度。\",\"cleaning_level\":\"none\",\"ai_quality_score\":7.5,\"score_breakdown\":{\"clarity\":8,\"transferability\":8,\"judgment\":7,\"boundary\":7,\"non_obviousness\":6,\"attitude\":7,\"usefulness\":8},\"quality_tier\":\"ai_citable\",\"ai_citable\":true,\"recommendation_eligible\":true,\"misuse_risk_level\":\"low\",\"misuse_risk_notes\":[],\"review_reason\":\"清晰的原则，强调先在频率上坚持再追求强度，可迁移到多种习惯养成场景，有态度且实用。\",\"needs_human_attention\":false},\"confidence\":0.95,\"warnings\":[]}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "auto_import",
+          "delete_category": null,
+          "cleaned_content": "运动开始先守住频率，再追强度。",
+          "cleaning_level": "none",
+          "ai_quality_score": 7.5,
+          "score_breakdown": {
+            "clarity": 8,
+            "transferability": 8,
+            "judgment": 7,
+            "boundary": 7,
+            "non_obviousness": 6,
+            "attitude": 7,
+            "usefulness": 8
+          },
+          "quality_tier": "ai_citable",
+          "ai_citable": true,
+          "recommendation_eligible": true,
+          "misuse_risk_level": "low",
+          "misuse_risk_notes": [],
+          "review_reason": "清晰的原则，强调先在频率上坚持再追求强度，可迁移到多种习惯养成场景，有态度且实用。",
+          "needs_human_attention": false
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "privacy_005",
+      "function_type": "chat_summary",
+      "category": "privacy_summary",
+      "title": "摘要隐私抽象",
+      "tags": [
+        "privacy",
+        "summary"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/privacy-summary.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 7307,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 898,
+        "completion_tokens": 246,
+        "total_tokens": 1144,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 898
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户因个人证件信息被同事看到而感到强烈不适，探讨了羞耻感与边界被侵犯的感受。\",\n    \"current_state\": \"用户表达了被侵犯的羞耻感，但尚未形成明确的应对策略或理解。\",\n    \"open_questions\": [\n      \"如何理解这种被侵犯的感受是否过度敏感？\",\n      \"如何应对同事看到个人证件信息后的心理不适？\"\n    ],\n    \"decisions_or_insights\": [\n      \"羞耻感被触发，而非人格标签。\"\n    ],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在涉及个人证件信息的场景中，对隐私边界高度敏感，重视不被议论的安全感。\",\n        \"source_message_ids\": [\"m1\", \"m3\"],\n        \"confidence\": 0.8\n      }\n    ]\n  },\n  \"confidence\": 0.85,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户因个人证件信息被同事看到而感到强烈不适，探讨了羞耻感与边界被侵犯的感受。",
+          "current_state": "用户表达了被侵犯的羞耻感，但尚未形成明确的应对策略或理解。",
+          "open_questions": [
+            "如何理解这种被侵犯的感受是否过度敏感？",
+            "如何应对同事看到个人证件信息后的心理不适？"
+          ],
+          "decisions_or_insights": [
+            "羞耻感被触发，而非人格标签。"
+          ],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在涉及个人证件信息的场景中，对隐私边界高度敏感，重视不被议论的安全感。",
+              "source_message_ids": [
+                "m1",
+                "m3"
+              ],
+              "confidence": 0.8
+            }
+          ]
+        },
+        "confidence": 0.85,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "privacy_006",
+      "function_type": "chat_summary",
+      "category": "privacy_summary",
+      "title": "摘要隐私抽象",
+      "tags": [
+        "privacy",
+        "summary"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/privacy-summary.jsonl",
+      "status": "failed",
+      "errors": [
+        "rule_json_not_contains_failed"
+      ],
+      "warnings": [],
+      "elapsed_ms": 6782,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 898,
+        "completion_tokens": 263,
+        "total_tokens": 1161,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 898
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户因健康隐私被公司要求查看病历，感到被审视和压力，对他人关心产生不信任，希望重建边界。\",\n    \"current_state\": \"用户处于防御状态，不愿回应可能涉及隐私的询问，对他人动机持怀疑态度。\",\n    \"open_questions\": [\n      \"如何在保护健康隐私的同时应对公司要求？\",\n      \"如何区分真诚关心与打探隐私？\",\n      \"如何重新建立人际边界？\"\n    ],\n    \"decisions_or_insights\": [\n      \"意识到被公开、比较、审视的压力来源\",\n      \"决定不再被动回应，而是主动拿回边界\"\n    ],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在涉及健康隐私时，需要明确边界，避免被审视\",\n        \"source_message_ids\": [\"m1\", \"m3\"],\n        \"confidence\": 0.9\n      }\n    ]\n  },\n  \"confidence\": 0.85,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户因健康隐私被公司要求查看病历，感到被审视和压力，对他人关心产生不信任，希望重建边界。",
+          "current_state": "用户处于防御状态，不愿回应可能涉及隐私的询问，对他人动机持怀疑态度。",
+          "open_questions": [
+            "如何在保护健康隐私的同时应对公司要求？",
+            "如何区分真诚关心与打探隐私？",
+            "如何重新建立人际边界？"
+          ],
+          "decisions_or_insights": [
+            "意识到被公开、比较、审视的压力来源",
+            "决定不再被动回应，而是主动拿回边界"
+          ],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在涉及健康隐私时，需要明确边界，避免被审视",
+              "source_message_ids": [
+                "m1",
+                "m3"
+              ],
+              "confidence": 0.9
+            }
+          ]
+        },
+        "confidence": 0.85,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "privacy_013",
+      "function_type": "chat_summary",
+      "category": "privacy_summary",
+      "title": "摘要隐私抽象",
+      "tags": [
+        "privacy",
+        "summary"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/privacy-summary.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 5402,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 903,
+        "completion_tokens": 236,
+        "total_tokens": 1139,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 135
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户的孩子在公开场合被批评，用户感到私密信息被暴露后情绪复杂。\",\n    \"current_state\": \"用户表达了私密被公开后的不适，尚未形成具体应对思路。\",\n    \"open_questions\": [\n      \"如何应对孩子相关公开场景中的批评？\",\n      \"如何保护家庭隐私在类似场合不被扩散？\"\n    ],\n    \"decisions_or_insights\": [\n      \"用户意识到私密信息被公开后，自己的反应会显著不同。\"\n    ],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在涉及孩子相关公开场景时，对隐私暴露高度敏感。\",\n        \"source_message_ids\": [\"m1\", \"m3\"],\n        \"confidence\": 0.8\n      }\n    ]\n  },\n  \"confidence\": 0.8,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户的孩子在公开场合被批评，用户感到私密信息被暴露后情绪复杂。",
+          "current_state": "用户表达了私密被公开后的不适，尚未形成具体应对思路。",
+          "open_questions": [
+            "如何应对孩子相关公开场景中的批评？",
+            "如何保护家庭隐私在类似场合不被扩散？"
+          ],
+          "decisions_or_insights": [
+            "用户意识到私密信息被公开后，自己的反应会显著不同。"
+          ],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在涉及孩子相关公开场景时，对隐私暴露高度敏感。",
+              "source_message_ids": [
+                "m1",
+                "m3"
+              ],
+              "confidence": 0.8
+            }
+          ]
+        },
+        "confidence": 0.8,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "privacy_014",
+      "function_type": "chat_summary",
+      "category": "privacy_summary",
+      "title": "摘要隐私抽象",
+      "tags": [
+        "privacy",
+        "summary"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/privacy-summary.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 5223,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 895,
+        "completion_tokens": 224,
+        "total_tokens": 1119,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 127
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户因合伙人将商业资料分享给他人而感到困扰，提及此事时仍有强烈的身体反应。\",\n    \"current_state\": \"用户正在表达对合伙人行为的情绪反应，尚未进入解决或决策阶段。\",\n    \"open_questions\": [\n      \"如何面对合伙人分享商业资料后的信任问题？\",\n      \"如何缓解提及此事时的身体不适感？\"\n    ],\n    \"decisions_or_insights\": [\n      \"身体反应表明这件事对用户影响深刻。\"\n    ],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在商业合作中重视信息保密和信任边界\",\n        \"source_message_ids\": [\"m1\"],\n        \"confidence\": 0.8\n      }\n    ]\n  },\n  \"confidence\": 0.8,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户因合伙人将商业资料分享给他人而感到困扰，提及此事时仍有强烈的身体反应。",
+          "current_state": "用户正在表达对合伙人行为的情绪反应，尚未进入解决或决策阶段。",
+          "open_questions": [
+            "如何面对合伙人分享商业资料后的信任问题？",
+            "如何缓解提及此事时的身体不适感？"
+          ],
+          "decisions_or_insights": [
+            "身体反应表明这件事对用户影响深刻。"
+          ],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在商业合作中重视信息保密和信任边界",
+              "source_message_ids": [
+                "m1"
+              ],
+              "confidence": 0.8
+            }
+          ]
+        },
+        "confidence": 0.8,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "privacy_015",
+      "function_type": "chat_summary",
+      "category": "privacy_summary",
+      "title": "摘要隐私抽象",
+      "tags": [
+        "privacy",
+        "summary"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/privacy-summary.jsonl",
+      "status": "failed",
+      "errors": [
+        "rule_json_not_contains_failed"
+      ],
+      "warnings": [],
+      "elapsed_ms": 5219,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 893,
+        "completion_tokens": 238,
+        "total_tokens": 1131,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 125
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户因健康检查结果感到害怕，并担心此事在后续社交中被反复提及。\",\n    \"current_state\": \"用户表达了恐惧和对未来社交压力的担忧，尚未形成应对策略。\",\n    \"open_questions\": [\n      \"如何应对健康隐私被反复提及的担忧？\",\n      \"如何建立社交边界以保护个人健康信息？\"\n    ],\n    \"decisions_or_insights\": [\n      \"用户意识到健康隐私暴露带来的压力，并关注社交中的反复提及问题。\"\n    ],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在社交中重视健康隐私的保护，不希望个人健康信息被反复讨论。\",\n        \"source_message_ids\": [\"m1\", \"m3\"],\n        \"confidence\": 0.85\n      }\n    ]\n  },\n  \"confidence\": 0.85,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户因健康检查结果感到害怕，并担心此事在后续社交中被反复提及。",
+          "current_state": "用户表达了恐惧和对未来社交压力的担忧，尚未形成应对策略。",
+          "open_questions": [
+            "如何应对健康隐私被反复提及的担忧？",
+            "如何建立社交边界以保护个人健康信息？"
+          ],
+          "decisions_or_insights": [
+            "用户意识到健康隐私暴露带来的压力，并关注社交中的反复提及问题。"
+          ],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在社交中重视健康隐私的保护，不希望个人健康信息被反复讨论。",
+              "source_message_ids": [
+                "m1",
+                "m3"
+              ],
+              "confidence": 0.85
+            }
+          ]
+        },
+        "confidence": 0.85,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "privacy_020",
+      "function_type": "chat_summary",
+      "category": "privacy_summary",
+      "title": "摘要隐私抽象",
+      "tags": [
+        "privacy",
+        "summary"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/privacy-summary.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 5327,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 898,
+        "completion_tokens": 242,
+        "total_tokens": 1140,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 2
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户因个人证件信息被同事看到而感到羞耻和暴露，正在探索这种感受是否过度敏感。\",\n    \"current_state\": \"用户表达了强烈的羞耻感，但尚未形成明确的理解或决定。\",\n    \"open_questions\": [\n      \"如何判断自己对隐私暴露的反应是否过度？\",\n      \"如何应对因隐私泄露而产生的羞耻感？\"\n    ],\n    \"decisions_or_insights\": [\n      \"羞耻感被触发，但不代表用户本身有问题。\"\n    ],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在涉及个人证件信息的场景中，对隐私暴露高度敏感，需要感到被尊重和保护。\",\n        \"source_message_ids\": [\"m1\", \"m3\"],\n        \"confidence\": 0.85\n      }\n    ]\n  },\n  \"confidence\": 0.85,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户因个人证件信息被同事看到而感到羞耻和暴露，正在探索这种感受是否过度敏感。",
+          "current_state": "用户表达了强烈的羞耻感，但尚未形成明确的理解或决定。",
+          "open_questions": [
+            "如何判断自己对隐私暴露的反应是否过度？",
+            "如何应对因隐私泄露而产生的羞耻感？"
+          ],
+          "decisions_or_insights": [
+            "羞耻感被触发，但不代表用户本身有问题。"
+          ],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在涉及个人证件信息的场景中，对隐私暴露高度敏感，需要感到被尊重和保护。",
+              "source_message_ids": [
+                "m1",
+                "m3"
+              ],
+              "confidence": 0.85
+            }
+          ]
+        },
+        "confidence": 0.85,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "privacy_021",
+      "function_type": "chat_summary",
+      "category": "privacy_summary",
+      "title": "摘要隐私抽象",
+      "tags": [
+        "privacy",
+        "summary"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/privacy-summary.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 5938,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 898,
+        "completion_tokens": 259,
+        "total_tokens": 1157,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 2
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户因健康隐私被要求提供给公司，感到被审视和压力，对他人关心产生不信任，希望重建边界。\",\n    \"current_state\": \"用户处于防御状态，不愿回应可能窥探隐私的关心，正在探索如何重新掌控边界。\",\n    \"open_questions\": [\n      \"如何区分真诚关心与窥探隐私的行为？\",\n      \"如何在保护健康隐私的同时维持必要的社会互动？\"\n    ],\n    \"decisions_or_insights\": [\n      \"意识到对他人动机的怀疑源于隐私被侵犯的压力\",\n      \"决定优先保护个人边界而非迎合外界期待\"\n    ],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在涉及健康隐私时，需要明确边界，避免被审视或比较\",\n        \"source_message_ids\": [\"m1\", \"m3\"],\n        \"confidence\": 0.9\n      }\n    ]\n  },\n  \"confidence\": 0.85,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户因健康隐私被要求提供给公司，感到被审视和压力，对他人关心产生不信任，希望重建边界。",
+          "current_state": "用户处于防御状态，不愿回应可能窥探隐私的关心，正在探索如何重新掌控边界。",
+          "open_questions": [
+            "如何区分真诚关心与窥探隐私的行为？",
+            "如何在保护健康隐私的同时维持必要的社会互动？"
+          ],
+          "decisions_or_insights": [
+            "意识到对他人动机的怀疑源于隐私被侵犯的压力",
+            "决定优先保护个人边界而非迎合外界期待"
+          ],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在涉及健康隐私时，需要明确边界，避免被审视或比较",
+              "source_message_ids": [
+                "m1",
+                "m3"
+              ],
+              "confidence": 0.9
+            }
+          ]
+        },
+        "confidence": 0.85,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "privacy_028",
+      "function_type": "chat_summary",
+      "category": "privacy_summary",
+      "title": "摘要隐私抽象",
+      "tags": [
+        "privacy",
+        "summary"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/privacy-summary.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 5141,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 903,
+        "completion_tokens": 234,
+        "total_tokens": 1137,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 7
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户的孩子在公开场景中被批评，用户对隐私暴露后的复杂感受进行讨论。\",\n    \"current_state\": \"用户表达了隐私被公开后的困扰，但尚未深入探讨具体影响或应对方式。\",\n    \"open_questions\": [\n      \"如何应对孩子相关公开场景中的批评？\",\n      \"隐私暴露后如何调整自己的感受？\"\n    ],\n    \"decisions_or_insights\": [\n      \"私密信息被公开后，人的反应会变得复杂。\"\n    ],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在涉及孩子相关公开场景时，对隐私暴露特别敏感。\",\n        \"source_message_ids\": [\"m1\", \"m3\"],\n        \"confidence\": 0.8\n      }\n    ]\n  },\n  \"confidence\": 0.8,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户的孩子在公开场景中被批评，用户对隐私暴露后的复杂感受进行讨论。",
+          "current_state": "用户表达了隐私被公开后的困扰，但尚未深入探讨具体影响或应对方式。",
+          "open_questions": [
+            "如何应对孩子相关公开场景中的批评？",
+            "隐私暴露后如何调整自己的感受？"
+          ],
+          "decisions_or_insights": [
+            "私密信息被公开后，人的反应会变得复杂。"
+          ],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在涉及孩子相关公开场景时，对隐私暴露特别敏感。",
+              "source_message_ids": [
+                "m1",
+                "m3"
+              ],
+              "confidence": 0.8
+            }
+          ]
+        },
+        "confidence": 0.8,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "privacy_029",
+      "function_type": "chat_summary",
+      "category": "privacy_summary",
+      "title": "摘要隐私抽象",
+      "tags": [
+        "privacy",
+        "summary"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/privacy-summary.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 4992,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 895,
+        "completion_tokens": 222,
+        "total_tokens": 1117,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 127
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户因合伙人将商业资料分享给他人而感到困扰，并伴有强烈的身体反应。\",\n    \"current_state\": \"用户仍被当时的情绪和身体反应困扰，尚未形成明确应对或理解。\",\n    \"open_questions\": [\n      \"如何面对合伙人分享商业资料带来的信任问题？\",\n      \"如何处理反复出现的身体反应和情绪？\"\n    ],\n    \"decisions_or_insights\": [\n      \"身体反应表明这件事对用户影响深刻。\"\n    ],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在商业合作中重视信息保密和信任边界\",\n        \"source_message_ids\": [\"m1\"],\n        \"confidence\": 0.8\n      }\n    ]\n  },\n  \"confidence\": 0.85,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户因合伙人将商业资料分享给他人而感到困扰，并伴有强烈的身体反应。",
+          "current_state": "用户仍被当时的情绪和身体反应困扰，尚未形成明确应对或理解。",
+          "open_questions": [
+            "如何面对合伙人分享商业资料带来的信任问题？",
+            "如何处理反复出现的身体反应和情绪？"
+          ],
+          "decisions_or_insights": [
+            "身体反应表明这件事对用户影响深刻。"
+          ],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在商业合作中重视信息保密和信任边界",
+              "source_message_ids": [
+                "m1"
+              ],
+              "confidence": 0.8
+            }
+          ]
+        },
+        "confidence": 0.85,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "privacy_030",
+      "function_type": "chat_summary",
+      "category": "privacy_summary",
+      "title": "摘要隐私抽象",
+      "tags": [
+        "privacy",
+        "summary"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/privacy-summary.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 4688,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 893,
+        "completion_tokens": 233,
+        "total_tokens": 1126,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 125
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_summary\",\n  \"result\": {\n    \"topic_summary\": \"用户因健康隐私被暴露而感到害怕，并担心此事在后续社交中被反复提及。\",\n    \"current_state\": \"用户表达了恐惧和担忧，但尚未形成应对策略或决定。\",\n    \"open_questions\": [\n      \"如何应对健康隐私被暴露后的社交压力？\",\n      \"如何设定边界以避免被反复追问？\"\n    ],\n    \"decisions_or_insights\": [\n      \"用户意识到害怕的核心是隐私暴露后的持续影响，而非单次事件。\"\n    ],\n    \"sensitive_detail_policy\": \"abstracted\",\n    \"memory_profile_patch_candidates\": [\n      {\n        \"field\": \"constraints\",\n        \"value\": \"在涉及健康隐私时，需要明确的边界和安全感。\",\n        \"source_message_ids\": [\"m1\", \"m3\"],\n        \"confidence\": 0.8\n      }\n    ]\n  },\n  \"confidence\": 0.85,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_summary",
+        "result": {
+          "topic_summary": "用户因健康隐私被暴露而感到害怕，并担心此事在后续社交中被反复提及。",
+          "current_state": "用户表达了恐惧和担忧，但尚未形成应对策略或决定。",
+          "open_questions": [
+            "如何应对健康隐私被暴露后的社交压力？",
+            "如何设定边界以避免被反复追问？"
+          ],
+          "decisions_or_insights": [
+            "用户意识到害怕的核心是隐私暴露后的持续影响，而非单次事件。"
+          ],
+          "sensitive_detail_policy": "abstracted",
+          "memory_profile_patch_candidates": [
+            {
+              "field": "constraints",
+              "value": "在涉及健康隐私时，需要明确的边界和安全感。",
+              "source_message_ids": [
+                "m1",
+                "m3"
+              ],
+              "confidence": 0.8
+            }
+          ]
+        },
+        "confidence": 0.85,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "recommend_018",
+      "function_type": "recommendation_ai",
+      "category": "recommendation",
+      "title": "低质量混入诊断",
+      "tags": [
+        "quality_leak"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/recommendation.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 9894,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 913,
+        "completion_tokens": 389,
+        "total_tokens": 1302,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 913
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"recommendation_ai\",\n  \"result\": {\n    \"rerank\": [\n      {\n        \"experience_id\": \"quality_8_a\",\n        \"rank\": 1,\n        \"reason\": \"直接匹配用户近期工作沟通场景，且用户有多次正反馈，质量层级高。\"\n      },\n      {\n        \"experience_id\": \"quality_8_c\",\n        \"rank\": 2,\n        \"reason\": \"与工作沟通相关，提供实用建议，质量层级为recommend_candidate，可补充视角。\"\n      },\n      {\n        \"experience_id\": \"quality_8_b\",\n        \"rank\": 3,\n        \"reason\": \"同样来自工作沟通领域，但内容与quality_8_a略有重叠，排在后面以增加多样性。\"\n      },\n      {\n        \"experience_id\": \"quality_8_d\",\n        \"rank\": 4,\n        \"reason\": \"来自认知表达领域，与用户正向反馈领域相关，但非当前主要场景，作为差异视角。\"\n      }\n    ],\n    \"diagnostics\": {\n      \"too_similar\": true,\n      \"creator_concentration\": true,\n      \"source_concentration\": false,\n      \"domain_gap\": [\"quality_8_low\"],\n      \"quality_leak\": true\n    },\n    \"should_use_ai_rerank\": true\n  },\n  \"confidence\": 0.85,\n  \"warnings\": [\n    \"候选池中存在低质量经验quality_8_low（quality_tier=public_visible），已排除在rerank之外。\",\n    \"创作者A集中度过高，前三名均为同一作者，建议打散。\",\n    \"候选经验quality_8_a和quality_8_b内容相似，可能导致同质化。\"\n  ]\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "recommendation_ai",
+        "result": {
+          "rerank": [
+            {
+              "experience_id": "quality_8_a",
+              "rank": 1,
+              "reason": "直接匹配用户近期工作沟通场景，且用户有多次正反馈，质量层级高。"
+            },
+            {
+              "experience_id": "quality_8_c",
+              "rank": 2,
+              "reason": "与工作沟通相关，提供实用建议，质量层级为recommend_candidate，可补充视角。"
+            },
+            {
+              "experience_id": "quality_8_b",
+              "rank": 3,
+              "reason": "同样来自工作沟通领域，但内容与quality_8_a略有重叠，排在后面以增加多样性。"
+            },
+            {
+              "experience_id": "quality_8_d",
+              "rank": 4,
+              "reason": "来自认知表达领域，与用户正向反馈领域相关，但非当前主要场景，作为差异视角。"
+            }
+          ],
+          "diagnostics": {
+            "too_similar": true,
+            "creator_concentration": true,
+            "source_concentration": false,
+            "domain_gap": [
+              "quality_8_low"
+            ],
+            "quality_leak": true
+          },
+          "should_use_ai_rerank": true
+        },
+        "confidence": 0.85,
+        "warnings": [
+          "候选池中存在低质量经验quality_8_low（quality_tier=public_visible），已排除在rerank之外。",
+          "创作者A集中度过高，前三名均为同一作者，建议打散。",
+          "候选经验quality_8_a和quality_8_b内容相似，可能导致同质化。"
+        ]
+      }
+    }
+  ]
+}

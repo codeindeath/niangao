@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"context"
+	"errors"
 	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,19 +17,29 @@ import (
 )
 
 type ExperienceHandler struct {
-	repo     *repository.ExperienceRepo
-	likeRepo *repository.LikeRepo
-	bookRepo *repository.BookmarkRepo
+	repo      *repository.ExperienceRepo
+	likeRepo  *repository.LikeRepo
+	bookRepo  *repository.BookmarkRepo
+	aiGateway ExperienceAIGateway
 }
 
-func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.ExperienceRepo, likeRepo *repository.LikeRepo, bookRepo *repository.BookmarkRepo) {
-	h := &ExperienceHandler{repo: expRepo, likeRepo: likeRepo, bookRepo: bookRepo}
+type ExperienceAIGateway interface {
+	RewriteExperience(ctx context.Context, req model.ExperienceRewriteGatewayRequest) (*model.ExperienceRewriteGatewayResponse, error)
+}
+
+func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.ExperienceRepo, likeRepo *repository.LikeRepo, bookRepo *repository.BookmarkRepo, gateways ...ExperienceAIGateway) {
+	var aiGateway ExperienceAIGateway
+	if len(gateways) > 0 {
+		aiGateway = gateways[0]
+	}
+	h := &ExperienceHandler{repo: expRepo, likeRepo: likeRepo, bookRepo: bookRepo, aiGateway: aiGateway}
 
 	exp := r.Group("/experiences")
 	{
 		exp.GET("", h.List)
 		exp.GET("/recommend", middleware.RequireAuth(), h.GetRecommendations)
 		exp.GET("/:id", h.Get)
+		exp.POST("/rewrite", middleware.RequireAuth(), h.Rewrite)
 		exp.POST("", middleware.RequireAuth(), h.Create)
 		exp.PUT("/:id", middleware.RequireAuth(), h.Update)
 		exp.DELETE("/:id", middleware.RequireAuth(), h.Delete)
@@ -37,6 +50,96 @@ func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.Experience
 	// 个人维度 API — 直接在 v1 下注册，不走子 Group
 	r.GET("/me/experiences", middleware.RequireAuth(), h.MyExperiences)
 	r.GET("/me/bookmarks", middleware.RequireAuth(), h.MyBookmarks)
+}
+
+func (h *ExperienceHandler) Rewrite(c *gin.Context) {
+	userID := getAuthUserID(c)
+	if userID == "" {
+		return
+	}
+	var req model.ExperienceRewriteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid rewrite payload"})
+		return
+	}
+	req.Content = strings.TrimSpace(req.Content)
+	if req.Content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "content is required"})
+		return
+	}
+	if len([]rune(req.Content)) > 2000 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "content is too long"})
+		return
+	}
+	if req.Source == "" {
+		req.Source = "manual_note"
+	}
+	if req.Source != "manual_note" && req.Source != "chat_note" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid source"})
+		return
+	}
+	if req.DefaultVisibility == "" {
+		if req.Source == "chat_note" {
+			req.DefaultVisibility = model.VisibilityPrivate
+		} else {
+			req.DefaultVisibility = model.VisibilityPublic
+		}
+	}
+	if !model.IsValidVisibility(req.DefaultVisibility) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid default_visibility"})
+		return
+	}
+	if req.UserSelectedDomain != "" && !model.IsValidDomain(req.UserSelectedDomain) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_selected_domain"})
+		return
+	}
+	if req.UserSelectedSubDomain != "" && !model.IsValidSubDomain(req.UserSelectedSubDomain) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_selected_sub_domain"})
+		return
+	}
+	if req.UserSelectedDomain != "" && req.UserSelectedSubDomain != "" &&
+		!model.SubDomainBelongsToParent(req.UserSelectedDomain, req.UserSelectedSubDomain) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "sub_domain does not belong to domain"})
+		return
+	}
+	if h.aiGateway == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "rewrite service unavailable", "retryable": true})
+		return
+	}
+
+	result, err := h.aiGateway.RewriteExperience(c.Request.Context(), model.ExperienceRewriteGatewayRequest{
+		UserID:                userID,
+		Source:                req.Source,
+		RawText:               req.Content,
+		SourceMessageIDs:      req.SourceMessageIDs,
+		DefaultVisibility:     req.DefaultVisibility,
+		UserSelectedDomain:    req.UserSelectedDomain,
+		UserSelectedSubDomain: req.UserSelectedSubDomain,
+		TopicContext:          strings.TrimSpace(req.TopicContext),
+	})
+	if err != nil || result == nil {
+		log.Printf("v4 rewrite gateway failed user=%s: %v", userID, err)
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "rewrite service unavailable", "retryable": true})
+		return
+	}
+	result.RewrittenContent = strings.TrimSpace(result.RewrittenContent)
+	if result.CanRewrite && (result.RewrittenContent == "" || len([]rune(result.RewrittenContent)) > 100) {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "invalid rewrite output", "retryable": true})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"can_rewrite":         result.CanRewrite,
+		"rewritten_content":   result.RewrittenContent,
+		"domain":              result.Domain,
+		"sub_domain":          result.SubDomain,
+		"topic":               result.Topic,
+		"rewrite_level":       result.RewriteLevel,
+		"source_preservation": result.SourcePreservation,
+		"needs_user_edit":     result.NeedsUserEdit,
+		"reason":              result.Reason,
+		"confidence":          result.Confidence,
+		"warnings":            result.Warnings,
+	})
 }
 
 func (h *ExperienceHandler) List(c *gin.Context) {
@@ -92,44 +195,27 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// Content validation with rune count (Chinese chars)
-	contentRunes := len([]rune(req.Content))
-	if contentRunes < 10 || contentRunes > 100 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "经验内容需 10-100 字"})
+	if err := normalizeCreateExperienceRequest(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if req.Interpretation != "" && len([]rune(req.Interpretation)) > 300 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "经验解读不超过 300 字"})
-		return
-	}
-	if len([]rune(req.Topics)) > 200 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "话题不超过 200 字"})
-		return
-	}
-
-	if req.Domain != "" && !model.IsValidDomain(req.Domain) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid domain"})
-		return
-	}
-	if req.SubDomain != "" && !model.IsValidSubDomain(req.SubDomain) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sub_domain"})
-		return
-	}
-	if req.Domain == "" && req.SubDomain != "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "sub_domain requires domain"})
-		return
-	}
-	if req.Domain != "" && req.SubDomain != "" && !model.SubDomainBelongsToParent(req.Domain, req.SubDomain) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "sub_domain does not belong to domain"})
-		return
+	if req.Visibility == model.VisibilityPublic {
+		displayName, err := h.repo.GetUserDisplayName(c.Request.Context(), userID)
+		if err != nil {
+			log.Printf("display name gate failed user=%s: %v", userID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check display name"})
+			return
+		}
+		if strings.TrimSpace(displayName) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{
+				"code":    "display_name_required",
+				"message": "需要先设置展示名",
+			}})
+			return
+		}
 	}
 
-	// ============================================================
-	// Step 1: 直接保存原始内容，不做任何处理
-	// ============================================================
-
-	// 私密经验 review_status=private，公开经验初始为 pending
 	reviewStatus := string(model.ReviewPending)
 	if req.IsPrivate {
 		reviewStatus = string(model.ReviewPrivate)
@@ -142,125 +228,117 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// Auto-bookmark
-	if bookmarked, err := h.bookRepo.Toggle(c.Request.Context(), userID, exp.ID); err != nil {
-		log.Printf("auto-bookmark failed for exp=%s user=%s: %v", exp.ID, userID, err)
-	} else if bookmarked {
-		exp.BookmarkCount = 1
-		exp.IsBookmarked = true
+	c.JSON(http.StatusCreated, gin.H{"experience": exp})
+}
+
+func normalizeCreateExperienceRequest(req *model.CreateExperienceRequest) error {
+	req.Content = strings.TrimSpace(req.Content)
+	contentRunes := len([]rune(req.Content))
+	if contentRunes < 1 || contentRunes > 100 {
+		return errors.New("经验内容需 1-100 字")
 	}
 
-	// 私密经验：保存后直接返回，不进平台池
-	if req.IsPrivate {
-		c.JSON(http.StatusCreated, exp)
-		return
-	}
-
-	// ============================================================
-	// Step 2: 平台经验池管线 — 仅对公开经验执行
-	// normalize → 去重 → hard_policy → AI review → 翻译 → 解读
-	// ============================================================
-
-	// 2a. normalize（trim + 繁→简 + 去壳 + 格式清理）
-	cleaned := callNormalize(req.Content)
-
-	// 2b. 去重（排除当前经验自身）
-	if exists, err := h.repo.ExistsByContentExcluding(c.Request.Context(), cleaned, exp.ID); err == nil && exists {
-		reason := "相同内容的经验已存在"
-		h.repo.UpdateReviewResult(c.Request.Context(), exp.ID, cleaned, nil, nil, nil, nil,
-			string(model.ReviewRejected), &reason)
-		c.JSON(http.StatusCreated, gin.H{
-			"experience": exp,
-			"review": gin.H{
-				"status":  "rejected",
-				"reason":  reason,
-				"message": "经验已保存，但因内容重复未进入平台经验池",
-			},
-		})
-		return
-	}
-
-	// 2c. hard_policy
-	if result := CheckHardPolicy(cleaned); !result.Passed {
-		reason := result.Reason
-		h.repo.UpdateReviewResult(c.Request.Context(), exp.ID, cleaned, nil, nil, nil, nil,
-			string(model.ReviewRejected), &reason)
-		c.JSON(http.StatusCreated, gin.H{
-			"experience": exp,
-			"review": gin.H{
-				"status":  "rejected",
-				"reason":  reason,
-				"message": "经验已保存，但因内容不符合准入规则未进入平台经验池",
-			},
-		})
-		return
-	}
-
-	// 2d. AI 审核
-	aiResult, err := callAIReview(ReviewRequest{
-		Content:   cleaned,
-		Domain:    string(req.Domain),
-		SubDomain: string(req.SubDomain),
-	})
-	if err != nil {
-		log.Printf("AI review failed: %v — leaving as pending", err)
-		c.JSON(http.StatusCreated, gin.H{
-			"experience": exp,
-			"review": gin.H{
-				"status":  "pending",
-				"message": "经验已保存，审核中，稍后自动进入平台经验池",
-			},
-		})
-		return
-	}
-
-	score, scoreDetails := qualityScoreToDB(aiResult.Score)
-
-	if !aiResult.Approved {
-		h.repo.UpdateReviewResult(c.Request.Context(), exp.ID, cleaned, nil, nil,
-			score, scoreDetails, string(model.ReviewRejected), &aiResult.Reason)
-		c.JSON(http.StatusCreated, gin.H{
-			"experience": exp,
-			"review": gin.H{
-				"status":  "rejected",
-				"reason":  aiResult.Reason,
-				"message": "经验已保存，但未通过平台审核，未进入平台经验池",
-			},
-		})
-		return
-	}
-
-	// 2e. 审核通过 — 翻译 + AI 解读
-	var originalText *string
-	if translateResult := callAITranslate(cleaned); translateResult != nil && translateResult.IsClassical {
-		cleaned = translateResult.ModernText
-		originalText = &translateResult.OriginalText
-		log.Printf("Translation applied (lang=%s): orig=%s", translateResult.DetectedLang, (*originalText)[:min(len(*originalText), 30)])
-	}
-
-	// 生成 AI 解读（使用翻译后的内容）
-	var interpretation *string
-	if req.Interpretation == "" {
-		if interp := callGenerateInterpretation(cleaned, string(req.Domain)); interp != "" {
-			interpretation = &interp
-			log.Printf("Interpretation generated (%d chars)", len([]rune(interp)))
+	if req.Visibility == "" {
+		if req.IsPrivate {
+			req.Visibility = model.VisibilityPrivate
+		} else {
+			req.Visibility = model.VisibilityPublic
 		}
-	} else {
-		interpretation = &req.Interpretation
+	}
+	if !model.IsValidVisibility(req.Visibility) {
+		return errors.New("invalid visibility")
+	}
+	req.IsPrivate = req.Visibility == model.VisibilityPrivate
+
+	if req.SourceScene == "" {
+		req.SourceScene = string(model.SourceSceneNote)
+	}
+	if req.SourceScene != string(model.SourceSceneNote) && req.SourceScene != string(model.SourceSceneChat) {
+		return errors.New("invalid source_scene")
+	}
+	req.SourceChatTopicID = strings.TrimSpace(req.SourceChatTopicID)
+	req.SourceChatMessageID = strings.TrimSpace(req.SourceChatMessageID)
+	req.SourceChatMessageSnapshot = strings.TrimSpace(req.SourceChatMessageSnapshot)
+	req.SourceMessageIDs = compactSourceMessageIDs(req.SourceMessageIDs)
+	if req.SourceChatTopicID != "" && !isUUIDLike(req.SourceChatTopicID) {
+		return errors.New("invalid source_chat_topic_id")
+	}
+	if req.SourceChatMessageID != "" && !isUUIDLike(req.SourceChatMessageID) {
+		return errors.New("invalid source_chat_message_id")
+	}
+	if req.SourceScene == string(model.SourceSceneChat) && req.SourceChatMessageID == "" {
+		for i := len(req.SourceMessageIDs) - 1; i >= 0; i-- {
+			if isUUIDLike(req.SourceMessageIDs[i]) {
+				req.SourceChatMessageID = req.SourceMessageIDs[i]
+				break
+			}
+		}
+	}
+	if req.SourceScene == string(model.SourceSceneChat) &&
+		req.SourceChatMessageSnapshot == "" &&
+		len(req.SourceMessageIDs) > 0 {
+		req.SourceChatMessageSnapshot = strings.Join(req.SourceMessageIDs, ",")
 	}
 
-	// 2f. 更新入库：内容替换为清理后的版本，标记为 approved
-	h.repo.UpdateReviewResult(c.Request.Context(), exp.ID, cleaned, interpretation, originalText,
-		score, scoreDetails, string(model.ReviewApproved), nil)
+	if req.Topic == "" && req.Topics != "" {
+		req.Topic = req.Topics
+	}
+	if req.Topics == "" && req.Topic != "" {
+		req.Topics = req.Topic
+	}
+	if len([]rune(req.Topic)) > 200 || len([]rune(req.Topics)) > 200 {
+		return errors.New("话题不超过 200 字")
+	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"experience": exp,
-		"review": gin.H{
-			"status":  "approved",
-			"score":   aiResult.Score,
-			"message": "经验已发布并进入平台经验池",
-		},
-	})
+	if req.Interpretation != "" && len([]rune(req.Interpretation)) > 300 {
+		return errors.New("经验解读不超过 300 字")
+	}
+	if req.Domain != "" && !model.IsValidDomain(req.Domain) {
+		return errors.New("invalid domain")
+	}
+	if req.SubDomain != "" && !model.IsValidSubDomain(req.SubDomain) {
+		return errors.New("invalid sub_domain")
+	}
+	if req.Domain == "" && req.SubDomain != "" {
+		return errors.New("sub_domain requires domain")
+	}
+	if req.Domain != "" && req.SubDomain != "" && !model.SubDomainBelongsToParent(req.Domain, req.SubDomain) {
+		return errors.New("sub_domain does not belong to domain")
+	}
+	return nil
+}
+
+func compactSourceMessageIDs(ids []string) []string {
+	if len(ids) == 0 {
+		return nil
+	}
+	compacted := make([]string, 0, len(ids))
+	for _, id := range ids {
+		id = strings.TrimSpace(id)
+		if id != "" {
+			compacted = append(compacted, id)
+		}
+	}
+	return compacted
+}
+
+func isUUIDLike(value string) bool {
+	if len(value) != 36 {
+		return false
+	}
+	for i, r := range value {
+		switch i {
+		case 8, 13, 18, 23:
+			if r != '-' {
+				return false
+			}
+		default:
+			if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (h *ExperienceHandler) Update(c *gin.Context) {
@@ -276,36 +354,8 @@ func (h *ExperienceHandler) Update(c *gin.Context) {
 		return
 	}
 
-	contentRunes := len([]rune(req.Content))
-	if contentRunes < 10 || contentRunes > 100 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "经验内容需 10-100 字"})
-		return
-	}
-
-	// Interpretation validation with rune count
-	if req.Interpretation != "" && len([]rune(req.Interpretation)) > 300 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "经验解读不超过 300 字"})
-		return
-	}
-	if len([]rune(req.Topics)) > 200 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "话题不超过 200 字"})
-		return
-	}
-
-	if req.Domain != "" && !model.IsValidDomain(req.Domain) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid domain"})
-		return
-	}
-	if req.SubDomain != "" && !model.IsValidSubDomain(req.SubDomain) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sub_domain"})
-		return
-	}
-	if req.Domain == "" && req.SubDomain != "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "sub_domain requires domain"})
-		return
-	}
-	if req.Domain != "" && req.SubDomain != "" && !model.SubDomainBelongsToParent(req.Domain, req.SubDomain) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "sub_domain does not belong to domain"})
+	if err := normalizeCreateExperienceRequest(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

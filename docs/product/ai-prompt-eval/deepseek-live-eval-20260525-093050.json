@@ -1,0 +1,113 @@
+{
+  "generated_at": "2026-05-25T09:30:50",
+  "model": "deepseek-v4-pro",
+  "base_url": "https://api.deepseek.com",
+  "spec_path": "docs/product/niangao-ai-prompt-production-spec-v4.md",
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0
+  },
+  "results": [
+    {
+      "case_id": "classify_002",
+      "function_type": "experience_classify",
+      "category": "classification",
+      "title": "固定领域子领域分类",
+      "tags": [
+        "taxonomy",
+        "意义",
+        "自我"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/classification.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 3379,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 681,
+        "completion_tokens": 110,
+        "total_tokens": 791,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 681
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": \"意义\",\n    \"sub_domain\": \"自我\",\n    \"topic\": \"自我方向\",\n    \"confidence\": 0.9,\n    \"alternative\": [],\n    \"reason\": \"内容涉及自我方向、活法选择，强调不要被他人速度定义，属于意义/自我范畴。\"\n  },\n  \"confidence\": 0.9,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": "意义",
+          "sub_domain": "自我",
+          "topic": "自我方向",
+          "confidence": 0.9,
+          "alternative": [],
+          "reason": "内容涉及自我方向、活法选择，强调不要被他人速度定义，属于意义/自我范畴。"
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "content_086",
+      "function_type": "experience_interpretation",
+      "category": "content_production",
+      "title": "高质量经验解读",
+      "tags": [
+        "interpretation",
+        "low"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 7139,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 504,
+        "completion_tokens": 265,
+        "total_tokens": 769,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 120
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_interpretation\",\n  \"result\": {\n    \"sections\": [\n      {\n        \"title\": \"这条经验在说什么\",\n        \"content\": \"它提醒我们，看到别人快速前进时，容易误以为那也是自己该走的路。别人的节奏和选择，不一定适合你。\"\n      },\n      {\n        \"title\": \"什么时候可以用它\",\n        \"content\": \"当你因比较而焦虑，或盲目跟随他人目标时，可以停下来问自己：这真是我想要的吗？\"\n      },\n      {\n        \"title\": \"怎么理解这句话\",\n        \"content\": \"关键是把注意力从外部比较拉回内在标准。别人的速度是参考，不是标尺。你的方向应由自己的价值观和条件决定。\"\n      },\n      {\n        \"title\": \"容易用错的地方\",\n        \"content\": \"这不等于拒绝学习他人或无视环境。在需要协作或追赶客观进度时，适当参考他人是必要的。\"\n      }\n    ],\n    \"overall_length\": \"short\",\n    \"risk_boundary_required\": false,\n    \"interpretation_style\": \"direct\"\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_interpretation",
+        "result": {
+          "sections": [
+            {
+              "title": "这条经验在说什么",
+              "content": "它提醒我们，看到别人快速前进时，容易误以为那也是自己该走的路。别人的节奏和选择，不一定适合你。"
+            },
+            {
+              "title": "什么时候可以用它",
+              "content": "当你因比较而焦虑，或盲目跟随他人目标时，可以停下来问自己：这真是我想要的吗？"
+            },
+            {
+              "title": "怎么理解这句话",
+              "content": "关键是把注意力从外部比较拉回内在标准。别人的速度是参考，不是标尺。你的方向应由自己的价值观和条件决定。"
+            },
+            {
+              "title": "容易用错的地方",
+              "content": "这不等于拒绝学习他人或无视环境。在需要协作或追赶客观进度时，适当参考他人是必要的。"
+            }
+          ],
+          "overall_length": "short",
+          "risk_boundary_required": false,
+          "interpretation_style": "direct"
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    }
+  ]
+}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/niangao/backend/internal/ai"
 	"github.com/niangao/backend/internal/config"
 	"github.com/niangao/backend/internal/handler"
 	"github.com/niangao/backend/internal/middleware"
@@ -43,6 +44,7 @@ func main() {
 	bookmarkRepo := repository.NewBookmarkRepo(db)
 	convRepo := repository.NewConversationRepo(db)
 	statsRepo := repository.NewStatsRepo(db)
+	aiGateway := ai.NewGateway(cfg.AIServiceURL)
 
 	// Dev mode flag
 	devMode := cfg.Env != "production"
@@ -65,11 +67,19 @@ func main() {
 		handler.RegisterAuthRoutes(v1, db, cfg.JWTSecret, cfg.AppleBundleID, devMode)
 
 		// 经验
-		handler.RegisterExperienceRoutes(v1, expRepo, likeRepo, bookmarkRepo)
+		handler.RegisterExperienceRoutes(v1, expRepo, likeRepo, bookmarkRepo, aiGateway)
+		handler.RegisterFeedRoutes(v1, expRepo)
+		handler.RegisterExperienceActionRoutes(v1, expRepo)
+		handler.RegisterSearchRoutes(v1, expRepo)
 		// 对话（新版：Go 编排 + 消息落库）
 		handler.RegisterChatRoutes(v1, convRepo, bookmarkRepo, cfg.AIServiceURL)
+		handler.RegisterChatV4Routes(v1, convRepo, aiGateway)
 		// 用户
 		handler.RegisterUserRoutes(v1, db)
+		handler.RegisterMeStatsRoutes(v1, expRepo)
+		handler.RegisterMeProfileRoutes(v1, expRepo)
+		handler.RegisterMeFeedbackRoutes(v1, expRepo)
+		handler.RegisterMeAccountRoutes(v1, db)
 		// 统计
 		handler.RegisterStatsRoutes(v1, statsRepo)
 

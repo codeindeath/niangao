@@ -1,0 +1,151 @@
+{
+  "generated_at": "2026-05-25T01:38:45",
+  "model": "deepseek-v4-pro",
+  "base_url": "https://api.deepseek.com",
+  "spec_path": "docs/product/niangao-ai-prompt-production-spec-v4.md",
+  "summary": {
+    "total": 3,
+    "passed": 2,
+    "failed": 1
+  },
+  "results": [
+    {
+      "case_id": "chat_strong_emotion_no_citation",
+      "function_type": "chat",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2850,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 1301,
+        "completion_tokens": 142,
+        "total_tokens": 1443,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 533
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat\",\n  \"result\": {\n    \"reply_text\": \"嗯，我听到了，你现在不想听任何建议。\",\n    \"citations\": [],\n    \"note_suggestion\": {\n      \"should_show\": false,\n      \"suggested_text\": null,\n      \"source_message_ids\": []\n    },\n    \"emotion_level\": \"high\",\n    \"risk_level\": \"normal\",\n    \"reply_mode\": \"hold\",\n    \"followup_question_count\": 0,\n    \"internal_flags\": []\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat",
+        "result": {
+          "reply_text": "嗯，我听到了，你现在不想听任何建议。",
+          "citations": [],
+          "note_suggestion": {
+            "should_show": false,
+            "suggested_text": null,
+            "source_message_ids": []
+          },
+          "emotion_level": "high",
+          "risk_level": "normal",
+          "reply_mode": "hold",
+          "followup_question_count": 0,
+          "internal_flags": []
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "topic_clear_parent_guilt",
+      "function_type": "chat_topic_classify",
+      "status": "failed",
+      "errors": [
+        "clear_topic_should_create",
+        "topic_title_too_short",
+        "topic_domain_should_be_relationship",
+        "topic_sub_domain_should_be_parents"
+      ],
+      "warnings": [],
+      "elapsed_ms": 3785,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 655,
+        "completion_tokens": 160,
+        "total_tokens": 815,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 655
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"chat_topic_classify\",\n  \"result\": {\n    \"clarity_score\": 0.55,\n    \"should_create_topic\": false,\n    \"title\": null,\n    \"domain\": null,\n    \"sub_domain\": null,\n    \"topic_keyword\": null,\n    \"candidate_existing_topic_id\": null,\n    \"should_bind_existing_topic\": false,\n    \"discard_if_user_leaves\": false,\n    \"reason\": \"用户表达了与母亲通话后的内疚情绪，但信息尚不足以形成稳定议题，缺乏具体情境和问题线索。\"\n  },\n  \"confidence\": 0.7,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "chat_topic_classify",
+        "result": {
+          "clarity_score": 0.55,
+          "should_create_topic": false,
+          "title": null,
+          "domain": null,
+          "sub_domain": null,
+          "topic_keyword": null,
+          "candidate_existing_topic_id": null,
+          "should_bind_existing_topic": false,
+          "discard_if_user_leaves": false,
+          "reason": "用户表达了与母亲通话后的内疚情绪，但信息尚不足以形成稳定议题，缺乏具体情境和问题线索。"
+        },
+        "confidence": 0.7,
+        "warnings": []
+      }
+    },
+    {
+      "case_id": "review_chicken_soup_discard",
+      "function_type": "experience_review",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 11061,
+      "finish_reason": "stop",
+      "reasoning_content_len": 635,
+      "usage": {
+        "prompt_tokens": 920,
+        "completion_tokens": 490,
+        "total_tokens": 1410,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 233
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 920
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_review\",\n  \"result\": {\n    \"decision\": \"discard\",\n    \"delete_category\": \"chicken_soup\",\n    \"cleaned_content\": \"相信自己，一切都会好的。\",\n    \"cleaning_level\": \"shell_only\",\n    \"ai_quality_score\": 1.0,\n    \"score_breakdown\": {\n      \"clarity\": 1,\n      \"transferability\": 1,\n      \"judgment\": 0,\n      \"boundary\": 0,\n      \"non_obviousness\": 0,\n      \"attitude\": 0,\n      \"usefulness\": 0\n    },\n    \"quality_tier\": \"public_visible\",\n    \"ai_citable\": false,\n    \"recommendation_eligible\": false,\n    \"misuse_risk_level\": \"low\",\n    \"misuse_risk_notes\": [],\n    \"review_reason\": \"纯励志表达，无具体判断条件或可操作原则，属于鸡汤类内容。\",\n    \"needs_human_attention\": false\n  },\n  \"confidence\": 0.95,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "discard",
+          "delete_category": "chicken_soup",
+          "cleaned_content": "相信自己，一切都会好的。",
+          "cleaning_level": "shell_only",
+          "ai_quality_score": 1.0,
+          "score_breakdown": {
+            "clarity": 1,
+            "transferability": 1,
+            "judgment": 0,
+            "boundary": 0,
+            "non_obviousness": 0,
+            "attitude": 0,
+            "usefulness": 0
+          },
+          "quality_tier": "public_visible",
+          "ai_citable": false,
+          "recommendation_eligible": false,
+          "misuse_risk_level": "low",
+          "misuse_risk_notes": [],
+          "review_reason": "纯励志表达，无具体判断条件或可操作原则，属于鸡汤类内容。",
+          "needs_human_attention": false
+        },
+        "confidence": 0.95,
+        "warnings": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-05-25T01:50:29",
+  "model": "deepseek-v4-pro",
+  "base_url": "https://api.deepseek.com",
+  "spec_path": "docs/product/niangao-ai-prompt-production-spec-v4.md",
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0
+  },
+  "results": [
+    {
+      "case_id": "classify_low_signal_emotion",
+      "function_type": "experience_classify",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 2315,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 538,
+        "completion_tokens": 98,
+        "total_tokens": 636,
+        "prompt_tokens_details": {
+          "cached_tokens": 512
+        },
+        "prompt_cache_hit_tokens": 512,
+        "prompt_cache_miss_tokens": 26
+      },
+      "raw_content": "{\n  \"schema_version\": \"1.1\",\n  \"function_type\": \"experience_classify\",\n  \"result\": {\n    \"domain\": null,\n    \"sub_domain\": null,\n    \"topic\": null,\n    \"confidence\": 0.0,\n    \"alternative\": [],\n    \"reason\": \"输入为情绪表达，无复用性判断，不构成经验。\"\n  },\n  \"confidence\": 0.0,\n  \"warnings\": []\n}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_classify",
+        "result": {
+          "domain": null,
+          "sub_domain": null,
+          "topic": null,
+          "confidence": 0.0,
+          "alternative": [],
+          "reason": "输入为情绪表达，无复用性判断，不构成经验。"
+        },
+        "confidence": 0.0,
+        "warnings": []
+      }
+    }
+  ]
+}

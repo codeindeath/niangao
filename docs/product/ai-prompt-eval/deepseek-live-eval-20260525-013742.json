@@ -1,0 +1,708 @@
+{
+  "generated_at": "2026-05-25T01:37:42",
+  "model": "deepseek-v4-pro",
+  "base_url": "https://api.deepseek.com",
+  "spec_path": "docs/product/niangao-ai-prompt-production-spec-v4.md",
+  "summary": {
+    "total": 19,
+    "passed": 0,
+    "failed": 19
+  },
+  "results": [
+    {
+      "case_id": "chat_strong_emotion_no_citation",
+      "function_type": "chat",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 2240,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 994,
+        "completion_tokens": 50,
+        "total_tokens": 1044,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 994
+      },
+      "raw_content": "{\n  \"reply_text\": \"嗯，听起来你现在特别烦，不想被任何人指手画脚。那就先不解决问题，我在这儿陪你待一会儿。\",\n  \"note_suggestion\": null,\n  \"citation_cards\": []\n}",
+      "parsed": {
+        "reply_text": "嗯，听起来你现在特别烦，不想被任何人指手画脚。那就先不解决问题，我在这儿陪你待一会儿。",
+        "note_suggestion": null,
+        "citation_cards": []
+      }
+    },
+    {
+      "case_id": "chat_record_insight_note_suggestion",
+      "function_type": "chat",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 3371,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 923,
+        "completion_tokens": 59,
+        "total_tokens": 982,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 923
+      },
+      "raw_content": "{\n  \"reply_text\": \"这句话很关键——你把“怕换工作”重新看清楚了。怕的不是变化本身，是怕再经历一次“选错”的感觉。\",\n  \"note_suggestion\": \"这点要不要记下？\",\n  \"citation_cards\": []\n}",
+      "parsed": {
+        "reply_text": "这句话很关键——你把“怕换工作”重新看清楚了。怕的不是变化本身，是怕再经历一次“选错”的感觉。",
+        "note_suggestion": "这点要不要记下？",
+        "citation_cards": []
+      }
+    },
+    {
+      "case_id": "chat_high_risk_low_reliability_card_block",
+      "function_type": "chat",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 3993,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 1097,
+        "completion_tokens": 112,
+        "total_tokens": 1209,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 329
+      },
+      "raw_content": "{\n  \"reply_text\": \"我听到你话里那股“不想再忍了”的劲儿，好像今晚不切断，明天就又会心软。这种冲动本身不是错，它是在替你喊停。\",\n  \"note_suggestion\": null,\n  \"citation_cards\": [\n    {\n      \"experience_id\": \"exp_high_boundary\",\n      \"display_text\": \"重大决定先分清触发情绪和长期底线，再做可逆的小动作。\",\n      \"source_label\": \"精选经验\"\n    }\n  ]\n}",
+      "parsed": {
+        "reply_text": "我听到你话里那股“不想再忍了”的劲儿，好像今晚不切断，明天就又会心软。这种冲动本身不是错，它是在替你喊停。",
+        "note_suggestion": null,
+        "citation_cards": [
+          {
+            "experience_id": "exp_high_boundary",
+            "display_text": "重大决定先分清触发情绪和长期底线，再做可逆的小动作。",
+            "source_label": "精选经验"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "topic_vague_emotion_fragment",
+      "function_type": "chat_topic_classify",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 1842,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 428,
+        "completion_tokens": 41,
+        "total_tokens": 469,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 428
+      },
+      "raw_content": "{\"topic_title\":null,\"domain\":null,\"sub_domain\":null,\"clarity_score\":0.1,\"should_bind_existing_topic\":false,\"existing_topic_id\":null}",
+      "parsed": {
+        "topic_title": null,
+        "domain": null,
+        "sub_domain": null,
+        "clarity_score": 0.1,
+        "should_bind_existing_topic": false,
+        "existing_topic_id": null
+      }
+    },
+    {
+      "case_id": "topic_clear_parent_guilt",
+      "function_type": "chat_topic_classify",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 1954,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 444,
+        "completion_tokens": 61,
+        "total_tokens": 505,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 60
+      },
+      "raw_content": "{\n  \"should_create_topic\": true,\n  \"clarity_score\": 0.75,\n  \"title\": \"和妈妈打电话很内疚\",\n  \"domain\": \"relationships\",\n  \"sub_domain\": \"family\",\n  \"bind_existing_topic_id\": null\n}",
+      "parsed": {
+        "should_create_topic": true,
+        "clarity_score": 0.75,
+        "title": "和妈妈打电话很内疚",
+        "domain": "relationships",
+        "sub_domain": "family",
+        "bind_existing_topic_id": null
+      }
+    },
+    {
+      "case_id": "summary_privacy_abstraction",
+      "function_type": "chat_summary",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 2961,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 364,
+        "completion_tokens": 87,
+        "total_tokens": 451,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 364
+      },
+      "raw_content": "{\n  \"summary\": \"用户提到张三在公司会上公开评价其工资五万且工作表现不佳，感到羞耻。年糕回应指出这是被公开评价刺到。\",\n  \"light_profile_candidates\": [\n    {\n      \"field\": \"common_issue_domains\",\n      \"value\": \"在工作关系里重视被尊重\",\n      \"source_message_ids\": [\"m1\"]\n    }\n  ]\n}",
+      "parsed": {
+        "summary": "用户提到张三在公司会上公开评价其工资五万且工作表现不佳，感到羞耻。年糕回应指出这是被公开评价刺到。",
+        "light_profile_candidates": [
+          {
+            "field": "common_issue_domains",
+            "value": "在工作关系里重视被尊重",
+            "source_message_ids": [
+              "m1"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "rewrite_valid_insight",
+      "function_type": "experience_rewrite",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 1632,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 321,
+        "completion_tokens": 32,
+        "total_tokens": 353,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 321
+      },
+      "raw_content": "{\n  \"experience\": \"找朋友帮忙要提前说清楚边界，不然最后两个人都不舒服。\",\n  \"rewrite_level\": \"light\"\n}",
+      "parsed": {
+        "experience": "找朋友帮忙要提前说清楚边界，不然最后两个人都不舒服。",
+        "rewrite_level": "light"
+      }
+    },
+    {
+      "case_id": "rewrite_reject_event_only",
+      "function_type": "experience_rewrite",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 1433,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 315,
+        "completion_tokens": 26,
+        "total_tokens": 341,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 59
+      },
+      "raw_content": "{\n  \"can_rewrite\": false,\n  \"rewrite_level\": \"reject\",\n  \"experience\": \"\"\n}",
+      "parsed": {
+        "can_rewrite": false,
+        "rewrite_level": "reject",
+        "experience": ""
+      }
+    },
+    {
+      "case_id": "moderation_privacy_exposure",
+      "function_type": "moderation",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 1322,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 350,
+        "completion_tokens": 22,
+        "total_tokens": 372,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 350
+      },
+      "raw_content": "{\n  \"public_action\": \"block_public\",\n  \"ai_citation_allowed\": false\n}",
+      "parsed": {
+        "public_action": "block_public",
+        "ai_citation_allowed": false
+      }
+    },
+    {
+      "case_id": "moderation_dangerous_medical",
+      "function_type": "moderation",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 1338,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 350,
+        "completion_tokens": 22,
+        "total_tokens": 372,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 94
+      },
+      "raw_content": "{\n  \"public_action\": \"block_public\",\n  \"ai_citation_allowed\": false\n}",
+      "parsed": {
+        "public_action": "block_public",
+        "ai_citation_allowed": false
+      }
+    },
+    {
+      "case_id": "translation_preserve_voice",
+      "function_type": "translation_normalization",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 2153,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 272,
+        "completion_tokens": 80,
+        "total_tokens": 352,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 272
+      },
+      "raw_content": "{\n  \"source_material\": \"00:01 Don't let someone else's map become your prison. 00:04 Pick your road, then pay its price.\",\n  \"source_language\": \"en\",\n  \"normalized_text\": \"别让他人的地图成为你的牢笼。选择你的路，然后付出它的代价。\",\n  \"low_confidence_spans\": []\n}",
+      "parsed": {
+        "source_material": "00:01 Don't let someone else's map become your prison. 00:04 Pick your road, then pay its price.",
+        "source_language": "en",
+        "normalized_text": "别让他人的地图成为你的牢笼。选择你的路，然后付出它的代价。",
+        "low_confidence_spans": []
+      }
+    },
+    {
+      "case_id": "extract_direct_principle_pg",
+      "function_type": "experience_extract",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 7884,
+      "finish_reason": "stop",
+      "reasoning_content_len": 563,
+      "usage": {
+        "prompt_tokens": 584,
+        "completion_tokens": 322,
+        "total_tokens": 906,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 223
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 584
+      },
+      "raw_content": "{\n  \"candidates\": [\n    {\n      \"content\": \"If you want to make something people want, talk to users before you spend months building in your head.\",\n      \"creator_name\": \"Paul Graham\",\n      \"source_derivation_type\": \"direct_statement\",\n      \"source_excerpt\": \"If you want to make something people want, talk to users before you spend months building in your head.\",\n      \"risk_notes\": null\n    }\n  ]\n}",
+      "parsed": {
+        "candidates": [
+          {
+            "content": "If you want to make something people want, talk to users before you spend months building in your head.",
+            "creator_name": "Paul Graham",
+            "source_derivation_type": "direct_statement",
+            "source_excerpt": "If you want to make something people want, talk to users before you spend months building in your head.",
+            "risk_notes": null
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "extract_reject_story_only",
+      "function_type": "experience_extract",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 3678,
+      "finish_reason": "stop",
+      "reasoning_content_len": 283,
+      "usage": {
+        "prompt_tokens": 588,
+        "completion_tokens": 142,
+        "total_tokens": 730,
+        "prompt_tokens_details": {
+          "cached_tokens": 512
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 135
+        },
+        "prompt_cache_hit_tokens": 512,
+        "prompt_cache_miss_tokens": 76
+      },
+      "raw_content": "{\"candidates\": []}",
+      "parsed": {
+        "candidates": []
+      }
+    },
+    {
+      "case_id": "review_chicken_soup_discard",
+      "function_type": "experience_review",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 17166,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1480,
+      "usage": {
+        "prompt_tokens": 588,
+        "completion_tokens": 665,
+        "total_tokens": 1253,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 647
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 588
+      },
+      "raw_content": "{\"decision\":\"delete\",\"reason\":\"chicken_soup\",\"quality_score\":2}",
+      "parsed": {
+        "decision": "delete",
+        "reason": "chicken_soup",
+        "quality_score": 2
+      }
+    },
+    {
+      "case_id": "review_good_startup_feedback",
+      "function_type": "experience_review",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 23803,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1867,
+      "usage": {
+        "prompt_tokens": 594,
+        "completion_tokens": 950,
+        "total_tokens": 1544,
+        "prompt_tokens_details": {
+          "cached_tokens": 512
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 868
+        },
+        "prompt_cache_hit_tokens": 512,
+        "prompt_cache_miss_tokens": 82
+      },
+      "raw_content": "{\"deletion_decision\": false, \"deletion_reason\": null, \"quality_score\": 6, \"quality_dimensions\": {\"clarity\": 8, \"transferability\": 7, \"judgment\": 7, \"boundary\": 4, \"non_obviousness\": 5, \"attitude\": 6, \"usefulness\": 7}}",
+      "parsed": {
+        "deletion_decision": false,
+        "deletion_reason": null,
+        "quality_score": 6,
+        "quality_dimensions": {
+          "clarity": 8,
+          "transferability": 7,
+          "judgment": 7,
+          "boundary": 4,
+          "non_obviousness": 5,
+          "attitude": 6,
+          "usefulness": 7
+        }
+      }
+    },
+    {
+      "case_id": "classify_direction_meaning_self",
+      "function_type": "experience_classify",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 1326,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 304,
+        "completion_tokens": 35,
+        "total_tokens": 339,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 304
+      },
+      "raw_content": "{\n  \"domain\": \"意义\",\n  \"sub_domain\": \"自我\",\n  \"topic\": \"自我节奏\",\n  \"confidence\": 0.9\n}",
+      "parsed": {
+        "domain": "意义",
+        "sub_domain": "自我",
+        "topic": "自我节奏",
+        "confidence": 0.9
+      }
+    },
+    {
+      "case_id": "classify_low_signal_emotion",
+      "function_type": "experience_classify",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 1702,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 301,
+        "completion_tokens": 35,
+        "total_tokens": 336,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 45
+      },
+      "raw_content": "{\n  \"domain\": \"意义\",\n  \"sub_domain\": \"情绪\",\n  \"topic\": \"烦躁情绪\",\n  \"confidence\": 0.9\n}",
+      "parsed": {
+        "domain": "意义",
+        "sub_domain": "情绪",
+        "topic": "烦躁情绪",
+        "confidence": 0.9
+      }
+    },
+    {
+      "case_id": "interpretation_high_risk_boundary",
+      "function_type": "experience_interpretation",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 18468,
+      "finish_reason": "stop",
+      "reasoning_content_len": 1008,
+      "usage": {
+        "prompt_tokens": 332,
+        "completion_tokens": 780,
+        "total_tokens": 1112,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 508
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 332
+      },
+      "raw_content": "{\n  \"interpretation\": {\n    \"sections\": [\n      {\n        \"heading\": \"适用于哪种创业处境\",\n        \"body\": \"当项目需要全力冲刺、快速验证商业模式，且个人能承受短期无收入风险时，all in 心态有助于集中资源突破瓶颈。它更适用于早期单点突破阶段，而非成熟扩张期。\"\n      },\n      {\n        \"heading\": \"“别留退路”的核心判断\",\n        \"body\": \"这条经验假设“留有退路会分散注意力和资源，降低成功概率”。它认为人在绝境中能爆发更强的创造力与执行力，但忽略了并非所有人都能承受极端压力。\"\n      },\n      {\n        \"heading\": \"如何使用这条经验\",\n        \"body\": \"把“all in”理解为阶段性策略：设定明确的时间窗口和可量化的止损条件，而非盲目永久切断后路。可以投入时间、专注度，但需保留基本生活保障。\"\n      },\n      {\n        \"heading\": \"高风险下的边界提醒\",\n        \"body\": \"当创业涉及家庭生计、借高息贷款或押上全部身家时，不留退路可能带来灾难性后果。建议区分财务风险与精力投入，永远为健康、基本生存留一道安全门。\"\n      }\n    ]\n  }\n}",
+      "parsed": {
+        "interpretation": {
+          "sections": [
+            {
+              "heading": "适用于哪种创业处境",
+              "body": "当项目需要全力冲刺、快速验证商业模式，且个人能承受短期无收入风险时，all in 心态有助于集中资源突破瓶颈。它更适用于早期单点突破阶段，而非成熟扩张期。"
+            },
+            {
+              "heading": "“别留退路”的核心判断",
+              "body": "这条经验假设“留有退路会分散注意力和资源，降低成功概率”。它认为人在绝境中能爆发更强的创造力与执行力，但忽略了并非所有人都能承受极端压力。"
+            },
+            {
+              "heading": "如何使用这条经验",
+              "body": "把“all in”理解为阶段性策略：设定明确的时间窗口和可量化的止损条件，而非盲目永久切断后路。可以投入时间、专注度，但需保留基本生活保障。"
+            },
+            {
+              "heading": "高风险下的边界提醒",
+              "body": "当创业涉及家庭生计、借高息贷款或押上全部身家时，不留退路可能带来灾难性后果。建议区分财务风险与精力投入，永远为健康、基本生存留一道安全门。"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "recommendation_quality_and_creator_diagnostics",
+      "function_type": "recommendation_ai",
+      "status": "failed",
+      "errors": [
+        "schema_version_not_1.1",
+        "function_type_mismatch",
+        "result_not_object"
+      ],
+      "warnings": [],
+      "elapsed_ms": 10141,
+      "finish_reason": "stop",
+      "reasoning_content_len": 0,
+      "usage": {
+        "prompt_tokens": 500,
+        "completion_tokens": 446,
+        "total_tokens": 946,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 500
+      },
+      "raw_content": "{\n  \"diagnosis\": {\n    \"relevance_check\": {\n      \"domain_match\": \"工作\",\n      \"sub_domain_match\": \"沟通\",\n      \"relevant_candidates\": [\"e1\", \"e2\", \"e3\"],\n      \"irrelevant_candidates\": [\"e4\", \"e_low\"]\n    },\n    \"quality_check\": {\n      \"tier_distribution\": {\n        \"ai_citable\": [\"e1\", \"e2\"],\n        \"recommend_candidate\": [\"e3\"],\n        \"high_trust\": [\"e4\"],\n        \"public_visible\": [\"e_low\"]\n      },\n      \"low_quality_mixed\": true,\n      \"low_quality_ids\": [\"e_low\"]\n    },\n    \"diversity_check\": {\n      \"creator_concentration\": {\n        \"A\": 3,\n        \"B\": 1,\n        \"C\": 1\n      },\n      \"domain_narrowness\": \"工作领域集中，但子领域均为沟通，缺乏差异视角\",\n      \"content_similarity\": {\n        \"e1_vs_e2\": \"高度相似，均强调沟通前确认目标\",\n        \"e1_vs_e3\": \"相关但侧重不同（确认需求 vs 明确下一步）\",\n        \"e2_vs_e3\": \"相关但侧重不同（确认目标 vs 明确下一步）\"\n      },\n      \"homogeneity_risk\": \"高，创作者A贡献3条相似经验\"\n    },\n    \"rerank_suggestions\": {\n      \"priority_order\": [\"e3\", \"e1\", \"e2\", \"e4\", \"e_low\"],\n      \"reasoning\": \"e3质量略低但差异性强，优先推荐；e1和e2高度相似，仅保留一条；e4领域不相关但质量高，可作为补充；e_low质量低且不相关，排除\",\n      \"excluded\": [\"e_low\"],\n      \"diversity_actions\": \"打散创作者A的经验，避免连续展示；考虑引入其他领域高质量经验（如e4）以增加差异视角\"\n    }\n  }\n}",
+      "parsed": {
+        "diagnosis": {
+          "relevance_check": {
+            "domain_match": "工作",
+            "sub_domain_match": "沟通",
+            "relevant_candidates": [
+              "e1",
+              "e2",
+              "e3"
+            ],
+            "irrelevant_candidates": [
+              "e4",
+              "e_low"
+            ]
+          },
+          "quality_check": {
+            "tier_distribution": {
+              "ai_citable": [
+                "e1",
+                "e2"
+              ],
+              "recommend_candidate": [
+                "e3"
+              ],
+              "high_trust": [
+                "e4"
+              ],
+              "public_visible": [
+                "e_low"
+              ]
+            },
+            "low_quality_mixed": true,
+            "low_quality_ids": [
+              "e_low"
+            ]
+          },
+          "diversity_check": {
+            "creator_concentration": {
+              "A": 3,
+              "B": 1,
+              "C": 1
+            },
+            "domain_narrowness": "工作领域集中，但子领域均为沟通，缺乏差异视角",
+            "content_similarity": {
+              "e1_vs_e2": "高度相似，均强调沟通前确认目标",
+              "e1_vs_e3": "相关但侧重不同（确认需求 vs 明确下一步）",
+              "e2_vs_e3": "相关但侧重不同（确认目标 vs 明确下一步）"
+            },
+            "homogeneity_risk": "高，创作者A贡献3条相似经验"
+          },
+          "rerank_suggestions": {
+            "priority_order": [
+              "e3",
+              "e1",
+              "e2",
+              "e4",
+              "e_low"
+            ],
+            "reasoning": "e3质量略低但差异性强，优先推荐；e1和e2高度相似，仅保留一条；e4领域不相关但质量高，可作为补充；e_low质量低且不相关，排除",
+            "excluded": [
+              "e_low"
+            ],
+            "diversity_actions": "打散创作者A的经验，避免连续展示；考虑引入其他领域高质量经验（如e4）以增加差异视角"
+          }
+        }
+      }
+    }
+  ]
+}

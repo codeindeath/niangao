@@ -1,4 +1,5 @@
 import {
+  apiFetchWithTimeout,
   clearToken,
   getToken,
   getRefreshToken,
@@ -7,14 +8,12 @@ import {
   isTokenExpired,
 } from './config';
 
-const API_BASE = 'http://115.190.177.146';
-
 // 登出：先调服务端吊销，再清本地
 export async function logout(): Promise<void> {
   try {
     const token = await getToken();
     if (token) {
-      await fetch(`${API_BASE}/api/v1/auth/logout`, {
+      await apiFetchWithTimeout('/api/v1/auth/logout', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -34,7 +33,7 @@ export async function refreshToken(): Promise<boolean> {
     const refresh = await getRefreshToken();
     if (!refresh) return false;
 
-    const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+    const res = await apiFetchWithTimeout('/api/v1/auth/refresh', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({refresh_token: refresh}),

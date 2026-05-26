@@ -1,0 +1,73 @@
+{
+  "generated_at": "2026-05-25T09:53:35",
+  "model": "deepseek-v4-pro",
+  "base_url": "https://api.deepseek.com",
+  "spec_path": "docs/product/niangao-ai-prompt-production-spec-v4.md",
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0
+  },
+  "results": [
+    {
+      "case_id": "content_057",
+      "function_type": "experience_review",
+      "category": "content_production",
+      "title": "经验质量审计",
+      "tags": [
+        "review",
+        "candidate_review"
+      ],
+      "source_file": "docs/product/ai-prompt-eval/golden-set/content-production.jsonl",
+      "status": "passed",
+      "errors": [],
+      "warnings": [],
+      "elapsed_ms": 27939,
+      "finish_reason": "stop",
+      "reasoning_content_len": 2399,
+      "usage": {
+        "prompt_tokens": 926,
+        "completion_tokens": 1241,
+        "total_tokens": 2167,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1053
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 30
+      },
+      "raw_content": "{\"schema_version\":\"1.1\",\"function_type\":\"experience_review\",\"result\":{\"decision\":\"candidate_review\",\"delete_category\":null,\"cleaned_content\":\"创业早期不要用想象替代用户反馈。\",\"cleaning_level\":\"none\",\"ai_quality_score\":6,\"score_breakdown\":{\"clarity\":8,\"transferability\":9,\"judgment\":7,\"boundary\":5,\"non_obviousness\":4,\"attitude\":6,\"usefulness\":7},\"quality_tier\":\"recommend_candidate\",\"ai_citable\":false,\"recommendation_eligible\":true,\"misuse_risk_level\":\"low\",\"misuse_risk_notes\":[],\"review_reason\":\"表达清晰、可迁移，但较为常见，缺乏明确适用边界，建议人工确认上下文。\",\"needs_human_attention\":false},\"confidence\":0.9,\"warnings\":[]}",
+      "parsed": {
+        "schema_version": "1.1",
+        "function_type": "experience_review",
+        "result": {
+          "decision": "candidate_review",
+          "delete_category": null,
+          "cleaned_content": "创业早期不要用想象替代用户反馈。",
+          "cleaning_level": "none",
+          "ai_quality_score": 6,
+          "score_breakdown": {
+            "clarity": 8,
+            "transferability": 9,
+            "judgment": 7,
+            "boundary": 5,
+            "non_obviousness": 4,
+            "attitude": 6,
+            "usefulness": 7
+          },
+          "quality_tier": "recommend_candidate",
+          "ai_citable": false,
+          "recommendation_eligible": true,
+          "misuse_risk_level": "low",
+          "misuse_risk_notes": [],
+          "review_reason": "表达清晰、可迁移，但较为常见，缺乏明确适用边界，建议人工确认上下文。",
+          "needs_human_attention": false
+        },
+        "confidence": 0.9,
+        "warnings": []
+      }
+    }
+  ]
+}

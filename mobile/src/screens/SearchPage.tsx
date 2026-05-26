@@ -9,7 +9,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {searchExperiences, Experience} from '../services/api';
+import {searchExperiences, recordSearchClick, Experience} from '../services/api';
+import {requireLogin} from '../utils/authGate';
+import {reportHandledError} from '../utils/logging';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const DOMAIN_LABELS: Record<string, string> = {
   vitality: '生命', living: '生活', work: '工作',
@@ -53,7 +56,7 @@ export default function SearchPage({navigation}: any) {
       const result = await searchExperiences(keyword.trim());
       setResults(result.data || []);
     } catch (e) {
-      console.error('Search failed:', e);
+      reportHandledError('SearchPage.search', e);
       setError('搜索失败，请检查网络连接');
     } finally {
       setLoading(false);
@@ -61,6 +64,7 @@ export default function SearchPage({navigation}: any) {
   }, [keyword]);
 
   const handleResultPress = (item: Experience, index: number) => {
+    recordSearchClick(item.id, keyword.trim(), index);
     navigation.navigate('searchCard', {
       results: results,
       initialIndex: index,
@@ -68,12 +72,17 @@ export default function SearchPage({navigation}: any) {
     });
   };
 
+  const handleChatEntry = async () => {
+    if (!(await requireLogin(navigation, '登录后可以和年糕聊聊这件事。'))) return;
+    navigation.navigate('main', {screen: 'chat'});
+  };
+
   const renderResult = ({item, index}: {item: Experience; index: number}) => {
     const isPlatform = item.source_type === 'platform';
     const primaryDomain = DOMAIN_LABELS[item.domain] || item.domain;
     const subDomain = item.sub_domain ? SUB_LABELS[item.sub_domain] : null;
     const domainLabel = subDomain || primaryDomain;
-    const displayName = item.creator_name || item.author_name || '匿名';
+    const displayName = item.creator_display_name || item.creator_name || item.author_name || '匿名';
     const showScore = item.quality_score != null && item.quality_score > 0;
     const stars = showScore ? Math.round(item.quality_score! / 2) : 0;
 
@@ -90,11 +99,11 @@ export default function SearchPage({navigation}: any) {
           <Text style={s.resultContent} numberOfLines={2}>{item.content}</Text>
           <Text style={s.resultMeta}>
             {displayName} · {domainLabel}
-            {isPlatform && <Text style={{color: '#4a7c59'}}> · 官</Text>}
+            {isPlatform && <Text style={{color: '#4a7c59'}}> · 精选</Text>}
             {showScore ? ` · ${'★'.repeat(stars)}` : ''}
           </Text>
         </View>
-        <Text style={s.resultArrow}>›</Text>
+        <Ionicons name="chevron-forward" size={17} color="#c5bfb3" />
       </TouchableOpacity>
     );
   };
@@ -103,8 +112,8 @@ export default function SearchPage({navigation}: any) {
     <SafeAreaView style={s.container} edges={['top']}>
       {/* Search header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={s.backBtnText}>←</Text>
+        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="返回">
+          <Ionicons name="chevron-back" size={21} color="#5c5548" />
         </TouchableOpacity>
         <View style={s.inputWrap}>
           <TextInput
@@ -135,8 +144,10 @@ export default function SearchPage({navigation}: any) {
         </View>
       ) : searched && results.length === 0 ? (
         <View style={s.center}>
-          <Text style={s.emptyText}>没有找到相关经验</Text>
-          <Text style={s.emptyHint}>试试其他关键词</Text>
+          <Text style={s.emptyText}>没找到特别贴近的，换个说法试试</Text>
+          <TouchableOpacity style={s.chatBtn} onPress={handleChatEntry}>
+            <Text style={s.chatBtnText}>去聊聊</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -167,7 +178,6 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backBtnText: {fontSize: 20, color: '#5c5548', fontWeight: '600'},
   inputWrap: {
     flex: 1,
     backgroundColor: '#ece8df',
@@ -206,10 +216,19 @@ const s = StyleSheet.create({
   resultInfo: {flex: 1, minWidth: 0},
   resultContent: {fontSize: 15, color: '#2a2722', lineHeight: 22, marginBottom: 3},
   resultMeta: {fontSize: 12, color: '#9b9487'},
-  resultArrow: {fontSize: 16, color: '#c5bfb3', flexShrink: 0},
   center: {flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 100},
   emptyText: {fontSize: 15, color: '#9a9a9a', marginBottom: 6},
   emptyHint: {fontSize: 13, color: '#b5b0a8'},
+  chatBtn: {
+    marginTop: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#d9e4d5',
+    backgroundColor: '#fff',
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+  },
+  chatBtnText: {fontSize: 13, color: '#4a7c59', fontWeight: '700'},
   retryBtn: {
     marginTop: 16,
     backgroundColor: '#4a7c59',
