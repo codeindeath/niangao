@@ -41,6 +41,26 @@ describe('ProfileEditScreen', () => {
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
+  it('clears expired auth when profile loading returns 401', async () => {
+    (api.fetchProfile as jest.Mock).mockRejectedValue({status: 401});
+
+    const rendered = render(<ProfileEditScreen navigation={navigation} />);
+
+    await waitFor(() => {
+      expect(config.clearToken).toHaveBeenCalledTimes(1);
+      expect(Alert.alert).toHaveBeenCalledWith(
+        '登录状态过期',
+        '重新登录后可以继续。',
+        expect.any(Array),
+      );
+    });
+    expect(rendered.queryByTestId('profile-edit-load-error')).toBeNull();
+
+    const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
+    buttons.find((button: any) => button.text === 'Apple登录').onPress();
+    expect(navigation.navigate).toHaveBeenCalledWith('login');
+  });
+
   it('can retry profile loading without leaving the user on an empty form', async () => {
     (api.fetchProfile as jest.Mock)
       .mockRejectedValueOnce(new Error('network down'))

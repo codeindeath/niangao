@@ -1209,6 +1209,19 @@ Current result:
     - `git diff --check`
     - production public and authenticated temporary JWT smoke checks
     - backend/AI `journalctl` error scans
+- Profile edit initial-load expired-auth hardening checks pass:
+  - 编辑个人信息页仍然对普通 profile load 失败展示可重试弱状态 `个人信息暂时没取到`
+  - when `/api/v1/me/profile` returns 401 during initial edit-profile load, the screen now clears expired auth and shows the unified `登录状态过期` path instead of treating it as a weak-network state
+  - the save-profile 401 path remains covered and unchanged
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- ProfileEditScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- ProfileEditScreen.test.tsx authGate.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (22 suites, 103 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 

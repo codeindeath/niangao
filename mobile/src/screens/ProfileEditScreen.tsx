@@ -31,12 +31,13 @@ export default function ProfileEditScreen({navigation}: any) {
       setFreeDescription(p.free_description || p.bio || '');
       setCommonIssues((p.common_issues || []).join('、'));
     } catch (e) {
+      if (await handleAuthExpired(navigation, e)) return;
       reportHandledError('ProfileEditScreen.loadProfile', e);
       setLoadError('个人信息暂时没取到');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigation]);
 
   useEffect(() => {
     loadProfile();
