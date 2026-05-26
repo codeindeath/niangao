@@ -263,7 +263,7 @@ export default function HomeScreen() {
         ),
       },
     }));
-    try { await markInspired(id); } catch (e) {
+    try { await markInspired(id); } catch (e: any) {
       setTabCaches(prev => ({
         ...prev,
         [activeTab]: {
@@ -273,7 +273,8 @@ export default function HomeScreen() {
           ),
         },
       }));
-      await handleAuthExpired(navigation, e);
+      if (await handleAuthExpired(navigation, e)) return;
+      Alert.alert('操作失败', e?.message || '请稍后再试');
     }
   };
 
@@ -293,7 +294,7 @@ export default function HomeScreen() {
         } : e),
       },
     }));
-    try { await setCollected(id, nextCollected); } catch (e) {
+    try { await setCollected(id, nextCollected); } catch (e: any) {
       setTabCaches(prev => ({
         ...prev,
         [activeTab]: {
@@ -305,7 +306,8 @@ export default function HomeScreen() {
           } : e),
         },
       }));
-      await handleAuthExpired(navigation, e);
+      if (await handleAuthExpired(navigation, e)) return;
+      Alert.alert('操作失败', e?.message || '请稍后再试');
     }
   };
 

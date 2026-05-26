@@ -29,6 +29,7 @@ describe('SearchCardScreen', () => {
     jest.clearAllMocks();
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     (config.getUserInfo as jest.Mock).mockResolvedValue({id: 'author-1'});
+    (config.getToken as jest.Mock).mockResolvedValue('token-1');
   });
 
   afterEach(() => {
@@ -69,5 +70,22 @@ describe('SearchCardScreen', () => {
       );
     });
     expect(api.deleteExperience).not.toHaveBeenCalled();
+  });
+
+  it('shows action failure feedback when inspiring fails for a non-auth error', async () => {
+    (api.markInspired as jest.Mock).mockRejectedValueOnce(new Error('network down'));
+
+    const {findByLabelText} = render(
+      <SearchCardScreen
+        route={{params: {results: [experience], initialIndex: 0, keyword: '测试'}}}
+        navigation={{goBack: jest.fn(), navigate: jest.fn()}}
+      />,
+    );
+
+    fireEvent.press(await findByLabelText('标记有启发'), {stopPropagation: jest.fn()});
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('操作失败', 'network down');
+    });
   });
 });

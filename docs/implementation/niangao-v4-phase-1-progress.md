@@ -1975,6 +1975,19 @@ Current result:
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
+- Card action non-auth failure feedback checks pass:
+  - 看看 card, 详情 card, 搜索 full-screen card, and 聊聊 reference-card optimistic 有启发/收藏 failures now roll back local state and show `操作失败` for non-auth request failures instead of silently reverting
+  - `401` failures still keep the unified expired-auth path and avoid the generic failure alert
+  - the Phase 1 contract doc now records the shared optimistic action failure behavior
+  - no production backend deployment was needed for this App-only slice
+  - verification:
+    - `npm run test -- DetailScreen.test.tsx HomeScreen.test.tsx SearchCardScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- ChatScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- DetailScreen.test.tsx HomeScreen.test.tsx SearchCardScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- ChatScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (23 suites, 122 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 

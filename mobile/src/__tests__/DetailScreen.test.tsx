@@ -109,6 +109,18 @@ describe('DetailScreen', () => {
     });
   });
 
+  it('shows action failure feedback when inspiring fails for a non-auth error', async () => {
+    (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);
+    (api.markInspired as jest.Mock).mockRejectedValueOnce(new Error('network down'));
+
+    const {findByLabelText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
+    fireEvent.press(await findByLabelText('标记有启发'));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('操作失败', 'network down');
+    });
+  });
+
   it('offers turn-private as the safer path when deleting a public own experience', async () => {
     (config.getUserInfo as jest.Mock).mockResolvedValue({id: 'author-1'});
     (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);

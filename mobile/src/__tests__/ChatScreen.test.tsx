@@ -1,4 +1,5 @@
 import React from 'react';
+import {Alert} from 'react-native';
 import {fireEvent, render, waitFor} from '@testing-library/react-native';
 
 jest.mock('../services/api');
@@ -23,6 +24,7 @@ describe('ChatScreen', () => {
     });
     (config.clearToken as jest.Mock).mockReset();
     jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     (api.createChatTempSession as jest.Mock).mockResolvedValue({
       id: 'temp-1',
       status: 'active',
@@ -35,6 +37,7 @@ describe('ChatScreen', () => {
 
   afterEach(() => {
     (console.warn as jest.Mock).mockRestore();
+    (Alert.alert as jest.Mock).mockRestore();
   });
 
   it('starts with a temp session and a low-pressure welcome message', async () => {
@@ -373,6 +376,34 @@ describe('ChatScreen', () => {
       expect(config.clearToken).toHaveBeenCalled();
       expect(parentNavigation.navigate).toHaveBeenCalledWith('login');
     });
+  });
+
+  it('shows action failure feedback when collecting a reference card fails for a non-auth error', async () => {
+    const navigation = makeNavigation();
+    (api.sendTempChatMessage as jest.Mock).mockResolvedValue({
+      user_message: {id: 'user-1', role: 'user', content: '我老是拖着不开始'},
+      message: {id: 'assistant-1', role: 'assistant', content: '先把第一步做小。'},
+      reference_cards: [{
+        experience_id: 'exp-1',
+        content: '行动不一定要等想清楚，先做一小步会带来新的判断。',
+        is_collected: false,
+      }],
+    });
+    (api.setCollected as jest.Mock).mockRejectedValueOnce(new Error('network down'));
+
+    const {findByText, getByLabelText, getByPlaceholderText, getByText} = render(<ChatScreen navigation={navigation} />);
+    expect(await findByText('我在。你可以从任何一点开始说，不用先想清楚。')).toBeTruthy();
+
+    fireEvent.changeText(getByPlaceholderText('输入你想聊的...'), '我老是拖着不开始');
+    fireEvent.press(getByText('发送'));
+    expect(await findByText('先把第一步做小。')).toBeTruthy();
+
+    fireEvent.press(getByLabelText('收藏参考经验'));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('操作失败', 'network down');
+    });
+    expect(config.clearToken).not.toHaveBeenCalled();
   });
 
   it('redirects to login when opening recent topics gets an expired auth response', async () => {

@@ -8,6 +8,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Alert,
   ActivityIndicator,
   Animated,
   Dimensions,
@@ -418,7 +419,8 @@ export default function ChatScreen({navigation}: any) {
           ),
         };
       }));
-      handleAuthExpired(err);
+      if (handleAuthExpired(err)) return;
+      Alert.alert('操作失败', err?.message || '请稍后再试');
     }
   };
 

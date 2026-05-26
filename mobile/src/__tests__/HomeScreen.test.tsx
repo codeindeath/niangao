@@ -254,6 +254,25 @@ describe('HomeScreen', () => {
     expect(navigation.navigate).toHaveBeenCalledWith('login');
   });
 
+  it('shows action failure feedback when a card action fails for a non-auth error', async () => {
+    (config.getToken as jest.Mock).mockResolvedValue('fake-token');
+    (api.fetchRecommendations as jest.Mock).mockResolvedValue({
+      data: [makeExperience('1')],
+      total: 1,
+      has_more: false,
+    });
+    (api.markInspired as jest.Mock).mockRejectedValueOnce(new Error('network down'));
+
+    const {findByText, getByLabelText} = render(<HomeScreen />);
+
+    await findByText('第 1 条经验');
+    fireEvent.press(getByLabelText('标记有启发'), {stopPropagation: jest.fn()});
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('操作失败', 'network down');
+    });
+  });
+
   it('clears expired auth and keeps public recommendations when a protected tab load returns 401', async () => {
     (config.getToken as jest.Mock).mockResolvedValue('expired-token');
     (api.fetchRecommendations as jest.Mock).mockResolvedValue({

@@ -74,9 +74,10 @@ export default function DetailScreen({route, navigation}: any) {
     if (!exp || exp.is_inspired) return;
     const previous = exp;
     setExp({...exp, is_inspired: true, inspiration_count: exp.inspiration_count + 1});
-    try { await markInspired(exp.id); } catch (e) {
+    try { await markInspired(exp.id); } catch (e: any) {
       setExp(previous);
-      await handleAuthExpired(navigation, e);
+      if (await handleAuthExpired(navigation, e)) return;
+      Alert.alert('操作失败', e?.message || '请稍后再试');
     }
   };
 
@@ -90,9 +91,10 @@ export default function DetailScreen({route, navigation}: any) {
       is_collected: nextCollected,
       collection_count: Math.max(exp.collection_count + (nextCollected ? 1 : -1), 0),
     });
-    try { await setCollected(exp.id, nextCollected); } catch (e) {
+    try { await setCollected(exp.id, nextCollected); } catch (e: any) {
       setExp(previous);
-      await handleAuthExpired(navigation, e);
+      if (await handleAuthExpired(navigation, e)) return;
+      Alert.alert('操作失败', e?.message || '请稍后再试');
     }
   };
 

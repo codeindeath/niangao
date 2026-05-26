@@ -53,9 +53,10 @@ export default function SearchCardScreen({route, navigation}: any) {
     const card = cards.find(c => c.id === id);
     if (!card || card.is_inspired) return;
     updateCard(id, {is_inspired: true, inspiration_count: card.inspiration_count + 1});
-    try { await markInspired(id); } catch (e) {
+    try { await markInspired(id); } catch (e: any) {
       updateCard(id, {is_inspired: card.is_inspired, inspiration_count: card.inspiration_count});
-      await handleAuthExpired(navigation, e);
+      if (await handleAuthExpired(navigation, e)) return;
+      Alert.alert('操作失败', e?.message || '请稍后再试');
     }
   };
 
@@ -68,9 +69,10 @@ export default function SearchCardScreen({route, navigation}: any) {
       is_collected: nextCollected,
       collection_count: Math.max(card.collection_count + (nextCollected ? 1 : -1), 0),
     });
-    try { await setCollected(id, nextCollected); } catch (e) {
+    try { await setCollected(id, nextCollected); } catch (e: any) {
       updateCard(id, {is_collected: card.is_collected, collection_count: card.collection_count});
-      await handleAuthExpired(navigation, e);
+      if (await handleAuthExpired(navigation, e)) return;
+      Alert.alert('操作失败', e?.message || '请稍后再试');
     }
   };
 

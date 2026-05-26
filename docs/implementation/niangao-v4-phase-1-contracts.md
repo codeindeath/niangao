@@ -306,6 +306,12 @@ Behavior:
 
 ## 5. Interactions
 
+Shared App behavior:
+
+- Guest users see the login gate before any optimistic personal-state update is applied.
+- If an optimistic 有启发 or 收藏 request fails, the App rolls the local card state back first.
+- `401` failures use the unified expired-auth flow; non-auth request failures show `操作失败` with the backend/network message or `请稍后再试`.
+
 ### 5.1 有启发
 
 Endpoint:
