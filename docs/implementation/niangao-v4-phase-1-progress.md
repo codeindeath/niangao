@@ -1359,6 +1359,35 @@ Current result:
     - `git diff --check`
     - production public and authenticated temporary JWT smoke checks
     - backend/AI `journalctl` severe-error scans
+- Backend detail V4 visibility/lifecycle gate checks pass:
+  - public detail access now uses V4 `visibility` and `lifecycle_status` facts instead of legacy `status/review_status/is_private`
+  - owners can still open their own detail records while non-owners cannot open `needs_review` records
+  - Linux backend artifact `/tmp/niangao-backend-v4-detail-visibility-gate` was deployed to production at `/root/niangao/deployments/20260527022607/server`
+  - production backend binary hash now matches the local detail-visibility-gate artifact:
+    - `4cd93c0182d26f454dbe60d0d59478abaa7ab7f91f064e761669dda0f22bd0d8`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-detail-visibility-gate.20260527022607.backend`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410 `deprecated_endpoint`
+  - post-deploy V4 detail visibility smoke passed with a temporary JWT user and cleanup:
+    - create public temp experience -> 201
+    - update public temp experience -> 200, moving it into the public-edit handling path
+    - owner detail for the temp experience -> 200
+    - guest detail for the same temp experience -> 404
+    - cleanup verification -> `0|0` for temporary user and experience
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestExperienceDetailUsesV4VisibilityLifecycleGate -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestExperienceDetailUsesV4VisibilityLifecycleGate|TestExperienceDetailUsesV4InteractionTables|TestExperienceSelectColsExposeV4DetailOwnershipFields|TestV4FeedQueriesExposeOwnerUserID' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-detail-visibility-gate`
+    - `rg -n "e.status = 'published' AND e.review_status = 'approved' AND e.is_private = FALSE|COALESCE\\(e.visibility, CASE WHEN e.is_private THEN 'private' ELSE 'public' END\\)|COALESCE\\(e.lifecycle_status, CASE WHEN e.deleted_at IS NOT NULL THEN 'deleted'" backend/internal/repository/experience.go backend/internal/repository/experience_v4_detail_contract_test.go`
+    - `git diff --check`
+    - production public and authenticated temporary JWT smoke checks
+    - backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

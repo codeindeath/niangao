@@ -229,7 +229,8 @@ func (r *ExperienceRepo) GetByID(ctx context.Context, id string, viewerID string
 	query := fmt.Sprintf(`SELECT %s, %s FROM experiences e
 		 LEFT JOIN users u ON u.id = e.author_id
 		WHERE e.id = $1 AND e.deleted_at IS NULL
-		  AND ((e.status = 'published' AND e.review_status = 'approved' AND e.is_private = FALSE)
+		  AND ((COALESCE(e.visibility, CASE WHEN e.is_private THEN 'private' ELSE 'public' END) = 'public'
+		       AND COALESCE(e.lifecycle_status, CASE WHEN e.deleted_at IS NOT NULL THEN 'deleted' WHEN e.review_status = 'pending' THEN 'needs_review' ELSE 'active' END) = 'active')
 		       OR COALESCE(e.owner_user_id, e.author_id) = $2)`, experienceSelectCols, experienceLikedBookmark)
 
 	exp := &model.Experience{}
