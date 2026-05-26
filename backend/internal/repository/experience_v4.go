@@ -199,12 +199,12 @@ const collectionsFeedQuery = `
         e.deleted_at IS NULL
         AND (
           (
-            COALESCE(e.visibility, 'public') = 'public'
-            AND COALESCE(e.lifecycle_status, 'active') = 'active'
+            e.visibility = 'public'
+            AND e.lifecycle_status = 'active'
           )
           OR (
             COALESCE(e.owner_user_id, e.author_id) = $1::uuid
-            AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+            AND e.lifecycle_status <> 'deleted'
           )
         )
       ) AS visible_to_viewer
@@ -287,7 +287,7 @@ const mineFeedQuery = `
   FROM experiences e
   LEFT JOIN users u ON u.id = e.author_id
   WHERE COALESCE(e.owner_user_id, e.author_id) = $1::uuid
-    AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+    AND e.lifecycle_status <> 'deleted'
     AND e.deleted_at IS NULL
   ORDER BY e.created_at DESC, e.id DESC
   LIMIT $2 OFFSET $3`

@@ -279,6 +279,7 @@ Auth:
 Behavior:
 
 - Fact source is `experience_collections` with `status=active`.
+- Visibility uses canonical V4 `visibility` and `lifecycle_status`: public active experiences are visible, owners can still see their own non-deleted collected experiences, and non-owner private/deleted rows return placeholders.
 - Sort by `collected_at desc, id desc`.
 - Unavailable experiences return placeholder cards and keep collection relation.
 
@@ -298,7 +299,7 @@ Auth:
 Behavior:
 
 - Query `experiences.owner_user_id=current_user`.
-- Include public, private, and needs_review, excluding deleted.
+- Include public, private, and needs_review rows by canonical V4 lifecycle, excluding `lifecycle_status=deleted` and physically deleted rows.
 - Sort by `created_at desc, id desc`.
 - Private full-screen cards include only a light `仅自己可见` tag.
 

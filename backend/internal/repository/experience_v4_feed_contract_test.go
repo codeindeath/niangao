@@ -98,6 +98,42 @@ func TestV4SearchQueryUsesV4VisibilityLifecycleGate(t *testing.T) {
 	}
 }
 
+func TestV4CollectionsAndMineQueriesUseV4VisibilityLifecycleGates(t *testing.T) {
+	for _, required := range []struct {
+		name     string
+		query    string
+		fragment string
+	}{
+		{"collections", collectionsFeedQuery, "e.visibility = 'public'"},
+		{"collections", collectionsFeedQuery, "e.lifecycle_status = 'active'"},
+		{"collections", collectionsFeedQuery, "e.lifecycle_status <> 'deleted'"},
+		{"mine", mineFeedQuery, "e.lifecycle_status <> 'deleted'"},
+	} {
+		t.Run(required.name+"/"+required.fragment, func(t *testing.T) {
+			if !strings.Contains(required.query, required.fragment) {
+				t.Fatalf("%s query should include V4 gate fragment %q", required.name, required.fragment)
+			}
+		})
+	}
+
+	for _, forbidden := range []struct {
+		name     string
+		query    string
+		fragment string
+	}{
+		{"collections", collectionsFeedQuery, "COALESCE(e.visibility, 'public') = 'public'"},
+		{"collections", collectionsFeedQuery, "COALESCE(e.lifecycle_status, 'active') = 'active'"},
+		{"collections", collectionsFeedQuery, "COALESCE(e.lifecycle_status, 'active') <> 'deleted'"},
+		{"mine", mineFeedQuery, "COALESCE(e.lifecycle_status, 'active') <> 'deleted'"},
+	} {
+		t.Run(forbidden.name+"/"+forbidden.fragment, func(t *testing.T) {
+			if strings.Contains(forbidden.query, forbidden.fragment) {
+				t.Fatalf("%s query should not use fallback V4 gate fragment %q", forbidden.name, forbidden.fragment)
+			}
+		})
+	}
+}
+
 func TestRecommendationCursorRoundTrip(t *testing.T) {
 	cursor := formatRecommendationCursor("11111111-1111-4111-8111-111111111111", 20)
 	sessionID, offset, ok := parseRecommendationCursor(cursor)

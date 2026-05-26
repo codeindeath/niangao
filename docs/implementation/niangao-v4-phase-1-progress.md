@@ -1831,6 +1831,35 @@ Current result:
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-action-gate`
     - production SQL parse, public smoke, authenticated temporary JWT action/event smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Collections/mine feed V4 visibility/lifecycle gate checks pass:
+  - `GET /api/v1/feed/collections` now uses V4 `e.visibility='public'` and `e.lifecycle_status='active'` for visible public cards, while owner collected rows require `e.lifecycle_status <> 'deleted'`
+  - `GET /api/v1/feed/mine` now excludes deleted rows with canonical `e.lifecycle_status <> 'deleted'` instead of fallback lifecycle predicates
+  - repository contract coverage now prevents `collectionsFeedQuery` and `mineFeedQuery` from reintroducing fallback public/lifecycle gate fragments
+  - the Phase 1 contract doc now records canonical V4 visibility/lifecycle behavior for 收藏 and 我的 feeds
+  - Linux backend artifact `/tmp/niangao-backend-v4-feed-gate` was deployed to production at `/root/niangao/deployments/20260527054211/server`
+  - production backend binary hash now matches the local feed-gate artifact:
+    - `9bb86da9872c2564515b7c38b4714423758429ed804bf818cae5ee52092b33bf`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-feed-gate.20260527054211.backend`
+  - production SQL parse checks passed for the collections feed gate and mine feed gate queries
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410
+  - post-deploy authenticated feed smoke passed with temporary JWT users and cleanup:
+    - collections feed -> 200 and returned both the public active card and the owner's private active card
+    - collections feed kept the non-owner private collection as an `experience_unavailable` placeholder without leaking content
+    - mine feed -> 200 and returned the owner's private active card
+    - cleanup verification -> `0|0|0` for temporary users, temporary experiences, and temporary collections
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, feed load failure, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestV4CollectionsAndMineQueriesUseV4VisibilityLifecycleGates -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestV4CollectionsAndMineQueriesUseV4VisibilityLifecycleGates -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -count=1`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-feed-gate`
+    - production SQL parse, public smoke, authenticated temporary JWT feed smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 
