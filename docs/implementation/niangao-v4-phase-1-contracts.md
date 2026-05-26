@@ -186,6 +186,7 @@ Response behavior:
   - `inspiration_count`
   - `collection_count`
 - App owner actions use `owner_user_id` first and fall back to `author_id` only for legacy records.
+- App treats `404` detail responses as unavailable/deleted state, not as weak-network failure.
 - For public own experiences, destructive delete must offer `转为私密` before `删除`.
 
 ### 3.3 Rewrite

@@ -1,5 +1,5 @@
 import React from 'react';
-import {Alert} from 'react-native';
+import {Alert, Text} from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import DetailScreen from '../screens/DetailScreen';
 import * as api from '../services/api';
@@ -7,20 +7,6 @@ import * as config from '../services/config';
 
 jest.mock('../services/api');
 jest.mock('../services/config');
-
-function collectText(node: any, out: string[] = []): string[] {
-  if (!node) return out;
-  if (typeof node === 'string') {
-    out.push(node);
-    return out;
-  }
-  if (Array.isArray(node)) {
-    node.forEach(child => collectText(child, out));
-    return out;
-  }
-  collectText(node.children, out);
-  return out;
-}
 
 describe('DetailScreen', () => {
   const mockExp = {
@@ -56,12 +42,17 @@ describe('DetailScreen', () => {
     (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);
     const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
     await waitFor(() => {
-      const text = collectText(rendered.toJSON()).join('');
-      expect(text).toContain('测试经验');
-      expect(text).toContain('价值度');
-      expect(text.match(/★/g)).toHaveLength(4);
-      expect(text.match(/☆/g)).toHaveLength(1);
+      expect(api.fetchExperience).toHaveBeenCalledWith('1');
     });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const text = rendered.UNSAFE_root.findAllByType(Text)
+      .flatMap(node => Array.isArray(node.props.children) ? node.props.children : [node.props.children])
+      .filter(child => typeof child === 'string')
+      .join('');
+    expect(text).toContain('测试经验');
+    expect(text).toContain('价值度');
+    expect(text.match(/★/g)).toHaveLength(4);
+    expect(text.match(/☆/g)).toHaveLength(1);
   });
 
   it('shows private marker for private experiences', async () => {
@@ -95,6 +86,16 @@ describe('DetailScreen', () => {
     const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
     buttons.find((button: any) => button.text === 'Apple登录').onPress();
     expect(navigation.navigate).toHaveBeenCalledWith('login');
+  });
+
+  it('shows unavailable empty state instead of weak-network copy when detail returns 404', async () => {
+    (api.fetchExperience as jest.Mock).mockRejectedValueOnce({status: 404});
+
+    const {findByText, queryByText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
+
+    expect(await findByText('经验不存在或已被删除')).toBeTruthy();
+    expect(queryByText('加载失败，请检查网络连接')).toBeNull();
+    expect(queryByText('重试')).toBeNull();
   });
 
   it('marks an experience as inspiring once', async () => {

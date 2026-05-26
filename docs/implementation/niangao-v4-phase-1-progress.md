@@ -1937,6 +1937,18 @@ Current result:
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-detail-gate-canonical`
     - production SQL parse, authenticated temporary JWT detail smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Detail 404 weak-state polish checks pass:
+  - mobile `DetailScreen` now treats `fetchExperience` 404 as the unavailable/deleted empty state `经验不存在或已被删除` instead of showing weak-network copy and a retry button
+  - this aligns App behavior with the canonical detail gate: private non-owner and lifecycle-deleted rows are not network failures
+  - the existing quality-score test was made more stable by waiting for the loaded render and reading rendered Text nodes directly
+  - the Phase 1 contract doc now records that App detail 404 is an unavailable/deleted state
+  - no production backend deployment was needed for this App-only slice
+  - verification:
+    - `npm run test -- DetailScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- DetailScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (23 suites, 117 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 

@@ -58,6 +58,11 @@ export default function DetailScreen({route, navigation}: any) {
         setError(null);
         return;
       }
+      if ((e as any)?.status === 404) {
+        setExp(null);
+        setError(null);
+        return;
+      }
       setError('加载失败，请检查网络连接');
     } finally {
       setLoading(false);
