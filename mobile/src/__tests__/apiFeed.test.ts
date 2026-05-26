@@ -1,4 +1,4 @@
-import {fetchExperience, fetchMyExperiences} from '../services/api';
+import {fetchExperience, fetchMyBookmarks, fetchMyExperiences} from '../services/api';
 import {apiGet} from '../services/config';
 
 jest.mock('../services/config', () => ({
@@ -82,6 +82,26 @@ describe('feed API normalization', () => {
 
     const v4Result = await fetchExperience('exp-topic');
     expect(v4Result.topic).toBe('#边界沟通');
+  });
+
+  it('preserves unavailable collection placeholders without original content', async () => {
+    (apiGet as jest.Mock).mockResolvedValue({
+      data: [{
+        id: 'exp-hidden',
+        unavailable_reason: 'experience_unavailable',
+        is_collected: true,
+      }],
+      has_more: false,
+    });
+
+    const result = await fetchMyBookmarks(1);
+
+    expect(result.data[0]).toEqual(expect.objectContaining({
+      id: 'exp-hidden',
+      content: '',
+      unavailable_reason: 'experience_unavailable',
+      is_collected: true,
+    }));
   });
 
 });

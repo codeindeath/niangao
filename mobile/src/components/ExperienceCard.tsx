@@ -57,6 +57,47 @@ export default function FlipCard({
   const stars = showScore ? Math.round(item.quality_score! / 2) : 0;
   const ownerUserId = item.owner_user_id;
   const isOwner = Boolean(currentUserId && ownerUserId === currentUserId);
+  const isUnavailable = Boolean(item.unavailable_reason);
+
+  if (isUnavailable) {
+    return (
+      <View style={[styles.cardPage, {height: cardHeight}]}>
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => {}}
+          style={styles.face}
+          testID={`experience-card-${item.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="不可见经验卡片"
+        >
+          <View style={styles.unavailableContent}>
+            <View style={styles.unavailableIconWrap}>
+              <Ionicons name="alert-circle-outline" size={28} color="#7a806f" />
+            </View>
+            <Text style={styles.unavailableTitle}>该经验已不可见</Text>
+            <Text style={styles.unavailableBody}>
+              它可能已经被删除、转为私密，或正在重新处理。
+            </Text>
+          </View>
+        </TouchableOpacity>
+        {showActions && item.is_collected && (
+          <View style={styles.bottomActions}>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.unavailableActionBtn, styles.actionSaved]}
+              onPress={(e) => { e.stopPropagation(); onBookmark?.(item.id); }}
+              accessibilityRole="button"
+              accessibilityLabel="从收藏移除"
+            >
+              <View style={styles.actionContent}>
+                <Ionicons name="star" size={15} color="#e8a850" />
+                <Text style={[styles.actionText, styles.actionSavedText]}>从收藏移除</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  }
 
   // 估算原文是否会导致底部按钮被挤出可视区
   const shouldShowOriginal = (() => {
@@ -312,6 +353,14 @@ const styles = StyleSheet.create({
   actionSavedText: {color: '#e8a850'},
   deleteBtn: {paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#fff5f5', borderWidth: 0.5, borderColor: '#fce8e8'},
   deleteText: {fontSize: 13, color: '#e85d5d', fontWeight: '500'},
+  unavailableContent: {flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 44, paddingBottom: 40},
+  unavailableIconWrap: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: '#edf0e7',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 18,
+  },
+  unavailableTitle: {fontSize: 22, lineHeight: 30, fontWeight: '700', color: '#252820', textAlign: 'center'},
+  unavailableBody: {marginTop: 10, fontSize: 15, lineHeight: 23, color: '#74796b', textAlign: 'center'},
+  unavailableActionBtn: {minHeight: 44, justifyContent: 'center'},
   capsuleFlowWrapper: {alignItems: 'center', marginBottom: 24},
   backQuoteArea: {paddingHorizontal: 32, alignItems: 'center'},
   backQuoteSmall: {fontSize: 14, fontWeight: '500', color: '#8a8a8a', lineHeight: 22, textAlign: 'center', fontStyle: 'italic'},

@@ -1511,6 +1511,44 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-create-lifecycle-gate`
     - production public and authenticated temporary JWT smoke checks
     - backend/AI `journalctl` severe-error scans
+- Backend and App unavailable collection placeholder checks pass:
+  - `/api/v1/feed/collections` now preserves active collection rows when the collected experience is no longer visible to the viewer, instead of silently filtering them out
+  - invisible collected experiences return an App-facing placeholder with `id`, `is_collected=true`, and `unavailable_reason='experience_unavailable'`, while clearing original content, creator, taxonomy, counts, interpretation, and inspiration state
+  - shared V4 feed scanner now scans `unavailable_reason`; recommend, mine, and search feed queries return an empty unavailable reason to keep the scan contract aligned
+  - mobile feed normalization now preserves `unavailable_reason`, and `ExperienceCard` renders the placeholder copy `该经验已不可见` / `它可能已经被删除、转为私密，或正在重新处理。`
+  - unavailable App cards are non-flippable, do not render original content or interpretation, hide 有启发/delete actions, and expose only `从收藏移除` when the collection relation is still active
+  - Linux backend artifact `/tmp/niangao-backend-v4-collections-unavailable-placeholders` was deployed to production at `/root/niangao/deployments/20260527032057/server`
+  - production backend binary hash now matches the local collections-unavailable-placeholders artifact:
+    - `8b1442f26649605e9397e0ef93e2350759c3886500bcea5ef3b005e12d2bbcf1`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-collections-unavailable-placeholders.20260527032057.backend`
+  - production SQL parse check passed before deploy using `PREPARE` against the production schema for recommend, collections, mine, and search feed queries
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410
+  - post-deploy authenticated collections placeholder smoke passed with temporary JWT users and cleanup:
+    - viewer `GET /api/v1/me/profile` -> 200
+    - owner public create -> 201 with `lifecycle_status=needs_review`
+    - direct V4 collection setup for the viewer succeeded
+    - viewer `GET /api/v1/feed/collections?limit=3` -> 200 with the temp experience present as an unavailable placeholder, `content_len=0`, and `is_collected=true`
+    - cleanup verification -> `0|0|0` for temporary users, the temp experience content, and collection rows tied to that temp experience
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestV4FeedQueriesExposeUnavailableReasonForScanner|TestCollectionsFeedReturnsUnavailablePlaceholdersForInvisibleCollections' -count=1 -v` (RED confirmed before implementation)
+    - `npm run test -- apiFeed.test.ts ExperienceCard.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestV4FeedQueriesExposeUnavailableReasonForScanner|TestCollectionsFeedReturnsUnavailablePlaceholdersForInvisibleCollections|TestV4FeedQueriesExposeOwnerUserID|TestV4RecommendQuery' -count=1 -v`
+    - `npm run test -- apiFeed.test.ts ExperienceCard.test.tsx --runInBand --no-cache`
+    - `./scripts/backend-test.sh`
+    - `npm run test -- --runInBand` (23 suites, 109 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-collections-unavailable-placeholders`
+    - `git diff --check`
+    - production SQL parse, public smoke, authenticated temporary JWT smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+  - workflow hardening from this slice:
+    - avoid assigning curl fallback state to zsh's read-only `status` variable during smoke scripts; compare HTTP codes directly or use another variable name
 
 Not verified yet:
 

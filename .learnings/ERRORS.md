@@ -280,6 +280,35 @@ For production smoke cleanup, run `DELETE ...` as its own statement, then run a 
 
 ---
 
+## [ERR-20260527-008] zsh_status_readonly_in_smoke_script
+
+**Logged**: 2026-05-27T03:22:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: deployment
+
+### Summary
+A production smoke script attempted to assign curl's exit code to `status`, but `status` is read-only in zsh.
+
+### Error
+```
+zsh: read-only variable: status
+```
+
+### Context
+- Public smoke expected deprecated endpoints to return HTTP 410, so the script needed to tolerate curl's nonzero exit under `-f`.
+- The command used `|| status=$?`, which fails under zsh because `status` is a special read-only parameter.
+- The endpoint status lines had already shown `health=200`, `recommend=200`, `search=200`, and `deprecated_list=410`; only the wrapper variable caused the command failure.
+
+### Suggested Fix
+Avoid assigning to `status` in zsh scripts. Use a different variable name, or avoid `curl -f` for expected non-2xx smoke checks and compare `%{http_code}` directly.
+
+### Metadata
+- Reproducible: yes
+- Related Files: None
+
+---
+
 ## [ERR-20260527-006] backend_subdir_path_prefix
 
 **Logged**: 2026-05-27T02:51:10+08:00

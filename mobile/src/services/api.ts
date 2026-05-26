@@ -24,6 +24,7 @@ export interface Experience {
   author_title?: string;
   is_inspired: boolean;
   is_collected: boolean;
+  unavailable_reason?: string;
   quality_tier?: string;
   quality_score?: number;
   score_details?: string;
@@ -90,6 +91,7 @@ function normalizeExperience(raw: any): Experience {
     author_title: rest.author_title || undefined,
     is_inspired: Boolean(rest.is_inspired),
     is_collected: Boolean(rest.is_collected),
+    unavailable_reason: rest.unavailable_reason || undefined,
     quality_tier: rest.quality_tier || undefined,
     quality_score: rest.quality_score ?? (starRating > 0 ? starRating * 2 : undefined),
     score_details: rest.score_details || undefined,
@@ -115,6 +117,7 @@ function normalizeFeedCard(card: ExperienceCard): Experience {
     collection_count: card.collection_count || 0,
     is_inspired: Boolean(card.is_inspired),
     is_collected: Boolean(card.is_collected),
+    unavailable_reason: card.unavailable_reason || undefined,
     quality_tier: card.quality_tier,
     quality_score: starRating > 0 ? starRating * 2 : undefined,
     created_at: '',

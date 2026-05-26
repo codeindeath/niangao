@@ -41,7 +41,8 @@ const searchExperiencesQuery = `
       SELECT 1 FROM experience_inspirations ei
       WHERE ei.user_id = NULLIF($1, '')::uuid
         AND ei.experience_id = e.id
-    )
+    ),
+    '' AS unavailable_reason
   FROM experiences e
   LEFT JOIN users u ON u.id = e.author_id
   WHERE e.deleted_at IS NULL

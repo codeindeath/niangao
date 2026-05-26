@@ -88,7 +88,8 @@ const recommendFeedQuery = `
       SELECT 1 FROM experience_inspirations ei
       WHERE ei.user_id = NULLIF($1, '')::uuid
         AND ei.experience_id = e.id
-    )
+    ),
+    '' AS unavailable_reason
   FROM experiences e
   LEFT JOIN users u ON u.id = e.author_id
   LEFT JOIN viewer_domain_signals vds ON vds.domain = COALESCE(e.domain::text, '')
@@ -121,46 +122,64 @@ const recommendFeedQuery = `
   LIMIT $2 OFFSET $3`
 
 const collectionsFeedQuery = `
+  WITH collected AS (
+    SELECT
+      ec.collected_at,
+      ec.id AS collection_id,
+      e.*,
+      u.display_name,
+      u.nickname,
+      (
+        e.deleted_at IS NULL
+        AND (
+          (
+            COALESCE(e.visibility, 'public') = 'public'
+            AND COALESCE(e.lifecycle_status, 'active') = 'active'
+          )
+          OR (
+            COALESCE(e.owner_user_id, e.author_id) = $1::uuid
+            AND COALESCE(e.lifecycle_status, 'active') <> 'deleted'
+          )
+        )
+      ) AS visible_to_viewer
+    FROM experience_collections ec
+    JOIN experiences e ON e.id = ec.experience_id
+    LEFT JOIN users u ON u.id = e.author_id
+    WHERE ec.user_id = $1::uuid
+      AND ec.status = 'active'
+  )
   SELECT
-    e.id,
-    COALESCE(e.owner_user_id, e.author_id),
-    e.content,
-    COALESCE(e.experience_type, 'user_original'),
-    COALESCE(e.visibility, 'public'),
-    COALESCE(e.lifecycle_status, 'active'),
-    COALESCE(e.domain::text, ''),
-    COALESCE(e.sub_domain, ''),
-    COALESCE(e.topic, e.topics, ''),
-    COALESCE(e.creator_display_name, e.creator_name, u.display_name, u.nickname, ''),
-    COALESCE(e.interpretation_status, CASE WHEN e.interpretation_generated THEN 'ready' ELSE 'none' END),
-    (e.interpretation IS NOT NULL AND e.interpretation <> ''),
-    COALESCE(e.quality_tier, 'public_visible'),
-    CASE COALESCE(e.quality_tier, 'public_visible')
+    c.id,
+    CASE WHEN c.visible_to_viewer THEN COALESCE(c.owner_user_id, c.author_id)::text ELSE '' END,
+    CASE WHEN c.visible_to_viewer THEN c.content ELSE '' END AS content,
+    CASE WHEN c.visible_to_viewer THEN COALESCE(c.experience_type, 'user_original') ELSE '' END AS experience_type,
+    CASE WHEN c.visible_to_viewer THEN COALESCE(c.visibility, 'public') ELSE '' END AS visibility,
+    CASE WHEN c.visible_to_viewer THEN COALESCE(c.lifecycle_status, 'active') ELSE '' END AS lifecycle_status,
+    CASE WHEN c.visible_to_viewer THEN COALESCE(c.domain::text, '') ELSE '' END AS domain,
+    CASE WHEN c.visible_to_viewer THEN COALESCE(c.sub_domain, '') ELSE '' END AS sub_domain,
+    CASE WHEN c.visible_to_viewer THEN COALESCE(c.topic, c.topics, '') ELSE '' END AS topic,
+    CASE WHEN c.visible_to_viewer THEN COALESCE(c.creator_display_name, c.creator_name, c.display_name, c.nickname, '') ELSE '' END AS creator_display_name,
+    CASE WHEN c.visible_to_viewer THEN COALESCE(c.interpretation_status, CASE WHEN c.interpretation_generated THEN 'ready' ELSE 'none' END) ELSE '' END AS interpretation_status,
+    CASE WHEN c.visible_to_viewer THEN (c.interpretation IS NOT NULL AND c.interpretation <> '') ELSE FALSE END AS interpretation_summary_available,
+    CASE WHEN c.visible_to_viewer THEN COALESCE(c.quality_tier, 'public_visible') ELSE '' END AS quality_tier,
+    CASE WHEN c.visible_to_viewer THEN CASE COALESCE(c.quality_tier, 'public_visible')
       WHEN 'high_trust' THEN 5
       WHEN 'ai_citable' THEN 4
       WHEN 'recommend_candidate' THEN 3
       WHEN 'public_visible' THEN 2
       ELSE 1
-    END AS star_rating,
-    COALESCE(e.inspiration_count, e.like_count, 0),
-    COALESCE(e.collection_count, e.bookmark_count, 0),
-    TRUE,
-    EXISTS(
+    END ELSE 0 END AS star_rating,
+    CASE WHEN c.visible_to_viewer THEN COALESCE(c.inspiration_count, c.like_count, 0) ELSE 0 END AS inspiration_count,
+    CASE WHEN c.visible_to_viewer THEN COALESCE(c.collection_count, c.bookmark_count, 0) ELSE 0 END AS collection_count,
+    TRUE AS is_collected,
+    CASE WHEN c.visible_to_viewer THEN EXISTS(
       SELECT 1 FROM experience_inspirations ei
       WHERE ei.user_id = $1::uuid
-        AND ei.experience_id = e.id
-    )
-  FROM experience_collections ec
-  JOIN experiences e ON e.id = ec.experience_id
-  LEFT JOIN users u ON u.id = e.author_id
-  WHERE ec.user_id = $1::uuid
-    AND ec.status = 'active'
-    AND e.deleted_at IS NULL
-    AND (
-      (COALESCE(e.visibility, 'public') = 'public' AND COALESCE(e.lifecycle_status, 'active') = 'active')
-      OR COALESCE(e.owner_user_id, e.author_id) = $1::uuid
-    )
-  ORDER BY ec.collected_at DESC, ec.id DESC
+        AND ei.experience_id = c.id
+    ) ELSE FALSE END AS is_inspired,
+    CASE WHEN c.visible_to_viewer THEN '' ELSE 'experience_unavailable' END AS unavailable_reason
+  FROM collected c
+  ORDER BY c.collected_at DESC, c.collection_id DESC
   LIMIT $2 OFFSET $3`
 
 const mineFeedQuery = `
@@ -197,7 +216,8 @@ const mineFeedQuery = `
       SELECT 1 FROM experience_inspirations ei
       WHERE ei.user_id = $1::uuid
         AND ei.experience_id = e.id
-    )
+    ),
+    '' AS unavailable_reason
   FROM experiences e
   LEFT JOIN users u ON u.id = e.author_id
   WHERE COALESCE(e.owner_user_id, e.author_id) = $1::uuid
@@ -265,6 +285,7 @@ func scanFeedPage(rows pgx.Rows, limit int, offset int, sessionID string) (*mode
 			&card.CollectionCount,
 			&card.IsCollected,
 			&card.IsInspired,
+			&card.UnavailableReason,
 		); err != nil {
 			return nil, fmt.Errorf("scan v4 feed card: %w", err)
 		}

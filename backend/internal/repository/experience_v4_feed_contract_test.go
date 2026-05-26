@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -66,6 +67,58 @@ func TestV4RecommendQueryKeepsPublicRecommendFilterIndexable(t *testing.T) {
 	for _, fragment := range forbidden {
 		if strings.Contains(recommendFeedQuery, fragment) {
 			t.Fatalf("recommend feed query should not use non-indexable fragment %q", fragment)
+		}
+	}
+}
+
+func TestV4FeedQueriesExposeUnavailableReasonForScanner(t *testing.T) {
+	queries := map[string]string{
+		"recommend":   recommendFeedQuery,
+		"collections": collectionsFeedQuery,
+		"mine":        mineFeedQuery,
+		"search":      searchExperiencesQuery,
+	}
+
+	for name, query := range queries {
+		t.Run(name, func(t *testing.T) {
+			if !strings.Contains(query, "unavailable_reason") {
+				t.Fatalf("%s feed query should expose unavailable_reason for the shared scanner", name)
+			}
+		})
+	}
+
+	source, err := os.ReadFile("experience_v4.go")
+	if err != nil {
+		t.Fatalf("read experience_v4.go: %v", err)
+	}
+	if !strings.Contains(string(source), "&card.UnavailableReason") {
+		t.Fatal("scanFeedPage should scan unavailable_reason into ExperienceCard")
+	}
+}
+
+func TestCollectionsFeedReturnsUnavailablePlaceholdersForInvisibleCollections(t *testing.T) {
+	required := []string{
+		"experience_unavailable",
+		"AS unavailable_reason",
+		"CASE WHEN",
+		"visible_to_viewer",
+		"TRUE AS is_collected",
+		"COALESCE(e.owner_user_id, e.author_id) = $1::uuid",
+	}
+
+	for _, fragment := range required {
+		if !strings.Contains(collectionsFeedQuery, fragment) {
+			t.Fatalf("collections feed should retain invisible saved rows with placeholder fragment %q", fragment)
+		}
+	}
+
+	forbidden := []string{
+		"AND e.deleted_at IS NULL\n    AND (",
+		"e.content,",
+	}
+	for _, fragment := range forbidden {
+		if strings.Contains(collectionsFeedQuery, fragment) {
+			t.Fatalf("collections feed should not filter out or expose original invisible content via fragment %q", fragment)
 		}
 	}
 }
