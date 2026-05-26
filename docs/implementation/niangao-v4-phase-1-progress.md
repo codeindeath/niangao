@@ -476,7 +476,7 @@ Current result:
 - Simulator runtime checks resumed after mac interaction access was enabled:
   - heartbeat automation `niangao-v4-overnight-continuation` is active at `FREQ=MINUTELY;INTERVAL=30`; the cadence is only for interruption recovery, and normal work should continue task-to-task without waiting
   - current standing rule: autonomous production deployments within the active V4 App/backend plan are authorized when needed, with build/test, backup or rollback readiness, smoke checks, temporary-data cleanup, and backend/AI log-scan gates
-  - iOS Simulator can be controlled through direct CGEvent taps and screenshots
+  - at that earlier checkpoint, iOS Simulator could be controlled through direct CGEvent taps and screenshots; current `osascript` tap access must be re-enabled before relying on this path again
   - Metro/dev build launches the App and renders the selected login page
   - login page copy/actions are present: `年糕`, `生活有态度`, `Apple登录`, `先看看`, and dev-only `开发模拟登录`
   - guest `先看看` enters the main tab shell
@@ -1955,6 +1955,7 @@ Current result:
   - Metro served the bundle on port 8081, the built App was installed into the iPhone 17 simulator, and `com.swt.niangaogao` launched
   - screenshot `/tmp/niangao-v4-detail-404-runtime-check.png` verified the production-style login screen: background image, `年糕`, `生活有态度`, `Apple 登录`, `先看看`, `开发模拟登录`, and agreement copy rendered
   - deeper guest/feed interaction was not completed in this checkpoint because this Xcode's `xcrun simctl io` supports screenshot/recording commands but not tap input; the next runtime pass should use an alternate tap automation path or manual simulator interaction
+  - a later attempt to use AppleScript/System Events coordinate clicks reached the Simulator window but failed because `osascript` does not currently have macOS Accessibility permission; this is logged as `ERR-20260527-017`
   - no App/backend production deployment was needed for this runtime checkpoint
   - verification:
     - `xcrun simctl bootstatus A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14 -b`

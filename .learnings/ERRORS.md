@@ -727,3 +727,34 @@ For simulator runtime checks in this repo, prefer the already documented `xcodeb
 - Reproducible: yes
 - Related Files: mobile/package.json, docs/implementation/niangao-v4-phase-1-progress.md
 - See Also: ERR-20260527-013
+
+---
+
+## [ERR-20260527-017] osascript_simulator_click_accessibility_denied
+
+**Logged**: 2026-05-27T07:03:08+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: frontend
+
+### Summary
+AppleScript/System Events cannot currently be used for simulator tap automation because `osascript` lacks macOS Accessibility permission.
+
+### Error
+```
+execution error: "System Events" encountered an error: "osascript" is not allowed assistive access. (-25211)
+```
+
+### Context
+- `xcrun simctl io` in the current Xcode does not support tap input.
+- `open -a Simulator` and System Events window inspection work; the iPhone 17 simulator window was visible and measurable.
+- Attempted coordinate click: `osascript -e 'tell application "System Events" to click at {720, 715}'`.
+- The click path failed before interaction because macOS Accessibility permissions block `osascript`.
+
+### Suggested Fix
+Grant Accessibility permission for the terminal/Codex host that runs `osascript`, or use another tap automation path that can generate trusted CGEvents without that permission.
+
+### Metadata
+- Reproducible: yes
+- Related Files: docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-016
