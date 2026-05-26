@@ -1587,6 +1587,44 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-chat-history-reference-cards`
     - `git diff --check`
     - production SQL parse, public smoke, authenticated temporary JWT smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Authenticated expose-event dedupe checks pass:
+  - `POST /api/v1/experiences/:id/events` now dedupes authenticated `expose` events for the same user and experience inside a 30-minute window
+  - deduped expose events update `source_context`, optional `context_id`, metadata, and `created_at` instead of inserting a duplicate row
+  - guest expose events and non-`expose` passive events continue using the append-only event path
+  - the V4 visibility/lifecycle gate is preserved:
+    - public active experiences are event-recordable
+    - owner-visible non-deleted experiences are event-recordable for the owner
+    - unavailable experiences still return the existing unavailable behavior
+  - production smoke caught two PostgreSQL parameter-inference issues before this slice was accepted:
+    - `NULLIF($5, '')::uuid` failed for empty optional `context_id`; fixed to `NULLIF($5::text, '')::uuid`
+    - authenticated-only `ev.user_id = NULLIF($1, '')::uuid` still coerced an empty-string branch after `$1` was inferred as uuid elsewhere; fixed to `ev.user_id = $1::uuid`
+    - temporary smoke data from both failed attempts was cleaned up and verified
+  - Linux backend artifact `/tmp/niangao-backend-v4-expose-event-dedupe` was deployed to production at `/root/niangao/deployments/20260527035650/server`
+  - production backend binary hash now matches the local expose-event-dedupe artifact:
+    - `6fda9550b74d079a81018af46c3dcfe8d9abb8a374f4d230c2dadfe73bcd8ef3`
+  - production binary backups were created before replacement:
+    - failed intermediate artifact backup: `/root/niangao/backups/server.before-v4-expose-event-dedupe.20260527035133.backend`
+    - final artifact backup: `/root/niangao/backups/server.before-v4-expose-event-dedupe.20260527035650.backend`
+  - production SQL parse checks passed before deploy using `PREPARE` against the production schema for the expose-dedupe CTE
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences?page=1&page_size=1` -> 410
+  - post-deploy authenticated expose-dedupe smoke passed with a temporary JWT user and cleanup:
+    - private temp experience create -> 201
+    - first authenticated expose event -> 204
+    - second authenticated expose event -> 204
+    - database dedupe verification -> `1|2` for one `expose` row with metadata updated by the second event
+    - cleanup verification -> `0|0|0` for temporary user, temp experience content, and temp expose events
+  - post-deploy backend/AI journal scans after the final smoke window found no panic, fatal error, permission-denied error, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestRecordExperienceEventDedupesAuthenticatedExposeWithinWindow -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestRecordExperienceEventDedupesAuthenticatedExposeWithinWindow -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-expose-event-dedupe`
+    - `git diff --check`
+    - production SQL parse, public smoke, authenticated temporary JWT smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

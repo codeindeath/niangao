@@ -367,6 +367,38 @@ When capturing PostgreSQL `RETURNING` values for smoke scripts, use quiet tuple-
 
 ---
 
+## [ERR-20260527-009] production_expose_dedupe_context_id_cast
+
+**Logged**: 2026-05-27T03:49:44+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Authenticated production expose-dedupe smoke returned 500 because optional UUID `NULLIF` expressions were parsed as uuid inside the new dedupe SQL.
+
+### Error
+```
+ERROR: invalid input syntax for type uuid: "" (SQLSTATE 22P02)
+```
+
+### Context
+- Operation: production authenticated smoke for posting two `expose` events to the same experience.
+- The new dedupe CTE first used `NULLIF($5, '')::uuid` for `context_id`; the first fix changed it to `NULLIF($5::text, '')::uuid`.
+- A second smoke still failed because `$1` was inferred as uuid elsewhere in the same CTE, so `ev.user_id = NULLIF($1, '')::uuid` coerced the empty-string branch to uuid.
+- The authenticated dedupe helper is only called when `userID != ""`, so it should compare `ev.user_id = $1::uuid` instead of using optional-user `NULLIF`.
+- Runtime parameter inference allowed empty-string branches to hit uuid parsing before becoming NULL.
+- Temporary smoke rows were cleaned up and verified separately.
+
+### Suggested Fix
+For optional UUID parameters in SQL queries, force text before `NULLIF`: `NULLIF($param::text, '')::uuid`. For authenticated-only parameters, avoid optional-user `NULLIF` and cast the required parameter directly. Include empty optional UUID values in authenticated production smoke checks.
+
+### Metadata
+- Reproducible: yes
+- Related Files: backend/internal/repository/experience_actions_v4.go
+
+---
+
 ## [ERR-20260527-004] production_backend_wrong_binary_path
 
 **Logged**: 2026-05-27T02:20:00+08:00

@@ -193,10 +193,14 @@ func (r *ExperienceRepo) RecordExperienceEvent(ctx context.Context, userID strin
 		return fmt.Errorf("marshal event metadata: %w", err)
 	}
 
+	if event.EventType == "expose" && userID != "" {
+		return r.recordDedupedExposeEvent(ctx, userID, experienceID, event, string(metadataJSON))
+	}
+
 	var insertedID string
 	err = r.db.QueryRow(ctx, `
     INSERT INTO experience_events (user_id, experience_id, event_type, source_context, context_id, metadata, created_at)
-    SELECT NULLIF($1, '')::uuid, e.id, $3, $4, NULLIF($5, '')::uuid, $6::jsonb, NOW()
+    SELECT NULLIF($1, '')::uuid, e.id, $3, $4, NULLIF($5::text, '')::uuid, $6::jsonb, NOW()
     FROM experiences e
     WHERE e.id = $2::uuid
       AND e.deleted_at IS NULL
@@ -214,6 +218,53 @@ func (r *ExperienceRepo) RecordExperienceEvent(ctx context.Context, userID strin
 	}
 	if err != nil {
 		return fmt.Errorf("insert experience event: %w", err)
+	}
+	return nil
+}
+
+func (r *ExperienceRepo) recordDedupedExposeEvent(ctx context.Context, userID string, experienceID string, event model.ExperienceEventRequest, metadataJSON string) error {
+	var eventID string
+	err := r.db.QueryRow(ctx, `
+    WITH visible AS (
+      SELECT e.id
+      FROM experiences e
+      WHERE e.id = $2::uuid
+        AND e.deleted_at IS NULL
+        AND (
+          (COALESCE(e.visibility, 'public') = 'public' AND COALESCE(e.lifecycle_status, 'active') = 'active')
+          OR COALESCE(e.owner_user_id, e.author_id) = $1::uuid
+        )
+    ),
+    updated AS (
+      UPDATE experience_events ev
+      SET source_context = $4,
+          context_id = NULLIF($5::text, '')::uuid,
+          metadata = $6::jsonb,
+          created_at = NOW()
+      FROM visible
+      WHERE ev.experience_id = visible.id
+        AND ev.event_type = 'expose'
+		AND ev.user_id = $1::uuid
+        AND ev.created_at >= NOW() - INTERVAL '30 minutes'
+      RETURNING ev.id
+    ),
+    inserted AS (
+      INSERT INTO experience_events (user_id, experience_id, event_type, source_context, context_id, metadata, created_at)
+      SELECT $1::uuid, visible.id, $3, $4, NULLIF($5::text, '')::uuid, $6::jsonb, NOW()
+      FROM visible
+      WHERE NOT EXISTS (SELECT 1 FROM updated)
+      RETURNING id
+    )
+    SELECT id FROM updated
+    UNION ALL
+    SELECT id FROM inserted
+    LIMIT 1`,
+		userID, experienceID, event.EventType, event.SourceContext, event.ContextID, metadataJSON).Scan(&eventID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrExperienceUnavailable
+	}
+	if err != nil {
+		return fmt.Errorf("dedupe expose event: %w", err)
 	}
 	return nil
 }
