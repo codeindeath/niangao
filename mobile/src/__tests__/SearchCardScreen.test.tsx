@@ -11,12 +11,11 @@ jest.mock('../services/config');
 describe('SearchCardScreen', () => {
   const experience = {
     id: '1',
-    author_id: 'legacy-author',
     owner_user_id: 'author-1',
     content: '第 1 条经验',
     domain: 'meaning',
     sub_domain: 'self',
-    author_name: 'Tester',
+    creator_display_name: 'Tester',
     inspiration_count: 0,
     collection_count: 0,
     is_inspired: false,

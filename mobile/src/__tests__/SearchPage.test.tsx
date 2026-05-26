@@ -28,13 +28,11 @@ describe('SearchPage', () => {
     (api.searchExperiences as jest.Mock).mockResolvedValue({
       data: [{
         id: 'exp-1',
-        author_id: 'author-1',
+        owner_user_id: 'author-1',
         content: '人要活出一点自己的劲儿。',
         domain: 'meaning',
         sub_domain: 'self',
         creator_display_name: '姜文',
-        creator_name: undefined,
-        author_name: undefined,
         experience_type: 'platform_selected',
         inspiration_count: 0,
         collection_count: 0,
@@ -60,7 +58,7 @@ describe('SearchPage', () => {
     (api.searchExperiences as jest.Mock).mockResolvedValue({
       data: [{
         id: 'exp-1',
-        author_id: 'author-1',
+        owner_user_id: 'author-1',
         content: '人要活出一点自己的劲儿。',
         domain: 'meaning',
         sub_domain: 'self',

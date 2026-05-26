@@ -963,6 +963,20 @@ Current result:
     - `git diff --check`
     - `rg -n "\\.is_private|\\bis_private\\b" mobile/src -g '!mobile/src/services/api.ts'`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- Mobile V4 creator/owner field naming cleanup checks pass:
+  - mobile UI runtime source now uses `creator_display_name` for creator display and `owner_user_id` for owner checks
+  - legacy `author_id`, `author_name`, and `creator_name` aliases no longer drive 看看卡片、详情页、搜索结果 UI logic; old response compatibility remains confined to the API normalization layer
+  - API contract coverage now blocks those legacy creator/owner aliases from returning to mobile UI runtime source
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- apiContract.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- apiContract.test.ts HomeScreen.test.tsx DetailScreen.test.tsx SearchCardScreen.test.tsx SearchPage.test.tsx apiFeed.test.ts appRoutes.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (20 suites, 91 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "\\bauthor_id\\b|\\bauthor_name\\b|\\bcreator_name\\b" mobile/src/components/ExperienceCard.tsx mobile/src/screens/DetailScreen.tsx mobile/src/screens/SearchPage.tsx`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 

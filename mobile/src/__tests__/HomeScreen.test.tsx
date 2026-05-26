@@ -14,11 +14,11 @@ describe('HomeScreen', () => {
 
   const makeExperience = (id: string) => ({
     id,
-    author_id: 'author-1',
+    owner_user_id: 'author-1',
     content: `第 ${id} 条经验`,
     domain: 'meaning',
     sub_domain: 'self',
-    author_name: 'Tester',
+    creator_display_name: 'Tester',
     inspiration_count: 0,
     collection_count: 0,
     is_inspired: false,
@@ -43,11 +43,11 @@ describe('HomeScreen', () => {
     (api.fetchRecommendations as jest.Mock).mockResolvedValue({
       data: [{
         id: '1',
-        author_id: 'author-1',
+        owner_user_id: 'author-1',
         content: '把想法先做成一个能运行的小版本，再判断它值不值得继续。',
         domain: 'meaning',
         sub_domain: 'self',
-        author_name: 'Tester',
+        creator_display_name: 'Tester',
         inspiration_count: 0,
         collection_count: 0,
         is_inspired: false,
@@ -279,7 +279,6 @@ describe('HomeScreen', () => {
     (api.fetchRecommendations as jest.Mock).mockResolvedValue({
       data: [{
         ...makeExperience('1'),
-        author_id: 'legacy-author',
         owner_user_id: 'author-1',
         visibility: 'public',
       }],

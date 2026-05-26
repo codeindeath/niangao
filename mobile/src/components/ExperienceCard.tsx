@@ -52,10 +52,10 @@ export default function FlipCard({
   const isPlatform = item.experience_type === 'platform_selected';
   const primaryDomain = DOMAIN_LABELS[item.domain] || item.domain;
   const subDomain = item.sub_domain ? SUB_LABELS[item.sub_domain] : null;
-  const displayName = item.creator_name || item.author_name || '匿名';
+  const displayName = item.creator_display_name || '匿名';
   const showScore = item.quality_score != null && item.quality_score > 0;
   const stars = showScore ? Math.round(item.quality_score! / 2) : 0;
-  const ownerUserId = item.owner_user_id || item.author_id;
+  const ownerUserId = item.owner_user_id;
   const isOwner = Boolean(currentUserId && ownerUserId === currentUserId);
 
   // 估算原文是否会导致底部按钮被挤出可视区

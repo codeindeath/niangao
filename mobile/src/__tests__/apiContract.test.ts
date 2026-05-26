@@ -84,4 +84,16 @@ describe('App V4 API contract', () => {
 
     expect(uiSources).not.toMatch(/\bis_private\b/);
   });
+
+  it('keeps legacy creator and owner aliases out of mobile UI runtime source', () => {
+    const uiSources = [
+      read('src/components/ExperienceCard.tsx'),
+      read('src/screens/DetailScreen.tsx'),
+      read('src/screens/SearchPage.tsx'),
+    ].join('\n');
+
+    expect(uiSources).not.toMatch(/\bauthor_id\b/);
+    expect(uiSources).not.toMatch(/\bauthor_name\b/);
+    expect(uiSources).not.toMatch(/\bcreator_name\b/);
+  });
 });

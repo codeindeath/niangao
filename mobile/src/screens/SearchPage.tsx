@@ -82,7 +82,7 @@ export default function SearchPage({navigation}: any) {
     const primaryDomain = DOMAIN_LABELS[item.domain] || item.domain;
     const subDomain = item.sub_domain ? SUB_LABELS[item.sub_domain] : null;
     const domainLabel = subDomain || primaryDomain;
-    const displayName = item.creator_display_name || item.creator_name || item.author_name || '匿名';
+    const displayName = item.creator_display_name || '匿名';
     const showScore = item.quality_score != null && item.quality_score > 0;
     const stars = showScore ? Math.round(item.quality_score! / 2) : 0;
 

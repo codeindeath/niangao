@@ -11,11 +11,11 @@ jest.mock('../services/config');
 describe('DetailScreen', () => {
   const mockExp = {
     id: '1',
-    author_id: 'author-1',
+    owner_user_id: 'author-1',
     content: '测试经验',
     domain: 'meaning',
     sub_domain: 'self',
-    author_name: 'Tester',
+    creator_display_name: 'Tester',
     inspiration_count: 5,
     collection_count: 3,
     is_inspired: false,
@@ -122,7 +122,6 @@ describe('DetailScreen', () => {
     (config.getUserInfo as jest.Mock).mockResolvedValue({id: 'author-1'});
     (api.fetchExperience as jest.Mock).mockResolvedValue({
       ...mockExp,
-      author_id: 'legacy-author',
       owner_user_id: 'author-1',
     });
 
