@@ -291,7 +291,7 @@ export default function HomeScreen() {
 
   const handleDelete = (id: string) => {
     const item = tabCaches[activeTab].items.find(e => e.id === id);
-    const isPublic = item && !item.is_private && item.visibility !== 'private';
+    const isPublic = item && item.visibility !== 'private';
     const turnPrivate = async () => {
       if (!item) return;
       try {
@@ -305,7 +305,6 @@ export default function HomeScreen() {
           item.topics,
         );
         patchExperienceInCurrentTab(item.id, {
-          is_private: true,
           visibility: 'private',
           review_status: 'private',
         });

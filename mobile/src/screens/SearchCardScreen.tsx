@@ -76,7 +76,7 @@ export default function SearchCardScreen({route, navigation}: any) {
 
   const handleDelete = (id: string) => {
     const card = cards.find(e => e.id === id);
-    const isPublic = card && !card.is_private && card.visibility !== 'private';
+    const isPublic = card && card.visibility !== 'private';
     const turnPrivate = async () => {
       if (!card) return;
       try {
@@ -90,7 +90,6 @@ export default function SearchCardScreen({route, navigation}: any) {
           card.topics,
         );
         updateCard(card.id, {
-          is_private: true,
           visibility: 'private',
           review_status: 'private',
         });

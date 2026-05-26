@@ -20,7 +20,7 @@ describe('DetailScreen', () => {
     collection_count: 3,
     is_inspired: false,
     is_collected: false,
-    is_private: false,
+    visibility: 'public',
     review_status: 'approved',
     quality_score: 7.5,
     score_details: '{"value":8,"actionable":7,"universal":7,"original":6,"clarity":9}',
@@ -47,7 +47,7 @@ describe('DetailScreen', () => {
   });
 
   it('shows private marker for private experiences', async () => {
-    (api.fetchExperience as jest.Mock).mockResolvedValue({...mockExp, is_private: true, review_status: 'private'});
+    (api.fetchExperience as jest.Mock).mockResolvedValue({...mockExp, visibility: 'private', review_status: 'private'});
     const { findByLabelText } = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
     expect(await findByLabelText('私密经验')).toBeTruthy();
   });

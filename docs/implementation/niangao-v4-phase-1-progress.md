@@ -949,6 +949,20 @@ Current result:
     - `go test ./internal/repository -count=1`
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-list-scanner`
+- Mobile V4 visibility field naming cleanup checks pass:
+  - mobile UI runtime source now uses `visibility === 'private'` for private/public decisions instead of legacy `is_private`
+  - 看看、详情、搜索卡片、编辑入口的 turn-private and private-marker logic now all align to the canonical V4 visibility field
+  - API contract coverage now blocks `is_private` from returning to mobile UI runtime source; old response compatibility remains confined to the API normalization layer
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- apiContract.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- apiContract.test.ts DetailScreen.test.tsx HomeScreen.test.tsx SearchCardScreen.test.tsx CreateScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (20 suites, 90 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "\\.is_private|\\bis_private\\b" mobile/src -g '!mobile/src/services/api.ts'`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 

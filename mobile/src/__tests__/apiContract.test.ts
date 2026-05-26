@@ -73,4 +73,15 @@ describe('App V4 API contract', () => {
     expect(uiSources).not.toMatch(/\bsource_type\b/);
     expect(uiSources).not.toMatch(/\bis_official\b/);
   });
+
+  it('keeps legacy privacy aliases out of mobile UI runtime source', () => {
+    const uiSources = [
+      read('src/screens/HomeScreen.tsx'),
+      read('src/screens/DetailScreen.tsx'),
+      read('src/screens/SearchCardScreen.tsx'),
+      read('src/screens/CreateScreen.tsx'),
+    ].join('\n');
+
+    expect(uiSources).not.toMatch(/\bis_private\b/);
+  });
 });

@@ -110,7 +110,6 @@ export default function DetailScreen({route, navigation}: any) {
       );
       setExp(prev => prev ? {
         ...prev,
-        is_private: true,
         visibility: 'private',
         review_status: 'private',
       } : prev);
@@ -125,7 +124,7 @@ export default function DetailScreen({route, navigation}: any) {
       requireLogin(navigation, '登录后可以管理自己记下的经验。');
       return;
     }
-    const isPublic = exp && !exp.is_private && exp.visibility !== 'private';
+    const isPublic = exp && exp.visibility !== 'private';
     Alert.alert(
       '删除经验',
       isPublic
@@ -149,7 +148,7 @@ export default function DetailScreen({route, navigation}: any) {
   };
 
   const handleMakePrivate = () => {
-    if (!exp || exp.is_private || exp.visibility === 'private') return;
+    if (!exp || exp.visibility === 'private') return;
     if (!currentUserId) {
       requireLogin(navigation, '登录后可以管理自己记下的经验。');
       return;
@@ -200,7 +199,7 @@ export default function DetailScreen({route, navigation}: any) {
             </View>
           )}
           <View style={s.domainTag}><Text style={s.domainTagText}>{domainLabel}</Text></View>
-          {exp.is_private && (
+          {exp.visibility === 'private' && (
             <View style={s.privateMark} accessible accessibilityLabel="私密经验">
               <Ionicons name="lock-closed-outline" size={14} color="#8a8173" />
             </View>
@@ -284,7 +283,7 @@ export default function DetailScreen({route, navigation}: any) {
             <TouchableOpacity style={s.ownerActionBtn} onPress={handleEdit}>
               <Text style={s.ownerActionText}>编辑</Text>
             </TouchableOpacity>
-            {!exp.is_private && exp.visibility !== 'private' ? (
+            {exp.visibility !== 'private' ? (
               <TouchableOpacity style={s.ownerActionBtn} onPress={handleMakePrivate}>
                 <Text style={s.ownerActionText}>转为私密</Text>
               </TouchableOpacity>

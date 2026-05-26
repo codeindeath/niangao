@@ -150,7 +150,7 @@ export default function CreateScreen({navigation, route}: any) {
       setDomain(editingExperience.domain || '');
       setSubDomain(editingExperience.sub_domain || '');
       setTopics(editingExperience.topics || '');
-      setIsPrivate(Boolean(editingExperience.is_private || editingExperience.visibility === 'private'));
+      setIsPrivate(editingExperience.visibility === 'private');
       return;
     }
 
