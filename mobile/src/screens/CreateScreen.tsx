@@ -86,7 +86,7 @@ interface DraftData {
   content: string;
   domain: string;
   subDomain: string;
-  topics: string;
+  topic: string;
   isPrivate: boolean;
 }
 
@@ -112,7 +112,7 @@ export default function CreateScreen({navigation, route}: any) {
   const [rewriting, setRewriting] = useState(false);
   const [rewriteCandidate, setRewriteCandidate] = useState<RewriteCandidate | null>(null);
   const [isFocused, setIsFocused] = useState(false);
-  const [topics, setTopics] = useState('');
+  const [topic, setTopic] = useState('');
   const [isTopicEditing, setIsTopicEditing] = useState(false);
   const [displayNameModalVisible, setDisplayNameModalVisible] = useState(false);
   const [displayNameDraft, setDisplayNameDraft] = useState('');
@@ -149,7 +149,7 @@ export default function CreateScreen({navigation, route}: any) {
       setContent(editingExperience.content || '');
       setDomain(editingExperience.domain || '');
       setSubDomain(editingExperience.sub_domain || '');
-      setTopics(editingExperience.topics || '');
+      setTopic(editingExperience.topic || '');
       setIsPrivate(editingExperience.visibility === 'private');
       return;
     }
@@ -158,7 +158,7 @@ export default function CreateScreen({navigation, route}: any) {
       setContent(route.params.prefillContent);
       setDomain(route.params.domain || '');
       setSubDomain(route.params.subDomain || route.params.sub_domain || '');
-      setTopics(route.params.topic || route.params.topics || '');
+      setTopic(route.params.topic || '');
       setIsPrivate(route.params.defaultVisibility === 'private' || sourceScene === 'chat');
     }
   }, [editingExperience, route?.params, sourceScene]);
@@ -173,7 +173,7 @@ export default function CreateScreen({navigation, route}: any) {
             setContent(draft.content);
             setDomain(draft.domain || '');
             setSubDomain(draft.subDomain || '');
-            setTopics(draft.topics || '');
+            setTopic(draft.topic || '');
             setIsPrivate(draft.isPrivate || false);
           }
         } catch {}
@@ -207,7 +207,7 @@ export default function CreateScreen({navigation, route}: any) {
       return;
     }
     if (content.trim()) {
-      const draft: DraftData = {content, domain, subDomain, topics, isPrivate};
+      const draft: DraftData = {content, domain, subDomain, topic, isPrivate};
       AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     } else {
       AsyncStorage.removeItem(DRAFT_KEY);
@@ -243,7 +243,7 @@ export default function CreateScreen({navigation, route}: any) {
         subDomain,
         privateSave,
         editingExperience.interpretation,
-        topics.trim(),
+        topic.trim(),
       );
     } else {
       await createExperience(
@@ -252,7 +252,7 @@ export default function CreateScreen({navigation, route}: any) {
         subDomain,
         privateSave,
         undefined,
-        topics.trim(),
+        topic.trim(),
         {
           source_scene: sourceScene,
           source_message_ids: sourceMessageIds,
@@ -349,7 +349,7 @@ export default function CreateScreen({navigation, route}: any) {
         default_visibility: isPrivate ? 'private' : 'public',
         user_selected_domain: domain || undefined,
         user_selected_sub_domain: subDomain || undefined,
-        topic_context: topics.trim() || undefined,
+        topic_context: topic.trim() || undefined,
         source_message_ids: sourceMessageIds,
       });
       if (result.can_rewrite && result.rewritten_content) {
@@ -375,7 +375,7 @@ export default function CreateScreen({navigation, route}: any) {
     setContent(rewriteCandidate.content);
     if (!domain && rewriteCandidate.domain) setDomain(rewriteCandidate.domain);
     if (!subDomain && rewriteCandidate.subDomain) setSubDomain(rewriteCandidate.subDomain);
-    if (!topics && rewriteCandidate.topic) setTopics(rewriteCandidate.topic);
+    if (!topic && rewriteCandidate.topic) setTopic(rewriteCandidate.topic);
     setRewriteCandidate(null);
   };
 
@@ -396,7 +396,7 @@ export default function CreateScreen({navigation, route}: any) {
             <Text style={styles.headerTitle}>话题</Text>
             <TouchableOpacity
               onPress={() => {
-                setTopics(topicDraft);
+                setTopic(topicDraft);
                 setIsTopicEditing(false);
               }}
               style={styles.backBtn}>
@@ -536,12 +536,12 @@ export default function CreateScreen({navigation, route}: any) {
               <TouchableOpacity
                 style={styles.topicBtnWrap}
                 onPress={() => {
-                  setTopicDraft(topics.trim() || '#');
+                  setTopicDraft(topic.trim() || '#');
                   setIsTopicEditing(true);
                   setTimeout(() => topicPageInputRef.current?.focus(), 150);
                 }}>
                 <Text style={styles.addTopicText}>
-                  {topics.trim() ? topics.trim() : '#添加话题'}
+                  {topic.trim() ? topic.trim() : '#添加话题'}
                 </Text>
               </TouchableOpacity>
             </View>

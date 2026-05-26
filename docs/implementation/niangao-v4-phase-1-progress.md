@@ -1005,6 +1005,20 @@ Current result:
     - `git diff --check`
     - `rg -n "review_status|is_private|is_liked|is_bookmarked|like_count|bookmark_count|source_type|is_official|author_name|creator_name" mobile/src/components/ExperienceCard.tsx mobile/src/screens/HomeScreen.tsx mobile/src/screens/DetailScreen.tsx mobile/src/screens/SearchCardScreen.tsx mobile/src/screens/SearchPage.tsx mobile/src/screens/CreateScreen.tsx`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- Mobile V4 topic/write-payload field cleanup checks pass:
+  - mobile experience UI runtime source now uses canonical singular `topic` for experience topic display, edit, save, and turn-private preservation
+  - legacy plural `topics` remains confined to API normalization compatibility for old responses; screens receive `topic`
+  - create/update experience requests now send V4 `visibility` and `topic`, and no longer send legacy `is_private` or `topics` payload fields
+  - API contract coverage now blocks plural `topics` from returning to mobile experience UI runtime source and verifies old `topics` responses normalize into `topic`
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- apiFeed.test.ts apiContract.test.ts apiExperienceWrite.test.ts CreateScreen.test.tsx HomeScreen.test.tsx DetailScreen.test.tsx SearchCardScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation for `topic` and `is_private` payload coverage)
+    - `npm run test -- --runInBand` (22 suites, 98 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "\\btopics\\b" mobile/src/screens/HomeScreen.tsx mobile/src/screens/DetailScreen.tsx mobile/src/screens/SearchCardScreen.tsx mobile/src/screens/CreateScreen.tsx`
+    - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 

@@ -97,4 +97,15 @@ describe('App V4 API contract', () => {
     expect(uiSources).not.toMatch(/\bauthor_name\b/);
     expect(uiSources).not.toMatch(/\bcreator_name\b/);
   });
+
+  it('keeps legacy plural topics out of experience UI runtime source', () => {
+    const uiSources = [
+      read('src/screens/HomeScreen.tsx'),
+      read('src/screens/DetailScreen.tsx'),
+      read('src/screens/SearchCardScreen.tsx'),
+      read('src/screens/CreateScreen.tsx'),
+    ].join('\n');
+
+    expect(uiSources).not.toMatch(/\btopics\b/);
+  });
 });

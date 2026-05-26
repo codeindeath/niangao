@@ -302,7 +302,7 @@ export default function HomeScreen() {
           item.sub_domain,
           true,
           item.interpretation,
-          item.topics,
+          item.topic,
         );
         patchExperienceInCurrentTab(item.id, {
           visibility: 'private',

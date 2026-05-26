@@ -106,7 +106,7 @@ export default function DetailScreen({route, navigation}: any) {
         exp.sub_domain,
         true,
         exp.interpretation,
-        exp.topics,
+        exp.topic,
       );
       setExp(prev => prev ? {
         ...prev,

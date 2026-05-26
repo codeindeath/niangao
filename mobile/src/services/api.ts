@@ -12,7 +12,7 @@ export interface Experience {
   interpretation?: string;
   domain: string;
   sub_domain?: string;
-  topics?: string;
+  topic?: string;
   is_private?: boolean;
   is_official?: boolean;
   experience_type?: string;
@@ -78,6 +78,8 @@ function normalizeExperience(raw: any): Experience {
     bookmark_count,
     is_liked,
     is_bookmarked,
+    topic,
+    topics,
     ...rest
   } = raw || {};
   const experienceType = rest.experience_type
@@ -95,7 +97,7 @@ function normalizeExperience(raw: any): Experience {
     content: rest.content || '',
     domain: rest.domain || '',
     sub_domain: rest.sub_domain || undefined,
-    topics: rest.topics || rest.topic || '',
+    topic: topic || topics || '',
     is_private: rest.is_private ?? visibility === 'private',
     is_official: Boolean(rest.is_official ?? experienceType === 'platform_selected'),
     experience_type: experienceType,
@@ -122,7 +124,7 @@ function normalizeFeedCard(card: ExperienceCard): Experience {
     content: card.content || '',
     domain: card.domain || '',
     sub_domain: card.sub_domain || undefined,
-    topics: card.topic || '',
+    topic: card.topic || '',
     is_private: card.visibility === 'private',
     is_official: card.experience_type === 'platform_selected',
     source_type: card.experience_type === 'platform_selected' ? 'platform' : 'user',
@@ -221,9 +223,9 @@ export async function createExperience(
   content: string,
   domain?: string,
   sub_domain?: string,
-  is_private: boolean = false,
+  isPrivate: boolean = false,
   interpretation?: string,
-  topics?: string,
+  topic?: string,
   options: {
     source_scene?: 'note' | 'chat';
     source_message_ids?: string[];
@@ -231,10 +233,9 @@ export async function createExperience(
 ): Promise<Experience> {
   const body: Record<string, unknown> = {
     content,
-    is_private,
-    visibility: is_private ? 'private' : 'public',
+    visibility: isPrivate ? 'private' : 'public',
     interpretation,
-    topics,
+    topic,
     source_scene: options.source_scene || 'note',
   };
   if (options.source_message_ids) {
@@ -251,16 +252,15 @@ export async function updateExperience(
   content: string,
   domain?: string,
   sub_domain?: string,
-  is_private: boolean = false,
+  isPrivate: boolean = false,
   interpretation?: string,
-  topics?: string,
+  topic?: string,
 ): Promise<{status: string}> {
   const body: Record<string, unknown> = {
     content,
-    is_private,
-    visibility: is_private ? 'private' : 'public',
+    visibility: isPrivate ? 'private' : 'public',
     interpretation,
-    topics,
+    topic,
   };
   if (domain) body.domain = domain;
   if (sub_domain) body.sub_domain = sub_domain;

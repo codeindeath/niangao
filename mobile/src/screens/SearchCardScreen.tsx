@@ -87,7 +87,7 @@ export default function SearchCardScreen({route, navigation}: any) {
           card.sub_domain,
           true,
           card.interpretation,
-          card.topics,
+          card.topic,
         );
         updateCard(card.id, {
           visibility: 'private',

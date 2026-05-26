@@ -1,5 +1,5 @@
-import {fetchExperience, fetchMyExperiences} from '../services/api';
-import {apiGet} from '../services/config';
+import {createExperience, fetchExperience, fetchMyExperiences, updateExperience} from '../services/api';
+import {apiGet, apiPost, apiPut} from '../services/config';
 
 jest.mock('../services/config', () => ({
   apiGet: jest.fn(),
@@ -66,4 +66,46 @@ describe('feed API normalization', () => {
     expect(result).not.toHaveProperty('is_bookmarked');
   });
 
+  it('normalizes V4 and legacy topic fields into singular topic for App screens', async () => {
+    (apiGet as jest.Mock).mockResolvedValue({
+      id: 'exp-topic',
+      content: '把不确定的事先说清楚。',
+      topic: '#边界沟通',
+      domain: 'relationship',
+      sub_domain: 'friendship',
+      created_at: '2026-05-26T00:00:00Z',
+    });
+
+    const v4Result = await fetchExperience('exp-topic');
+    expect(v4Result.topic).toBe('#边界沟通');
+
+    (apiGet as jest.Mock).mockResolvedValue({
+      id: 'exp-legacy-topic',
+      content: '把不确定的事先说清楚。',
+      topics: '#边界沟通',
+      domain: 'relationship',
+      sub_domain: 'friendship',
+      created_at: '2026-05-26T00:00:00Z',
+    });
+
+    const legacyResult = await fetchExperience('exp-legacy-topic');
+    expect(legacyResult.topic).toBe('#边界沟通');
+  });
+
+  it('sends singular V4 topic when creating or updating experiences', async () => {
+    (apiPost as jest.Mock).mockResolvedValue({experience: {id: 'exp-new'}});
+    (apiPut as jest.Mock).mockResolvedValue({status: 'ok'});
+
+    await createExperience('把不确定的事先说清楚。', 'relationship', 'friendship', false, undefined, '#边界沟通');
+    expect(apiPost).toHaveBeenCalledWith('/api/v1/experiences', expect.objectContaining({
+      topic: '#边界沟通',
+    }));
+    expect((apiPost as jest.Mock).mock.calls[0][1]).not.toHaveProperty('topics');
+
+    await updateExperience('exp-new', '把不确定的事先说清楚。', 'relationship', 'friendship', false, undefined, '#边界沟通');
+    expect(apiPut).toHaveBeenCalledWith('/api/v1/experiences/exp-new', expect.objectContaining({
+      topic: '#边界沟通',
+    }));
+    expect((apiPut as jest.Mock).mock.calls[0][1]).not.toHaveProperty('topics');
+  });
 });
