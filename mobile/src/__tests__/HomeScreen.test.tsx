@@ -211,7 +211,7 @@ describe('HomeScreen', () => {
         expect.any(Array),
       );
     });
-    expect(api.toggleLike).not.toHaveBeenCalled();
+    expect(api.markInspired).not.toHaveBeenCalled();
 
     (Alert.alert as jest.Mock).mockClear();
     fireEvent.press(getByLabelText('收藏经验'), {stopPropagation: jest.fn()});
@@ -222,7 +222,7 @@ describe('HomeScreen', () => {
         expect.any(Array),
       );
     });
-    expect(api.toggleBookmark).not.toHaveBeenCalled();
+    expect(api.setCollected).not.toHaveBeenCalled();
   });
 
   it('records a flip event when a card interpretation is opened', async () => {

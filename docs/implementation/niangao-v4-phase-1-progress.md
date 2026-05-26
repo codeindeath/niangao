@@ -844,6 +844,20 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- App V4 interaction contract cleanup checks pass:
+  - mobile action helpers now use V4 product semantics: `markInspired` and `setCollected`
+  - 看看, 搜索卡片, 详情, and 聊聊 reference-card collection flows call the V4 `/inspire` and `/collect` contracts through the renamed helpers
+  - added an App API contract regression test that blocks accidental fallback to deprecated mobile endpoints such as old recommend, old user profile, old chat send, old view, old like, and old bookmark paths
+  - static scan confirms mobile runtime source no longer contains `toggleLike` / `toggleBookmark` or deprecated app-facing endpoint strings outside the contract test itself
+  - no server redeploy is required for this slice because backend V4 action endpoints were already deployed and only mobile App source changed
+  - verification:
+    - `npm run test -- apiContract.test.ts --runInBand --no-cache`
+    - `npm run test -- apiContract.test.ts HomeScreen.test.tsx DetailScreen.test.tsx SearchCardScreen.test.tsx ChatScreen.test.tsx apiFeed.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (20 suites, 79 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - `rg -n "\\btoggleLike\\b|\\btoggleBookmark\\b|/api/v1/experiences/recommend|/api/v1/me/bookmarks|/api/v1/me/experiences|/api/v1/user/profile|/api/v1/user/stats|/api/v1/chat/send|/api/v1/experiences/\\$\\{id\\}/(view|like|bookmark)" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
 
 Not verified yet:
 

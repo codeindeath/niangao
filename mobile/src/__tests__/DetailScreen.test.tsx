@@ -61,12 +61,12 @@ describe('DetailScreen', () => {
 
   it('marks an experience as inspiring once', async () => {
     (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);
-    (api.toggleLike as jest.Mock).mockResolvedValue({liked: true});
+    (api.markInspired as jest.Mock).mockResolvedValue({inspired: true});
     const { findByLabelText } = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
     const likeBtn = await findByLabelText('标记有启发');
     fireEvent.press(likeBtn);
     await waitFor(() => {
-      expect(api.toggleLike).toHaveBeenCalledWith('1');
+      expect(api.markInspired).toHaveBeenCalledWith('1');
     });
   });
 

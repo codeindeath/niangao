@@ -9,7 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {Experience, toggleLike, toggleBookmark, updateExperience, deleteExperience, recordView, recordExperienceEvent} from '../services/api';
+import {Experience, markInspired, setCollected, updateExperience, deleteExperience, recordView, recordExperienceEvent} from '../services/api';
 import {getUserInfo} from '../services/config';
 import FlipCard from '../components/ExperienceCard';
 import {requireLogin} from '../utils/authGate';
@@ -53,7 +53,7 @@ export default function SearchCardScreen({route, navigation}: any) {
     const card = cards.find(c => c.id === id);
     if (!card || card.is_liked) return;
     updateCard(id, {is_liked: true, like_count: card.like_count + 1});
-    try { await toggleLike(id); } catch {
+    try { await markInspired(id); } catch {
       updateCard(id, {is_liked: card.is_liked, like_count: card.like_count});
     }
   };
@@ -67,7 +67,7 @@ export default function SearchCardScreen({route, navigation}: any) {
       is_bookmarked: nextBookmarked,
       bookmark_count: Math.max(card.bookmark_count + (nextBookmarked ? 1 : -1), 0),
     });
-    try { await toggleBookmark(id, nextBookmarked); } catch {
+    try { await setCollected(id, nextBookmarked); } catch {
       updateCard(id, {is_bookmarked: card.is_bookmarked, bookmark_count: card.bookmark_count});
     }
   };

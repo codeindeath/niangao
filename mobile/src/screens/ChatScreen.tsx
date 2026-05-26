@@ -20,7 +20,7 @@ import {
   fetchChatTopicMessages,
   sendChatTopicMessage,
   sendTempChatMessage,
-  toggleBookmark,
+  setCollected,
   recordExperienceEvent,
   ChatTopic,
   ChatReferenceCard,
@@ -311,7 +311,7 @@ export default function ChatScreen({navigation}: any) {
       };
     }));
     try {
-      await toggleBookmark(experienceId, true);
+      await setCollected(experienceId, true);
     } catch {
       setMessages(prev => prev.map(message => {
         if (message.id !== messageId || !message.referenceCards) return message;

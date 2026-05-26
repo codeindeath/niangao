@@ -95,7 +95,7 @@ describe('ChatScreen', () => {
         source_message_ids: ['user-1', 'assistant-1'],
       },
     });
-    (api.toggleBookmark as jest.Mock).mockResolvedValue({bookmarked: true});
+    (api.setCollected as jest.Mock).mockResolvedValue({collected: true});
 
     const {findByLabelText, findByText, getByLabelText, getByPlaceholderText, getByText} = render(<ChatScreen navigation={navigation} />);
     expect(await findByText('我在。你可以从任何一点开始说，不用先想清楚。')).toBeTruthy();
@@ -131,7 +131,7 @@ describe('ChatScreen', () => {
 
     fireEvent.press(getByLabelText('收藏参考经验'));
     await waitFor(() => {
-      expect(api.toggleBookmark).toHaveBeenCalledWith('exp-1', true);
+      expect(api.setCollected).toHaveBeenCalledWith('exp-1', true);
     });
     expect(await findByLabelText('已收藏参考经验')).toBeTruthy();
 

@@ -17,8 +17,8 @@ import {
   fetchMyExperiences,
   fetchMyBookmarks,
   Experience,
-  toggleLike,
-  toggleBookmark,
+  markInspired,
+  setCollected,
   updateExperience,
   deleteExperience,
   recordView,
@@ -223,7 +223,7 @@ export default function HomeScreen() {
         ),
       },
     }));
-    try { await toggleLike(id); } catch {
+    try { await markInspired(id); } catch {
       setTabCaches(prev => ({
         ...prev,
         [activeTab]: {
@@ -252,7 +252,7 @@ export default function HomeScreen() {
         } : e),
       },
     }));
-    try { await toggleBookmark(id, nextBookmarked); } catch {
+    try { await setCollected(id, nextBookmarked); } catch {
       setTabCaches(prev => ({
         ...prev,
         [activeTab]: {

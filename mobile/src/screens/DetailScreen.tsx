@@ -10,7 +10,7 @@ import {
   Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {fetchExperience, toggleLike, toggleBookmark, updateExperience, deleteExperience, Experience} from '../services/api';
+import {fetchExperience, markInspired, setCollected, updateExperience, deleteExperience, Experience} from '../services/api';
 import {getUserInfo} from '../services/config';
 import {requireLogin} from '../utils/authGate';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -65,7 +65,7 @@ export default function DetailScreen({route, navigation}: any) {
     if (!exp || exp.is_liked) return;
     const previous = exp;
     setExp({...exp, is_liked: true, like_count: exp.like_count + 1});
-    try { await toggleLike(exp.id); } catch (e) {
+    try { await markInspired(exp.id); } catch (e) {
       setExp(previous);
     }
   };
@@ -80,7 +80,7 @@ export default function DetailScreen({route, navigation}: any) {
       is_bookmarked: nextBookmarked,
       bookmark_count: Math.max(exp.bookmark_count + (nextBookmarked ? 1 : -1), 0),
     });
-    try { await toggleBookmark(exp.id, nextBookmarked); } catch (e) {
+    try { await setCollected(exp.id, nextBookmarked); } catch (e) {
       setExp(previous);
     }
   };

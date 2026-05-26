@@ -217,28 +217,28 @@ export async function updateExperience(
   return apiPut('/api/v1/experiences/' + id, body);
 }
 
-export async function toggleLike(id: string): Promise<{liked: boolean}> {
+export async function markInspired(id: string): Promise<{inspired: boolean}> {
   try {
     await apiPost(`/api/v1/experiences/${id}/inspire`, {});
-    return {liked: true};
+    return {inspired: true};
   } catch (err) {
     if (err instanceof ApiError && err.status === 409) {
-      return {liked: true};
+      return {inspired: true};
     }
     throw err;
   }
 }
 
-export async function toggleBookmark(
+export async function setCollected(
   id: string,
   collected: boolean = true,
-): Promise<{bookmarked: boolean}> {
+): Promise<{collected: boolean}> {
   if (collected) {
     const result = await apiPost(`/api/v1/experiences/${id}/collect`, {});
-    return {bookmarked: Boolean(result?.collected ?? true)};
+    return {collected: Boolean(result?.collected ?? true)};
   }
   const result = await apiDelete(`/api/v1/experiences/${id}/collect`);
-  return {bookmarked: Boolean(result?.collected ?? false)};
+  return {collected: Boolean(result?.collected ?? false)};
 }
 
 export async function deleteExperience(id: string): Promise<{status: string}> {
