@@ -404,6 +404,7 @@ Behavior:
 - User-owned private search is allowed only in own scope when logged in.
 - Public search eligibility uses V4 `visibility`, `lifecycle_status`, and `quality_tier` facts directly; legacy fallback predicates must not drive the public gate.
 - Empty result does not show hot search or suggestions.
+- App behavior: when a stored optional token makes search return `401`, treat it as expired auth, clear local auth, and route through the unified login gate instead of showing a weak-network search error.
 
 ## 7. 聊聊
 

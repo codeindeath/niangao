@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {searchExperiences, recordSearchClick, Experience} from '../services/api';
-import {requireLogin} from '../utils/authGate';
+import {handleAuthExpired, requireLogin} from '../utils/authGate';
 import {reportHandledError} from '../utils/logging';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -56,12 +56,13 @@ export default function SearchPage({navigation}: any) {
       const result = await searchExperiences(keyword.trim());
       setResults(result.data || []);
     } catch (e) {
+      if (await handleAuthExpired(navigation, e)) return;
       reportHandledError('SearchPage.search', e);
       setError('搜索失败，请检查网络连接');
     } finally {
       setLoading(false);
     }
-  }, [keyword]);
+  }, [keyword, navigation]);
 
   const handleResultPress = (item: Experience, index: number) => {
     recordSearchClick(item.id, keyword.trim(), index);

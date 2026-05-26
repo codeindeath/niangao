@@ -1963,6 +1963,18 @@ Current result:
     - `xcrun simctl install A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14 /Users/swt/Library/Developer/Xcode/DerivedData/mobile-boiieqniqvtfohffpwzkdkpdklox/Build/Products/Debug-iphonesimulator/app.app`
     - `xcrun simctl launch A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14 com.swt.niangaogao`
     - `xcrun simctl io A41B8DA3-B22F-4FF2-9F2B-DE340A07DB14 screenshot /tmp/niangao-v4-detail-404-runtime-check.png`
+- Search expired-auth weak-state hardening checks pass:
+  - when search receives `401` from an optional stored auth token, `SearchPage` now clears local auth state and routes through the unified `登录状态过期` flow instead of showing `搜索失败，请检查网络连接`
+  - normal non-auth search failures still keep the retryable weak-network search state
+  - the Phase 1 contract doc now records the App search `401` behavior
+  - no production backend deployment was needed for this App-only slice
+  - verification:
+    - `npm run test -- SearchPage.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- SearchPage.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (23 suites, 118 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
 
 Not verified yet:
 
