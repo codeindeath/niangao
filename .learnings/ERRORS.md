@@ -277,3 +277,62 @@ For production smoke cleanup, run `DELETE ...` as its own statement, then run a 
 ### Metadata
 - Reproducible: yes
 - Related Files: None
+
+---
+
+## [ERR-20260527-002] production_smoke_cleanup_wrong_chat_citation_column
+
+**Logged**: 2026-05-27T01:03:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: deployment
+
+### Summary
+Production auth smoke cleanup used the wrong `chat_citations` foreign-key column.
+
+### Error
+```
+ERROR: column "assistant_message_id" does not exist
+```
+
+### Context
+- Authenticated production smoke passed for `/me/profile`, `/me/stats/assets`, `/feed/mine`, and `/chat/temp-sessions`.
+- Cleanup initially attempted `DELETE FROM chat_citations WHERE assistant_message_id IN (...)`.
+- The actual V4 table column is `message_id`, so cleanup aborted before deleting the temporary smoke user and temp session.
+- A follow-up explicit cleanup using `message_id` removed the temp session and user, then verified `cleanup_remaining=0`.
+
+### Suggested Fix
+For future production smoke cleanup, inspect or remember the actual V4 chat citation schema: `chat_citations.message_id -> chat_messages.id`. Keep cleanup as explicit DELETE statements followed by a separate remaining-row SELECT.
+
+### Metadata
+- Reproducible: yes
+- Related Files: backend/migrations/017_v4_core_foundation.sql
+
+---
+
+## [ERR-20260527-003] ssh_nested_heredoc_sql_quoting
+
+**Logged**: 2026-05-27T01:03:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: deployment
+
+### Summary
+Nested `ssh '...'` SQL cleanup stripped UUID quotes and produced invalid PostgreSQL syntax.
+
+### Error
+```
+ERROR: syntax error at or near "aaab41"
+```
+
+### Context
+- A cleanup retry embedded SQL inside a single-quoted remote ssh command.
+- The UUID literal quotes were stripped before reaching PostgreSQL.
+- Sending the script with `ssh root@host 'bash -s' <<'REMOTE' ... REMOTE` preserved SQL quoting and cleanup succeeded.
+
+### Suggested Fix
+For multiline production SQL over SSH, prefer a local quoted heredoc into `bash -s` over deeply nested shell quoting.
+
+### Metadata
+- Reproducible: yes
+- Related Files: None

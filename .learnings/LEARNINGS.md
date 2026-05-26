@@ -187,3 +187,26 @@ Use the `task-quality-gate` skill for coding, product docs, AI prompts, evaluati
 - Source: user_feedback
 - Related Files: /Users/swt/.codex/skills/task-quality-gate/SKILL.md
 - Tags: workflow, quality-gate, verification, golden-set, product-quality
+
+---
+
+## [LRN-20260527-001] correction
+
+**Logged**: 2026-05-27T00:52:25+08:00
+**Priority**: critical
+**Status**: pending
+**Area**: workflow
+
+### Summary
+Niangao V4 continuation rules must survive context compaction: 30-minute heartbeat, continuous execution, and autonomous production deploy authorization.
+
+### Details
+The user explicitly corrected that Niangao V4 App/backend work must continue continuously until the approved development plan is complete. Heartbeats are not pacing and should not be treated as the only time work continues; they exist only to recover from network, transport, app crash, and context-compaction interruptions. The user also explicitly authorized autonomous production deployments within the active V4 App/backend plan.
+
+### Suggested Action
+On every resume or context compaction, inspect local git/docs/deployment evidence, then continue from the latest reliable checkpoint. Keep the heartbeat at 30 minutes. For production deploys, proceed autonomously within the active plan while preserving normal gates: tests/build, backup/rollback checkpoint, verified artifact deploy, smoke checks, temp data cleanup, backend/AI log scan, no secrets printed, and documentation of the result.
+
+### Metadata
+- Source: user_feedback
+- Related Files: /Users/swt/.codex/memories/extensions/ad_hoc/notes/20260527-005124-niangao-v4-continuation-contract.md
+- Tags: niangao-v4, heartbeat, context-compaction, deployment, workflow

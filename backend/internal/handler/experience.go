@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -378,90 +377,6 @@ func (h *ExperienceHandler) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
-}
-
-func parseIntParam(s string, def int) int {
-	if s == "" {
-		return def
-	}
-	v, err := strconv.Atoi(s)
-	if err != nil {
-		return def
-	}
-	return v
-}
-
-// MyExperiences — 用户自己发布的经验
-func (h *ExperienceHandler) MyExperiences(c *gin.Context) {
-	userID := getAuthUserID(c)
-	if userID == "" {
-		return
-	}
-
-	page := parseIntParam(c.Query("page"), 1)
-	pageSize := parseIntParam(c.Query("page_size"), 20)
-
-	experiences, total, err := h.repo.ListByAuthor(c.Request.Context(), userID, page, pageSize)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list experiences"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"data":  experiences,
-		"total": total,
-		"page":  page,
-	})
-}
-
-// MyBookmarks — 用户收藏的经验
-func (h *ExperienceHandler) MyBookmarks(c *gin.Context) {
-	userID := getAuthUserID(c)
-	if userID == "" {
-		return
-	}
-
-	page := parseIntParam(c.Query("page"), 1)
-	pageSize := parseIntParam(c.Query("page_size"), 20)
-
-	experiences, total, err := h.repo.ListBookmarked(c.Request.Context(), userID, page, pageSize)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list bookmarks"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"data":  experiences,
-		"total": total,
-		"page":  page,
-	})
-}
-
-// GetRecommendations returns personalized experience recommendations.
-// Ranks by domain preference (publish×2 + bookmark×1) × hotness.
-func (h *ExperienceHandler) GetRecommendations(c *gin.Context) {
-	userID := getAuthUserID(c)
-	if userID == "" {
-		return
-	}
-
-	limit := parseIntParam(c.Query("limit"), 20)
-	offset := parseIntParam(c.Query("offset"), 0)
-
-	experiences, err := h.repo.Recommend(c.Request.Context(), userID, limit, offset)
-	if err != nil {
-		log.Printf("ERROR Recommend: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get recommendations"})
-		return
-	}
-
-	// Round-robin by creator to prevent consecutive same creator
-	experiences = interleaveByCreator(experiences)
-
-	c.JSON(http.StatusOK, gin.H{
-		"data":  experiences,
-		"total": len(experiences),
-	})
 }
 
 // interleaveByCreator distributes experiences round-robin by creator.

@@ -1167,6 +1167,48 @@ Current result:
     - `git diff --check`
     - production public and authenticated temporary JWT smoke checks
     - backend/AI `journalctl` error scans
+- Backend deprecated experience handler method cleanup checks pass:
+  - removed remaining unused legacy `ExperienceHandler` method implementations:
+    - `MyExperiences`
+    - `MyBookmarks`
+    - `GetRecommendations`
+    - `parseIntParam`
+  - removed stale handler tests that still described old `/api/v1/me/experiences`, `/api/v1/me/bookmarks`, and legacy `/api/v1/experiences/recommend` auth/routing behavior
+  - kept the deprecated App route surface registered as explicit 410 responses for old mobile clients:
+    - `/api/v1/experiences/recommend`
+    - `/api/v1/me/experiences`
+    - `/api/v1/me/bookmarks`
+  - regression coverage now fails if the removed legacy handler methods or `parseIntParam` return
+  - Linux backend artifact `/tmp/niangao-backend-v4-experience-method-cleanup` was deployed to production at `/root/niangao/deployments/20260527005547/server`
+  - production backend binary hash now matches the local experience-method-cleanup artifact:
+    - `346efdb3f19a447024eef477f198269dd15545edb67d8c8627fed9a5b53c4a8a`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-experience-method-cleanup.20260527005547`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences/recommend` -> 410 `deprecated_endpoint`
+  - post-deploy authenticated V4 smoke passed with a temporary JWT user and cleanup:
+    - `GET /api/v1/me/profile` -> 200
+    - `GET /api/v1/me/stats/assets` -> 200
+    - `GET /api/v1/feed/mine?limit=1` -> 200
+    - `POST /api/v1/chat/temp-sessions` -> 201
+    - cleanup temporary user and temp session -> `cleanup_remaining=0`
+  - post-deploy backend/AI journal scans after the deploy window found no panic, fatal error, failed message, traceback, or 5xx matches
+  - workflow hardening from this slice:
+    - the 30-minute heartbeat remains active only as interruption recovery, not pacing
+    - autonomous production deployments are authorized within the active V4 App/backend plan after build/test, backup, smoke, cleanup, and log-scan gates
+    - production smoke cleanup should use `chat_citations.message_id`, not `assistant_message_id`
+    - multiline remote SQL should use `ssh root@host 'bash -s' <<'REMOTE'` to avoid nested-quote corruption
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestDeprecatedExperienceHandlerMethodsAreRemoved|TestDeprecatedExperienceAppRoutesReturnGone|TestV4ExperienceRewrite|TestExperienceList' -count=1 -v` (RED confirmed before implementation)
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-experience-method-cleanup`
+    - `rg -n --glob '!**/*_test.go' 'func \\(h \\*ExperienceHandler\\) (MyExperiences|MyBookmarks|GetRecommendations)\\(|func parseIntParam\\(' backend/internal/handler backend/cmd`
+    - `git diff --check`
+    - production public and authenticated temporary JWT smoke checks
+    - backend/AI `journalctl` error scans
 
 Not verified yet:
 

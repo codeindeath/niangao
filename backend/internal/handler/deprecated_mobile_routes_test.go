@@ -89,3 +89,22 @@ func TestDeprecatedMobileInteractionRepositorySourcesAreRemoved(t *testing.T) {
 		}
 	}
 }
+
+func TestDeprecatedExperienceHandlerMethodsAreRemoved(t *testing.T) {
+	source, err := os.ReadFile("experience.go")
+	if err != nil {
+		t.Fatalf("read experience.go: %v", err)
+	}
+	experienceSource := string(source)
+
+	for _, symbol := range []string{
+		"func (h *ExperienceHandler) MyExperiences(",
+		"func (h *ExperienceHandler) MyBookmarks(",
+		"func (h *ExperienceHandler) GetRecommendations(",
+		"func parseIntParam(",
+	} {
+		if strings.Contains(experienceSource, symbol) {
+			t.Fatalf("deprecated experience handler method should be removed: %s", symbol)
+		}
+	}
+}
