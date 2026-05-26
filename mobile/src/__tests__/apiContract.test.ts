@@ -147,4 +147,15 @@ describe('App V4 API contract', () => {
       expect(normalizeSource).not.toMatch(new RegExp(`\\b${legacy}\\b`));
     }
   });
+
+  it('keeps legacy accumulation counters out of the exported UserProfile type', () => {
+    const apiSource = read('src/services/api.ts');
+    const start = apiSource.indexOf('export interface UserProfile {');
+    const end = apiSource.indexOf('export interface ChatMessage {');
+    const profileType = apiSource.slice(start, end);
+
+    expect(profileType).not.toMatch(/\bexperience_count\b/);
+    expect(profileType).not.toMatch(/\bbookmark_count\b/);
+    expect(profileType).not.toMatch(/\bpracticed_count\b/);
+  });
 });

@@ -150,9 +150,6 @@ export interface UserProfile {
   common_issues?: string[];
   free_description?: string;
   profile_version?: number;
-  experience_count?: number;
-  bookmark_count?: number;
-  practiced_count?: number;
 }
 
 export interface ChatMessage {

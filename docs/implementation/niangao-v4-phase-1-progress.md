@@ -1476,6 +1476,14 @@ Current result:
     - `npm run test -- --runInBand` (22 suites, 106 tests)
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- Mobile profile type V4 stats-boundary cleanup checks pass:
+  - exported `UserProfile` no longer carries legacy accumulation counters `experience_count`, `bookmark_count`, or `practiced_count`
+  - 我的页 accumulation facts remain owned by V4 `/me/stats/*` responses instead of profile payloads
+  - verification:
+    - `npm run test -- apiContract.test.ts --runInBand --no-cache` (RED confirmed before implementation, then GREEN after implementation)
+    - `npm run typecheck`
+    - `npm run test -- --runInBand` (22 suites, 107 tests)
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 
