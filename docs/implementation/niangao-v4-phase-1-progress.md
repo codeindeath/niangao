@@ -737,6 +737,20 @@ Current result:
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
+- Chat auth-expiry weak state hardening checks pass:
+  - 401 from 聊聊 initialization is now treated as expired login state, not as a generic chat-service outage
+  - the App clears local auth state and routes to the login screen when chat initialization or message send receives 401
+  - guest runtime still gates 聊聊 back to login, while normal non-auth chat failures keep the low-pressure weak-state copy
+  - runtime evidence screenshots:
+    - `/tmp/niangao-runtime-relaunch.png`
+    - `/tmp/niangao-runtime-guest-home-accessibility-click.png`
+    - `/tmp/niangao-runtime-guest-chat-gate-after-auth-fix.png`
+  - verification:
+    - `npm run test -- ChatScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (17 suites, 74 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
 - Production health and secret-scan hardening checks pass:
   - public Nginx health routes now exist for deployment/monitoring smoke:
     - `GET http://115.190.177.146/health` proxies to the Go backend health endpoint
