@@ -758,3 +758,69 @@ Grant Accessibility permission for the terminal/Codex host that runs `osascript`
 - Reproducible: yes
 - Related Files: docs/implementation/niangao-v4-phase-1-progress.md
 - See Also: ERR-20260527-016
+
+---
+
+## [ERR-20260527-018] remote_python_here_doc_quoting
+
+**Logged**: 2026-05-27T07:25:59+08:00
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+A remote health smoke command failed because a Python heredoc lost quotes around a file path inside nested shell quoting.
+
+### Error
+```
+File "<stdin>", line 2
+    p=json.load(open(/tmp/feed.out))
+                     ^
+SyntaxError: invalid syntax
+```
+
+### Context
+- Command attempted a remote `curl` health/feed smoke plus inline Python JSON parsing over `ssh`.
+- The nested local shell, remote shell, and Python heredoc quoting stripped the quotes around `/tmp/feed.out`.
+- The backend health check in the same command still returned `{"status":"ok"}`; the JSON parse portion must be retried with safer quoting.
+
+### Suggested Fix
+For remote smoke parsing, prefer `python3 -c '...'` with a simple quoted string, or use a single-quoted remote heredoc (`ssh host 'bash -s' <<'REMOTE'`) so Python code is not altered by nested shell interpolation.
+
+### Metadata
+- Reproducible: yes
+- Related Files: docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-015
+
+---
+
+## [ERR-20260527-019] production_smoke_users_schema_assumption
+
+**Logged**: 2026-05-27T07:31:00+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: infra
+
+### Summary
+The first production authenticated quota smoke assumed the legacy `users.wechat_openid` column still exists, but the production `users` table now uses Apple-auth fields without that column.
+
+### Error
+```
+ERROR: column "wechat_openid" of relation "users" does not exist
+quota-smoke-http 401
+{"error":"请先登录"}
+```
+
+### Context
+- The smoke inserted a temporary user with `(wechat_openid, apple_user_id, nickname, display_name)`.
+- Production schema inspection showed current user columns include `apple_user_id`, `nickname`, `display_name`, and related V4 fields, but not `wechat_openid`.
+- The script also lacked `ON_ERROR_STOP=1`, so later steps continued with an empty user id and produced secondary UUID errors.
+- The corrected smoke uses `apple_user_id` only and adds `ON_ERROR_STOP=1` for all production SQL.
+
+### Suggested Fix
+Before writing production smoke setup SQL, inspect current production columns or reuse existing smoke helpers. Always pass `-v ON_ERROR_STOP=1` to `psql` in smoke scripts so setup failures stop before API assertions.
+
+### Metadata
+- Reproducible: yes
+- Related Files: docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-015

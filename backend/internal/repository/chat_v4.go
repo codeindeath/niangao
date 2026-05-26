@@ -11,6 +11,8 @@ import (
 	"github.com/niangao/backend/internal/model"
 )
 
+const defaultChatDailyLimit = 50
+
 func (r *ConversationRepo) RecentChatTopics(ctx context.Context, userID string, limit int) ([]model.ChatTopic, error) {
 	if limit < 1 || limit > 20 {
 		limit = 10
@@ -477,6 +479,44 @@ func (r *ConversationRepo) AddChatMessage(ctx context.Context, userID string, re
 		_, _ = r.db.Exec(ctx, `UPDATE chat_temp_sessions SET updated_at=NOW() WHERE id=$1::uuid`, req.Scope.ID)
 	}
 	return message, nil
+}
+
+func (r *ConversationRepo) ChatDailyUsage(ctx context.Context, userID string) (int, int, error) {
+	var used int
+	var limit int
+	err := r.db.QueryRow(ctx, `
+		WITH quota_limit AS (
+		  SELECT COALESCE((
+		    SELECT CASE
+		      WHEN jsonb_typeof(value) = 'number' THEN GREATEST((value::text)::int, 1)
+		      WHEN jsonb_typeof(value) = 'string' AND TRIM(BOTH '"' FROM value::text) ~ '^[0-9]+$'
+		        THEN GREATEST((TRIM(BOTH '"' FROM value::text))::int, 1)
+		      ELSE $2
+		    END
+		    FROM system_config
+		    WHERE key='chat_limit_per_day'
+		  ), $2) AS limit
+		),
+		daily_usage AS (
+		  SELECT COUNT(*)::int AS used
+		  FROM chat_messages
+		  WHERE user_id=$1::uuid
+		    AND role='user'
+		    AND status <> 'deleted'
+		    AND created_at >= CURRENT_DATE
+		    AND created_at < CURRENT_DATE + INTERVAL '1 day'
+		)
+		SELECT daily_usage.used, quota_limit.limit
+		FROM daily_usage CROSS JOIN quota_limit`,
+		userID, defaultChatDailyLimit,
+	).Scan(&used, &limit)
+	if err != nil {
+		return 0, 0, fmt.Errorf("chat daily usage: %w", err)
+	}
+	if limit < 1 {
+		limit = defaultChatDailyLimit
+	}
+	return used, limit, nil
 }
 
 func (r *ConversationRepo) RecentChatMessages(ctx context.Context, userID string, scope model.ChatMessageScope, limit int) ([]model.ChatMessage, error) {

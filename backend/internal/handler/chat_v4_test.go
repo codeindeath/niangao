@@ -25,6 +25,10 @@ type fakeV4ChatStore struct {
 	assistantMessage *model.ChatMessage
 	promotedTopic    *model.ChatTopic
 	promoteRequests  []model.PromoteChatTempSessionRequest
+	dailyChatUsed    int
+	dailyChatLimit   int
+	dailyUsageErr    error
+	dailyUsageCalled bool
 }
 
 func stringPtr(s string) *string {
@@ -143,6 +147,19 @@ func (f *fakeV4ChatStore) AddChatMessage(ctx context.Context, userID string, req
 		f.assistantMessage = message
 	}
 	return message, nil
+}
+
+func (f *fakeV4ChatStore) ChatDailyUsage(ctx context.Context, userID string) (int, int, error) {
+	f.gotUserID = userID
+	f.dailyUsageCalled = true
+	if f.dailyUsageErr != nil {
+		return 0, 0, f.dailyUsageErr
+	}
+	limit := f.dailyChatLimit
+	if limit == 0 {
+		limit = 50
+	}
+	return f.dailyChatUsed, limit, nil
 }
 
 func (f *fakeV4ChatStore) RecentChatMessages(ctx context.Context, userID string, scope model.ChatMessageScope, limit int) ([]model.ChatMessage, error) {
@@ -583,6 +600,47 @@ func TestV4ChatSendKeepsUserMessageWhenGatewayFails(t *testing.T) {
 	}
 	if retryable, _ := body["retryable"].(bool); !retryable {
 		t.Fatalf("retryable = %+v, want true", body["retryable"])
+	}
+}
+
+func TestV4ChatSendRejectsDailyQuotaBeforeSavingMessage(t *testing.T) {
+	r := gin.New()
+	store := &fakeV4ChatStore{dailyChatUsed: 50, dailyChatLimit: 50}
+	gateway := &fakeChatGateway{}
+	v1 := r.Group("/api/v1", func(c *gin.Context) {
+		c.Set("user_id", "user-1")
+	})
+	RegisterChatV4Routes(v1, store, gateway)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/api/v1/chat/temp-sessions/temp-1/messages", strings.NewReader(`{"content":"今天再聊一句"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429: %s", w.Code, w.Body.String())
+	}
+	if !store.dailyUsageCalled {
+		t.Fatal("daily quota was not checked")
+	}
+	if len(store.addedMessages) != 0 {
+		t.Fatalf("added messages = %+v, want none after quota rejection", store.addedMessages)
+	}
+	if gateway.gotRequest != nil {
+		t.Fatalf("gateway request = %+v, want no AI call after quota rejection", gateway.gotRequest)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body["error"] != "chat_quota_exceeded" {
+		t.Fatalf("error = %+v, want chat_quota_exceeded", body["error"])
+	}
+	if body["message"] != "今日对话已达上限（50轮），明天再来聊吧。" {
+		t.Fatalf("message = %+v, want backend-owned quota copy", body["message"])
+	}
+	if retryable, _ := body["retryable"].(bool); retryable {
+		t.Fatalf("retryable = %+v, want false", body["retryable"])
 	}
 }
 

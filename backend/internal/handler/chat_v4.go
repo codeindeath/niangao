@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -23,11 +24,14 @@ type V4ChatStore interface {
 	ChatMessages(ctx context.Context, userID string, scope model.ChatMessageScope, limit int, cursor string) (*model.ChatMessagePage, error)
 	VerifyChatScope(ctx context.Context, userID string, scope model.ChatMessageScope) (*model.ChatScopeContext, error)
 	AddChatMessage(ctx context.Context, userID string, req model.SaveChatMessageRequest) (*model.ChatMessage, error)
+	ChatDailyUsage(ctx context.Context, userID string) (int, int, error)
 	RecentChatMessages(ctx context.Context, userID string, scope model.ChatMessageScope, limit int) ([]model.ChatMessage, error)
 	PromoteTempSession(ctx context.Context, userID string, tempSessionID string, req model.PromoteChatTempSessionRequest) (*model.ChatTopic, error)
 	CandidateExperiencesForChat(ctx context.Context, userID string, scope model.ChatScopeContext, userMessage string, riskLevel string, limit int) ([]model.ChatCandidateExperience, error)
 	SaveChatCitations(ctx context.Context, assistantMessageID string, cards []model.ChatReferenceCard) error
 }
+
+const defaultChatDailyLimit = 50
 
 type ChatGateway interface {
 	GenerateChatReply(ctx context.Context, req model.ChatGatewayRequest) (*model.ChatGatewayResponse, error)
@@ -231,6 +235,28 @@ func (h *ChatV4Handler) sendMessage(c *gin.Context, scope model.ChatMessageScope
 		return
 	}
 
+	used, limit, err := h.store.ChatDailyUsage(c.Request.Context(), userID)
+	if err != nil {
+		log.Printf("v4 check chat daily quota failed user=%s scope=%s/%s: %v", userID, scope.Kind, scope.ID, err)
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":     "chat quota unavailable",
+			"message":   "暂时没法确认今日对话额度，请稍后再试。",
+			"retryable": true,
+		})
+		return
+	}
+	if limit < 1 {
+		limit = defaultChatDailyLimit
+	}
+	if used >= limit {
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"error":     "chat_quota_exceeded",
+			"message":   chatQuotaExceededMessage(limit),
+			"retryable": false,
+		})
+		return
+	}
+
 	pre := classifyChatMessage(content)
 	userMsg, err := h.store.AddChatMessage(c.Request.Context(), userID, model.SaveChatMessageRequest{
 		Scope:           scope,
@@ -347,6 +373,13 @@ func (h *ChatV4Handler) sendMessage(c *gin.Context, scope model.ChatMessageScope
 		SessionState:   sessionState,
 		PromotedTopic:  promotedTopic,
 	})
+}
+
+func chatQuotaExceededMessage(limit int) string {
+	if limit < 1 {
+		limit = defaultChatDailyLimit
+	}
+	return fmt.Sprintf("今日对话已达上限（%d轮），明天再来聊吧。", limit)
 }
 
 func (h *ChatV4Handler) promoteTempSessionIfClear(ctx context.Context, userID string, scopeContext *model.ChatScopeContext, scope model.ChatMessageScope) *model.ChatTopic {

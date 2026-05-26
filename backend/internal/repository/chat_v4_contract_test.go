@@ -111,3 +111,39 @@ func TestChatReferenceAndCandidateQueriesUseV4VisibilityLifecycleGates(t *testin
 		}
 	}
 }
+
+func TestChatDailyUsageUsesV4MessagesAndSystemConfig(t *testing.T) {
+	sourceBytes, err := os.ReadFile("chat_v4.go")
+	if err != nil {
+		t.Fatalf("read chat_v4.go: %v", err)
+	}
+	source := string(sourceBytes)
+
+	for _, required := range []string{
+		"ChatDailyUsage",
+		"chat_limit_per_day",
+		"FROM chat_messages",
+		"role='user'",
+		"status <> 'deleted'",
+		"created_at >= CURRENT_DATE",
+	} {
+		if !strings.Contains(source, required) {
+			t.Fatalf("V4 chat daily quota should include fragment %q", required)
+		}
+	}
+
+	quotaStart := strings.Index(source, "func (r *ConversationRepo) ChatDailyUsage")
+	if quotaStart < 0 {
+		t.Fatal("ConversationRepo should implement ChatDailyUsage for V4 quota enforcement")
+	}
+	quotaSource := source[quotaStart:]
+	for _, forbidden := range []string{
+		"FROM messages",
+		"conversation_id",
+		"created_at::date",
+	} {
+		if strings.Contains(quotaSource, forbidden) {
+			t.Fatalf("V4 chat daily quota must not use old chat quota fragment %q", forbidden)
+		}
+	}
+}

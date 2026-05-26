@@ -2000,6 +2000,42 @@ Current result:
     - `npm run test -- --runInBand` (23 suites, 124 tests)
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- Backend V4 chat daily quota checks pass:
+  - V4 chat send now checks the user's daily chat usage after verifying topic/temp-session ownership and before saving the new user message or calling AI
+  - quota limit is backend-owned through `system_config.chat_limit_per_day`, with a defensive default of `50`
+  - daily usage is counted from V4 `chat_messages` only: today's non-deleted rows where `role='user'`; the old `messages` / `conversation_id` quota path is not used
+  - quota rejection returns `429`, `error=chat_quota_exceeded`, `retryable=false`, and the backend-provided copy `今日对话已达上限（50轮），明天再来聊吧。`
+  - added migration `018_v4_chat_daily_quota_index.sql` with `idx_chat_messages_user_daily_quota` to support the daily usage query
+  - the Phase 1 contract doc now records backend V4 quota enforcement and the App/backend ownership boundary for quota copy
+  - Linux backend artifact `/tmp/niangao-backend-v4-chat-quota` was deployed to production at `/root/niangao/deployments/20260527072416/server`
+  - production backend binary hash now matches the local chat-quota artifact:
+    - `4ebf707ea56ff46c3f1a4842fc55699d1b3e1705b8b92c62b5643a60696a02c8`
+  - production rollback checkpoints were created before migration/deploy:
+    - `/root/niangao/backups/server.before-v4-chat-quota.20260527072416.backend`
+    - `/root/niangao/backups/niangao.before-v4-chat-quota.20260527072416.dump`
+  - production migration 018 applied successfully; index verification returned `1`
+  - post-deploy public smoke passed:
+    - `GET /health` -> 200
+    - `GET /api/v1/feed/recommend?limit=1` -> 200 with one data item
+  - post-deploy authenticated quota smoke passed with a temporary JWT user:
+    - seeded today's user-role chat messages up to the configured limit (`50`)
+    - `POST /api/v1/chat/temp-sessions/:id/messages` -> `429`
+    - response body matched `chat_quota_exceeded`, backend quota message, and `retryable=false`
+    - post-request message count stayed at `50`, confirming no new user message was saved after quota rejection
+    - cleanup verification -> `0|0|0` for temporary users, orphan temp sessions, and orphan chat messages
+  - initial smoke setup exposed two script issues and both were corrected and logged:
+    - nested remote Python/SQL quoting stripped path/string quotes
+    - the first temp-user insert assumed the removed legacy `users.wechat_openid` column and did not use `ON_ERROR_STOP=1`
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, chat quota check failure, chat save failure, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run TestV4ChatSendRejectsDailyQuotaBeforeSavingMessage -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestChatDailyUsageUsesV4MessagesAndSystemConfig -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestV4Chat' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestChatDailyUsage|TestChatCandidate|TestChatReference|TestPromoteTemp|TestAddChatMessage' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-chat-quota`
+    - `git diff --check`
+    - production migration/index verification, public feed smoke, authenticated quota smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 
