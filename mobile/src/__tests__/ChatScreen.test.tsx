@@ -442,6 +442,23 @@ describe('ChatScreen', () => {
     expect(await findByText('重试')).toBeTruthy();
   });
 
+  it('uses the backend quota message when the AI reply returns 429', async () => {
+    const navigation = makeNavigation();
+    (api.sendTempChatMessage as jest.Mock).mockRejectedValueOnce({
+      status: 429,
+      message: '今日对话已达上限（50轮），明天再来聊吧。',
+    });
+
+    const {findByText, getByPlaceholderText, getByText, queryByText} = render(<ChatScreen navigation={navigation} />);
+    expect(await findByText('我在。你可以从任何一点开始说，不用先想清楚。')).toBeTruthy();
+
+    fireEvent.changeText(getByPlaceholderText('输入你想聊的...'), '我还想再聊一轮');
+    fireEvent.press(getByText('发送'));
+
+    expect(await findByText('今日对话已达上限（50轮），明天再来聊吧。')).toBeTruthy();
+    expect(queryByText('今日对话已达上限（100轮），明天再来聊吧。')).toBeNull();
+  });
+
   it('replaces a failed retry bubble with expired-auth copy when retry returns 401', async () => {
     const parentNavigation = {navigate: jest.fn()};
     const navigation = {

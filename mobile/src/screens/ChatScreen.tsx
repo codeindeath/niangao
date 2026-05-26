@@ -339,7 +339,7 @@ export default function ChatScreen({navigation}: any) {
       }
       let errMsg = '抱歉，对话服务暂时不可用，请稍后再试。';
       if (e?.status === 429) {
-        errMsg = '今日对话已达上限（100轮），明天再来聊吧。';
+        errMsg = e?.message || '今日对话已达上限，明天再来聊吧。';
       }
       setMessages(prev =>
         prev.map(m =>

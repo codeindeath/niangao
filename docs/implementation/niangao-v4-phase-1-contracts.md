@@ -513,6 +513,7 @@ App behavior:
 - If `promoted_topic` is present, Chat switches from `tempSessionId` to `activeTopic`.
 - Follow-up messages use `POST /api/v1/chat/topics/:id/messages`.
 - Citation show/click events after promotion use `topic_id`, not the old `temp_session_id`.
+- `429` quota errors display the backend-provided `message` when present; the App must not hard-code a numeric daily chat limit.
 
 ### 7.3 Save Chat Note Suggestion
 
