@@ -219,3 +219,61 @@ Pin `pydantic-settings` to an available version and verify tests in a clean virt
 ### Metadata
 - Reproducible: yes
 - Related Files: ai-service/requirements.txt
+
+---
+
+## [ERR-20260526-002] repo_root_script_path_mismatch
+
+**Logged**: 2026-05-26T23:59:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+Backend helper scripts are rooted at the repository root, not inside `backend/`.
+
+### Error
+```
+zsh: no such file or directory: ./scripts/backend-test.sh
+```
+
+### Context
+- The failed command was run with working directory `/Users/swt/projects/niangao/backend`.
+- The script path is `/Users/swt/projects/niangao/scripts/backend-test.sh`.
+- The same path assumption also caused an initial `gofmt` miss when using `backend/internal/...` from inside `backend/`.
+
+### Suggested Fix
+Run repo helper scripts from `/Users/swt/projects/niangao`, or use paths relative to the selected working directory. From `backend/`, use `internal/...` paths for Go package files.
+
+### Metadata
+- Reproducible: yes
+- Related Files: scripts/backend-test.sh, scripts/backend-build-linux.sh
+
+---
+
+## [ERR-20260527-001] production_smoke_cleanup_unreferenced_cte
+
+**Logged**: 2026-05-27T00:18:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: deployment
+
+### Summary
+PostgreSQL did not execute a DELETE hidden inside an unreferenced CTE during production smoke cleanup.
+
+### Error
+```
+cleanup_remaining=1
+```
+
+### Context
+- Authenticated production smoke inserted a temporary user with `apple_user_id='codex-smoke-handler-cleanup-20260527001542'`.
+- Cleanup query used `WITH deleted AS (DELETE FROM users ...) SELECT COUNT(*) ...`, but the `deleted` CTE was not referenced by the final SELECT.
+- PostgreSQL can skip unreferenced data-modifying CTEs, so the temporary row remained until an explicit `DELETE FROM users ...` command was run.
+
+### Suggested Fix
+For production smoke cleanup, run `DELETE ...` as its own statement, then run a separate `SELECT COUNT(*) ...` verification. Do not rely on an unreferenced CTE for side effects.
+
+### Metadata
+- Reproducible: yes
+- Related Files: None

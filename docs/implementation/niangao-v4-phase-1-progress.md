@@ -1100,6 +1100,40 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - `rg -n "console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+- Backend deprecated mobile handler source cleanup checks pass:
+  - removed unregistered legacy mobile handler sources:
+    - `backend/internal/handler/chat.go`
+    - `backend/internal/handler/conversation.go`
+    - `backend/internal/handler/stats.go`
+    - `backend/internal/handler/user.go`
+  - removed stale handler tests that only covered old `/chat/send` greeting/domain inference and old `/user/profile` title semantics
+  - V4 `/api/v1/me/account` now owns its account deletion handler directly instead of depending on the old `/user/account` handler implementation
+  - regression coverage now fails if the removed legacy handler source files return
+  - Linux backend artifact `/tmp/niangao-backend-v4-deprecated-handler-cleanup` was deployed to production at `/root/niangao/deployments/20260527001542/server`
+  - production backend binary hash now matches the local handler-cleanup artifact:
+    - `73b76540e9f826035e5f7468ebec7bf781fb0e825485f69eae1d5eae858c925e`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-handler-cleanup.20260527001542`
+  - post-deploy public smoke passes:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `/api/v1/search/experiences?q=生活&limit=2` -> 200
+    - deprecated `/api/v1/experiences/recommend` -> 410 `deprecated_endpoint`
+  - post-deploy authenticated V4 smoke passed with a temporary JWT user:
+    - `GET /api/v1/me/profile` -> 200
+    - `GET /api/v1/me/stats/assets` -> 200
+    - `GET /api/v1/feed/mine?limit=1` -> 200
+    - `POST /api/v1/chat/temp-sessions` -> 201
+    - cleanup temporary users -> 0 after explicit cleanup verification
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestDeprecatedMobileHandlerSourcesAreRemoved|TestProductionMainDoesNotRegisterDeprecatedMobileRouteGroups|TestDeprecatedExperienceAppRoutesReturnGone|TestV4MeAccountRequiresAuth' -count=1 -v` (RED confirmed before implementation)
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-deprecated-handler-cleanup`
+    - `rg -n "Register(ChatRoutes|UserRoutes|StatsRoutes|ConversationRoutes)|func Register(ChatRoutes|UserRoutes|StatsRoutes|ConversationRoutes)|/api/v1/chat/send|/user/stats|/user/profile" backend/internal/handler backend/cmd backend/internal/repository -g '!**/*_test.go'`
+    - `git diff --check`
+    - production public and authenticated temporary JWT smoke checks
+    - backend/AI `journalctl` error scans
 
 Not verified yet:
 

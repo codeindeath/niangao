@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -60,6 +61,19 @@ func TestProductionMainDoesNotRegisterDeprecatedMobileRouteGroups(t *testing.T) 
 	} {
 		if strings.Contains(mainSource, call) {
 			t.Fatalf("production main should not register deprecated mobile route group %s", call)
+		}
+	}
+}
+
+func TestDeprecatedMobileHandlerSourcesAreRemoved(t *testing.T) {
+	for _, path := range []string{
+		"chat.go",
+		"conversation.go",
+		"stats.go",
+		"user.go",
+	} {
+		if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("deprecated mobile handler source %s should be removed, stat err=%v", path, err)
 		}
 	}
 }
