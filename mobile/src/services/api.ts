@@ -603,7 +603,14 @@ const _viewedIds = new Set<string>();
 export function recordView(experienceId: string): void {
   if (_viewedIds.has(experienceId)) return;
   _viewedIds.add(experienceId);
-  recordExperienceEvent(experienceId, 'expose', 'feed');
+  apiPost(`/api/v1/experiences/${experienceId}/events`, {
+    event_type: 'expose',
+    source_context: 'feed',
+    metadata: {},
+  }).catch((err: any) => {
+    _viewedIds.delete(experienceId);
+    reportHandledError(`recordExperienceEvent.expose:${experienceId.slice(0, 8)}`, err);
+  });
 }
 
 export function recordExperienceEvent(

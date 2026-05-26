@@ -77,4 +77,23 @@ describe('experience event tracking', () => {
     expect(apiPost).not.toHaveBeenCalledWith('/api/v1/experiences/exp-view-no-legacy/view', {});
     expect(consoleWarnSpy).not.toHaveBeenCalled();
   });
+
+  it('allows exposure to retry after a passive event failure', async () => {
+    (apiPost as jest.Mock)
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce({});
+
+    recordView('exp-view-retry-after-failure');
+    await Promise.resolve();
+
+    recordView('exp-view-retry-after-failure');
+    await Promise.resolve();
+
+    expect(apiPost).toHaveBeenCalledTimes(2);
+    expect(apiPost).toHaveBeenNthCalledWith(2, '/api/v1/experiences/exp-view-retry-after-failure/events', {
+      event_type: 'expose',
+      source_context: 'feed',
+      metadata: {},
+    });
+  });
 });

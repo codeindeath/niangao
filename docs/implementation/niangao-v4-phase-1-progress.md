@@ -1288,6 +1288,19 @@ Current result:
     - `git diff --check`
     - production public and authenticated temporary JWT smoke checks
     - backend/AI `journalctl` error scans
+- App exposure retry weak-network hardening checks pass:
+  - `recordView` still deduplicates in-flight/current-session exposure events so scrolling does not spam the backend
+  - if the passive V4 `expose` event fails on weak network, the local viewed marker is released so the same card can retry exposure later in the session
+  - passive event failures still stay out of the React Native warning overlay and do not revive the deprecated `/api/v1/experiences/:id/view` endpoint
+  - no server redeploy is required for this slice because only mobile App source changed
+  - verification:
+    - `npm run test -- apiEvents.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- apiEvents.test.ts HomeScreen.test.tsx SearchCardScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (22 suites, 104 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `rg -n "/api/v1/experiences/\\$\\{experienceId\\}/view|/api/v1/experiences/.*/view|console\\.(log|warn|error|debug)\\(" mobile/src mobile/App.tsx -g '!mobile/src/__tests__/**'`
+    - `git diff --check`
 
 Not verified yet:
 
