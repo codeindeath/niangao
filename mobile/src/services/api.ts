@@ -192,6 +192,9 @@ export async function createExperience(
   options: {
     source_scene?: 'note' | 'chat';
     source_message_ids?: string[];
+    source_chat_topic_id?: string;
+    source_chat_message_id?: string;
+    source_chat_message_snapshot?: string;
   } = {},
 ): Promise<Experience> {
   const body: Record<string, unknown> = {
@@ -203,6 +206,15 @@ export async function createExperience(
   };
   if (options.source_message_ids) {
     body.source_message_ids = options.source_message_ids;
+  }
+  if (options.source_chat_topic_id) {
+    body.source_chat_topic_id = options.source_chat_topic_id;
+  }
+  if (options.source_chat_message_id) {
+    body.source_chat_message_id = options.source_chat_message_id;
+  }
+  if (options.source_chat_message_snapshot) {
+    body.source_chat_message_snapshot = options.source_chat_message_snapshot;
   }
   if (domain) body.domain = domain;
   if (sub_domain) body.sub_domain = sub_domain;

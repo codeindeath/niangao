@@ -104,6 +104,15 @@ export default function CreateScreen({navigation, route}: any) {
   const sourceMessageIds = Array.isArray(route?.params?.sourceMessageIds)
     ? route.params.sourceMessageIds
     : undefined;
+  const sourceChatTopicId = typeof route?.params?.sourceChatTopicId === 'string'
+    ? route.params.sourceChatTopicId
+    : undefined;
+  const sourceChatMessageId = typeof route?.params?.sourceChatMessageId === 'string'
+    ? route.params.sourceChatMessageId
+    : undefined;
+  const sourceChatMessageSnapshot = typeof route?.params?.sourceChatMessageSnapshot === 'string'
+    ? route.params.sourceChatMessageSnapshot
+    : undefined;
   const [content, setContent] = useState('');
   const [domain, setDomain] = useState('');
   const [subDomain, setSubDomain] = useState('');
@@ -256,6 +265,9 @@ export default function CreateScreen({navigation, route}: any) {
         {
           source_scene: sourceScene,
           source_message_ids: sourceMessageIds,
+          source_chat_topic_id: sourceChatTopicId,
+          source_chat_message_id: sourceChatMessageId,
+          source_chat_message_snapshot: sourceChatMessageSnapshot,
         },
       );
       await AsyncStorage.removeItem(DRAFT_KEY);

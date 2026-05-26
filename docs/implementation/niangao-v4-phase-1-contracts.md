@@ -92,6 +92,7 @@ Request:
   "source_scene": "note",
   "source_chat_topic_id": null,
   "source_chat_message_id": null,
+  "source_chat_message_snapshot": null,
   "source_message_ids": []
 }
 ```
@@ -106,6 +107,7 @@ Validation:
 - `source_scene`: optional; for this endpoint defaults to `note`.
 - `source_chat_topic_id`: optional UUID; only used when a note is created from an existing stable chat topic.
 - `source_chat_message_id`: optional UUID; when empty and `source_scene=chat`, backend derives it from the latest valid ID in `source_message_ids`.
+- `source_chat_message_snapshot`: optional safe source snapshot or source-message-id list for temp-session traceability.
 - `source_message_ids`: optional source chat message IDs; backend compacts empty values and preserves them in `source_chat_message_snapshot` when no explicit snapshot is provided.
 
 Display-name gate:
@@ -462,11 +464,41 @@ Response:
     }
   ],
   "note_suggestion": {
-    "show": true,
-    "text": "你刚才的思考很适合总结记下一条经验，要记下吗？"
+    "should_show": true,
+    "suggested_text": "先做一小步，再用结果修正判断。",
+    "source_message_ids": ["user-message-id", "assistant-message-id"]
   }
 }
 ```
+
+### 7.3 Save Chat Note Suggestion
+
+First-phase App flow:
+
+- Chat renders the `note_suggestion` card returned by the message endpoint.
+- Tapping `记下` opens the App `记下` editor rather than saving automatically.
+- The final save reuses `POST /api/v1/experiences` so the user can still edit text, keep private, or choose anonymous public contribution.
+
+Required create payload fields for chat-sourced saves:
+
+```json
+{
+  "content": "先做一小步，再用结果修正判断。",
+  "visibility": "private",
+  "source_scene": "chat",
+  "source_message_ids": ["user-message-id", "assistant-message-id"],
+  "source_chat_topic_id": "stable-topic-id-if-any",
+  "source_chat_message_id": "source-message-id",
+  "source_chat_message_snapshot": "safe-source-message-id-list-or-summary"
+}
+```
+
+Behavior:
+
+- `source_chat_topic_id` is sent only when the App is saving from a stable topic.
+- `source_chat_message_id` points at the assistant message that produced the note suggestion.
+- `source_chat_message_snapshot` stores source identifiers or a safe short snapshot for temp-session traceability.
+- Public anonymous contribution must not expose chat title, raw chat context, or private source messages in public experience fields.
 
 ## 8. 我的
 

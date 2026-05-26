@@ -141,6 +141,8 @@ describe('ChatScreen', () => {
       defaultVisibility: 'private',
       sourceScene: 'chat',
       sourceMessageIds: ['user-1', 'assistant-1'],
+      sourceChatMessageId: 'assistant-1',
+      sourceChatMessageSnapshot: 'user-1,assistant-1',
     });
   });
 

@@ -42,6 +42,26 @@ describe('experience write API contract', () => {
     expect((apiPost as jest.Mock).mock.calls[0][1]).not.toHaveProperty('topics');
   });
 
+  it('creates chat-sourced experiences with source topic and message linkage', async () => {
+    await createExperience('从聊天里沉淀一句', '', '', true, undefined, '', {
+      source_scene: 'chat',
+      source_message_ids: ['user-1', 'assistant-1'],
+      source_chat_topic_id: '11111111-1111-4111-8111-111111111111',
+      source_chat_message_id: '22222222-2222-4222-8222-222222222222',
+      source_chat_message_snapshot: 'user-1,assistant-1',
+    });
+
+    expect(apiPost).toHaveBeenCalledWith('/api/v1/experiences', expect.objectContaining({
+      content: '从聊天里沉淀一句',
+      visibility: 'private',
+      source_scene: 'chat',
+      source_message_ids: ['user-1', 'assistant-1'],
+      source_chat_topic_id: '11111111-1111-4111-8111-111111111111',
+      source_chat_message_id: '22222222-2222-4222-8222-222222222222',
+      source_chat_message_snapshot: 'user-1,assistant-1',
+    }));
+  });
+
   it('updates experiences with V4 visibility instead of legacy is_private payloads', async () => {
     await updateExperience('exp-1', '把经验写短一点', 'meaning', 'self', false, '解读', '#表达');
 

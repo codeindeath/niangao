@@ -1625,6 +1625,21 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-expose-event-dedupe`
     - `git diff --check`
     - production SQL parse, public smoke, authenticated temporary JWT smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Chat-sourced note linkage checks pass:
+  - 聊聊 `note_suggestion` -> 记下 editor navigation now preserves the assistant message id that produced the suggestion
+  - the route also carries a safe source message snapshot built from the returned `source_message_ids`
+  - when saving from a stable topic, the App can carry `source_chat_topic_id`; temp-session saves omit it and rely on `source_chat_message_snapshot`
+  - `CreateScreen` forwards chat source linkage into `createExperience`
+  - mobile `createExperience` sends backend-supported `source_chat_topic_id`, `source_chat_message_id`, and `source_chat_message_snapshot` fields on `POST /api/v1/experiences`
+  - the App continues to reuse the editable `记下` flow for chat note suggestions instead of auto-saving, so users can choose private or anonymous public contribution before persistence
+  - the Phase 1 contract doc now documents this first-phase save path and the actual `note_suggestion` JSON keys (`should_show`, `suggested_text`, `source_message_ids`)
+  - verification:
+    - `npm run test -- apiExperienceWrite.test.ts CreateScreen.test.tsx ChatScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- apiExperienceWrite.test.ts CreateScreen.test.tsx ChatScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (23 suites, 111 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
 
 Not verified yet:
 

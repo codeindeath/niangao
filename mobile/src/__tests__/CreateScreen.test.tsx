@@ -46,6 +46,9 @@ describe('CreateScreen', () => {
         defaultVisibility: 'private',
         sourceScene: 'chat',
         sourceMessageIds: ['user-1', 'assistant-1'],
+        sourceChatTopicId: '11111111-1111-4111-8111-111111111111',
+        sourceChatMessageId: '22222222-2222-4222-8222-222222222222',
+        sourceChatMessageSnapshot: 'user-1,assistant-1',
       },
     };
 
@@ -79,6 +82,9 @@ describe('CreateScreen', () => {
         {
           source_scene: 'chat',
           source_message_ids: ['user-1', 'assistant-1'],
+          source_chat_topic_id: '11111111-1111-4111-8111-111111111111',
+          source_chat_message_id: '22222222-2222-4222-8222-222222222222',
+          source_chat_message_snapshot: 'user-1,assistant-1',
         },
       );
     });
@@ -92,6 +98,8 @@ describe('CreateScreen', () => {
         defaultVisibility: 'private',
         sourceScene: 'chat',
         sourceMessageIds: ['user-1', 'assistant-1'],
+        sourceChatMessageId: '22222222-2222-4222-8222-222222222222',
+        sourceChatMessageSnapshot: 'user-1,assistant-1',
       },
     };
 
@@ -113,6 +121,9 @@ describe('CreateScreen', () => {
         {
           source_scene: 'chat',
           source_message_ids: ['user-1', 'assistant-1'],
+          source_chat_topic_id: undefined,
+          source_chat_message_id: '22222222-2222-4222-8222-222222222222',
+          source_chat_message_snapshot: 'user-1,assistant-1',
         },
       );
     });

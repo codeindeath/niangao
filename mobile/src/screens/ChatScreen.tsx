@@ -201,6 +201,24 @@ export default function ChatScreen({navigation}: any) {
     navigation.navigate('detail', {id: experienceId, from: 'chat'});
   };
 
+  const openNoteSuggestion = (item: MessageBubble) => {
+    const sourceMessageIds = item.noteSuggestion?.source_message_ids || [];
+    const params: Record<string, unknown> = {
+      prefillContent: item.noteSuggestion?.suggested_text || '',
+      defaultVisibility: 'private',
+      sourceScene: 'chat',
+      sourceMessageIds,
+      sourceChatMessageId: item.id,
+    };
+    if (sourceMessageIds.length > 0) {
+      params.sourceChatMessageSnapshot = sourceMessageIds.join(',');
+    }
+    if (activeTopic?.id) {
+      params.sourceChatTopicId = activeTopic.id;
+    }
+    navigation.navigate('create', params);
+  };
+
   const handleSend = async () => {
     const text = input.trim();
     if (!text || loading || (!activeTopic && !tempSessionId)) return;
@@ -435,12 +453,7 @@ export default function ChatScreen({navigation}: any) {
           </Text>
           <TouchableOpacity
             style={styles.noteSuggestionBtn}
-            onPress={() => navigation.navigate('create', {
-              prefillContent: item.noteSuggestion?.suggested_text || '',
-              defaultVisibility: 'private',
-              sourceScene: 'chat',
-              sourceMessageIds: item.noteSuggestion?.source_message_ids || [],
-            })}>
+            onPress={() => openNoteSuggestion(item)}>
             <Text style={styles.noteSuggestionBtnText}>记下</Text>
           </TouchableOpacity>
         </View>
