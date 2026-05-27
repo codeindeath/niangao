@@ -2785,6 +2785,36 @@ Current result:
     - `npm run test -- --runInBand`
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- Backend AI call-log observability checks pass:
+  - Go AI Gateway now records non-blocking AI call logs for App chat, chat topic classification, and `帮我改改` rewrite calls
+  - log entries record function type, call source, user/business object IDs where available, status, error code, latency, and sanitized input/output summaries without storing raw prompts, raw user text, authorization headers, or model secrets
+  - `ai_call_logs` rows are enriched from active `ai_function_configs`, including `key_alias`, `model`, `prompt_version`, `schema_version`, and `queue_name`
+  - production server startup now wires the AI Gateway to `AICallLogRepo`
+  - Linux backend artifact `/tmp/niangao-backend-v4-ai-call-logs` was deployed to production at `/root/niangao/deployments/20260528001208/server`
+  - production backend binary hash now matches the local artifact:
+    - `af39e81f12a7b2380815a52c7da2dbe5c5e69239f999a202db7b48b0615cf320`
+  - production backend binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-ai-call-logs.20260528001208.backend`
+  - post-deploy smoke passed:
+    - public `/health` -> 200
+    - public `/api/v1/feed/recommend?limit=1` -> 200
+    - authenticated `POST /api/v1/experiences/rewrite` with a temporary JWT user -> 200, `can_rewrite=true`
+    - `ai_call_logs` recorded one `experience_rewrite` row for the smoke with `status=success`, `call_source=app_rewrite`, and `prompt_version=experience_rewrite_v1`
+    - cleanup verification for temporary smoke user and smoke AI call log -> `0|0`
+  - post-smoke backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, AI gateway call failure, rewrite gateway failure, AI call-log insert/config failure, invalid model output, or real `status=5xx` response; the smoke request ID appeared in both backend and AI logs
+  - remote-server tooling learning added:
+    - `ERR-20260527-036 remote_journal_scan_rg_missing`
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/ai ./internal/repository -run 'TestGatewayRecords|TestAICallLog' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/ai ./internal/repository -run 'TestGatewayRecords|TestAICallLog' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/ai -count=1`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -count=1`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -count=1`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./cmd/server -count=1`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-ai-call-logs`
+    - `git diff --check`
+    - production backend deploy, hash verification, public health/feed smoke, authenticated temporary JWT rewrite + AI call-log smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

@@ -17,6 +17,7 @@ import (
 type Gateway struct {
 	baseURL    string
 	httpClient *http.Client
+	logger     CallLogger
 }
 
 func NewGateway(baseURL string) *Gateway {
@@ -24,12 +25,17 @@ func NewGateway(baseURL string) *Gateway {
 }
 
 func NewGatewayWithTimeout(baseURL string, timeout time.Duration) *Gateway {
+	return NewGatewayWithTimeoutAndLogger(baseURL, timeout, nil)
+}
+
+func NewGatewayWithTimeoutAndLogger(baseURL string, timeout time.Duration, logger CallLogger) *Gateway {
 	if timeout <= 0 {
 		timeout = 65 * time.Second
 	}
 	return &Gateway{
 		baseURL:    strings.TrimRight(baseURL, "/"),
 		httpClient: &http.Client{Timeout: timeout},
+		logger:     logger,
 	}
 }
 
@@ -71,13 +77,36 @@ type topicClassifyGatewayCallResponse struct {
 	Warnings   []string `json:"warnings"`
 }
 
-func (g *Gateway) GenerateChatReply(ctx context.Context, req model.ChatGatewayRequest) (*model.ChatGatewayResponse, error) {
-	if g == nil || g.baseURL == "" {
-		return nil, fmt.Errorf("ai gateway base url is empty")
-	}
+func (g *Gateway) GenerateChatReply(ctx context.Context, req model.ChatGatewayRequest) (result *model.ChatGatewayResponse, err error) {
+	startedAt := time.Now().UTC()
+	status := "success"
+	errorCode := ""
 	chatTopicID := ""
 	if req.Topic != nil {
 		chatTopicID = req.Topic.ID
+	}
+	defer func() {
+		if err != nil && errorCode == "" {
+			status, errorCode = aiCallFailureStatus(err)
+		}
+		g.recordAICall(ctx, CallLogEntry{
+			FunctionType:           "chat",
+			CallSource:             "app_chat",
+			UserID:                 req.UserID,
+			ChatTopicID:            chatTopicID,
+			ChatMessageID:          req.UserMessageID,
+			Status:                 status,
+			ErrorCode:              errorCode,
+			LatencyMS:              int(time.Since(startedAt).Milliseconds()),
+			SanitizedInputSummary:  chatInputSummary(req),
+			SanitizedOutputSummary: chatOutputSummary(result),
+			StartedAt:              startedAt,
+			FinishedAt:             time.Now().UTC(),
+		})
+	}()
+
+	if g == nil || g.baseURL == "" {
+		return nil, fmt.Errorf("ai gateway base url is empty")
 	}
 	body, err := json.Marshal(gatewayCallRequest{
 		FunctionType:  "chat",
@@ -108,18 +137,24 @@ func (g *Gateway) GenerateChatReply(ctx context.Context, req model.ChatGatewayRe
 		return nil, fmt.Errorf("read ai gateway response: %w", err)
 	}
 	if resp.StatusCode != http.StatusOK {
+		status = "failed"
+		errorCode = fmt.Sprintf("http_%d", resp.StatusCode)
 		return nil, fmt.Errorf("ai gateway returned %d: %s", resp.StatusCode, string(respBytes))
 	}
 
 	var gatewayResp gatewayCallResponse
 	if err := json.Unmarshal(respBytes, &gatewayResp); err != nil {
+		status = "invalid_output"
+		errorCode = "invalid_json"
 		return nil, fmt.Errorf("parse ai gateway response: %w", err)
 	}
 	reply := strings.TrimSpace(gatewayResp.Result.ReplyText)
 	if reply == "" {
+		status = "empty_content"
+		errorCode = "empty_reply"
 		return nil, fmt.Errorf("ai gateway returned empty reply")
 	}
-	return &model.ChatGatewayResponse{
+	result = &model.ChatGatewayResponse{
 		ReplyText:      reply,
 		Citations:      gatewayResp.Result.Citations,
 		NoteSuggestion: gatewayResp.Result.NoteSuggestion,
@@ -128,10 +163,32 @@ func (g *Gateway) GenerateChatReply(ctx context.Context, req model.ChatGatewayRe
 		ReplyMode:      gatewayResp.Result.ReplyMode,
 		Confidence:     gatewayResp.Confidence,
 		Warnings:       gatewayResp.Warnings,
-	}, nil
+	}
+	return result, nil
 }
 
-func (g *Gateway) ClassifyChatTopic(ctx context.Context, req model.ChatTopicClassificationRequest) (*model.ChatTopicClassificationResponse, error) {
+func (g *Gateway) ClassifyChatTopic(ctx context.Context, req model.ChatTopicClassificationRequest) (result *model.ChatTopicClassificationResponse, err error) {
+	startedAt := time.Now().UTC()
+	status := "success"
+	errorCode := ""
+	defer func() {
+		if err != nil && errorCode == "" {
+			status, errorCode = aiCallFailureStatus(err)
+		}
+		g.recordAICall(ctx, CallLogEntry{
+			FunctionType:           "chat_topic_classify",
+			CallSource:             "app_chat_topic_classify",
+			UserID:                 req.UserID,
+			Status:                 status,
+			ErrorCode:              errorCode,
+			LatencyMS:              int(time.Since(startedAt).Milliseconds()),
+			SanitizedInputSummary:  topicClassifyInputSummary(req),
+			SanitizedOutputSummary: topicClassifyOutputSummary(result),
+			StartedAt:              startedAt,
+			FinishedAt:             time.Now().UTC(),
+		})
+	}()
+
 	if g == nil || g.baseURL == "" {
 		return nil, fmt.Errorf("ai gateway base url is empty")
 	}
@@ -162,14 +219,18 @@ func (g *Gateway) ClassifyChatTopic(ctx context.Context, req model.ChatTopicClas
 		return nil, fmt.Errorf("read topic classify gateway response: %w", err)
 	}
 	if resp.StatusCode != http.StatusOK {
+		status = "failed"
+		errorCode = fmt.Sprintf("http_%d", resp.StatusCode)
 		return nil, fmt.Errorf("topic classify gateway returned %d: %s", resp.StatusCode, string(respBytes))
 	}
 
 	var gatewayResp topicClassifyGatewayCallResponse
 	if err := json.Unmarshal(respBytes, &gatewayResp); err != nil {
+		status = "invalid_output"
+		errorCode = "invalid_json"
 		return nil, fmt.Errorf("parse topic classify gateway response: %w", err)
 	}
-	return &model.ChatTopicClassificationResponse{
+	result = &model.ChatTopicClassificationResponse{
 		ClarityScore:             gatewayResp.Result.ClarityScore,
 		ShouldCreateTopic:        gatewayResp.Result.ShouldCreateTopic,
 		Title:                    strings.TrimSpace(gatewayResp.Result.Title),
@@ -182,7 +243,8 @@ func (g *Gateway) ClassifyChatTopic(ctx context.Context, req model.ChatTopicClas
 		Reason:                   gatewayResp.Result.Reason,
 		Confidence:               gatewayResp.Confidence,
 		Warnings:                 gatewayResp.Warnings,
-	}, nil
+	}
+	return result, nil
 }
 
 func topicClassifyStringValue(value *string) string {
@@ -208,7 +270,28 @@ type rewriteGatewayCallResponse struct {
 	Warnings   []string `json:"warnings"`
 }
 
-func (g *Gateway) RewriteExperience(ctx context.Context, req model.ExperienceRewriteGatewayRequest) (*model.ExperienceRewriteGatewayResponse, error) {
+func (g *Gateway) RewriteExperience(ctx context.Context, req model.ExperienceRewriteGatewayRequest) (result *model.ExperienceRewriteGatewayResponse, err error) {
+	startedAt := time.Now().UTC()
+	status := "success"
+	errorCode := ""
+	defer func() {
+		if err != nil && errorCode == "" {
+			status, errorCode = aiCallFailureStatus(err)
+		}
+		g.recordAICall(ctx, CallLogEntry{
+			FunctionType:           "experience_rewrite",
+			CallSource:             "app_rewrite",
+			UserID:                 req.UserID,
+			Status:                 status,
+			ErrorCode:              errorCode,
+			LatencyMS:              int(time.Since(startedAt).Milliseconds()),
+			SanitizedInputSummary:  rewriteInputSummary(req),
+			SanitizedOutputSummary: rewriteOutputSummary(result),
+			StartedAt:              startedAt,
+			FinishedAt:             time.Now().UTC(),
+		})
+	}()
+
 	if g == nil || g.baseURL == "" {
 		return nil, fmt.Errorf("ai gateway base url is empty")
 	}
@@ -239,14 +322,18 @@ func (g *Gateway) RewriteExperience(ctx context.Context, req model.ExperienceRew
 		return nil, fmt.Errorf("read rewrite gateway response: %w", err)
 	}
 	if resp.StatusCode != http.StatusOK {
+		status = "failed"
+		errorCode = fmt.Sprintf("http_%d", resp.StatusCode)
 		return nil, fmt.Errorf("rewrite gateway returned %d: %s", resp.StatusCode, string(respBytes))
 	}
 
 	var gatewayResp rewriteGatewayCallResponse
 	if err := json.Unmarshal(respBytes, &gatewayResp); err != nil {
+		status = "invalid_output"
+		errorCode = "invalid_json"
 		return nil, fmt.Errorf("parse rewrite gateway response: %w", err)
 	}
-	return &model.ExperienceRewriteGatewayResponse{
+	result = &model.ExperienceRewriteGatewayResponse{
 		CanRewrite:         gatewayResp.Result.CanRewrite,
 		RewrittenContent:   strings.TrimSpace(gatewayResp.Result.Content),
 		Domain:             gatewayResp.Result.Domain,
@@ -258,7 +345,8 @@ func (g *Gateway) RewriteExperience(ctx context.Context, req model.ExperienceRew
 		Reason:             gatewayResp.Result.Reason,
 		Confidence:         gatewayResp.Confidence,
 		Warnings:           gatewayResp.Warnings,
-	}, nil
+	}
+	return result, nil
 }
 
 func setRequestIDHeader(ctx context.Context, req *http.Request) {

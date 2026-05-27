@@ -4,6 +4,99 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260527-037] git_add_ignored_tracked_paths
+
+**Logged**: 2026-05-28T00:24:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: workflow
+
+### Summary
+Staging an explicit mixed path list failed because ignored directory patterns include `.learnings` and `backend/cmd/server`, even though files inside them are already tracked.
+
+### Error
+```
+The following paths are ignored by one of your .gitignore files:
+.learnings
+backend/cmd/server
+```
+
+### Context
+- Attempted one `git add` command with tracked modified files plus new source/test files.
+- `git add -u` successfully staged tracked modifications under ignored directories.
+- A separate `git add` staged the new non-ignored backend source/test files.
+
+### Suggested Fix
+When tracked files live under ignored directory patterns, stage tracked changes with `git add -u`, then stage new files separately.
+
+### Metadata
+- Reproducible: yes
+- Related Files: .gitignore
+- See Also: ERR-20260527-035
+
+---
+
+## [ERR-20260527-036] remote_journal_scan_rg_missing
+
+**Logged**: 2026-05-28T00:19:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+The production server does not have `rg`, so remote `journalctl` scans using ripgrep fail even though local repo scans should still prefer `rg`.
+
+### Error
+```
+bash: line 1: rg: command not found
+```
+
+### Context
+- Attempted remote backend/AI journal scans over SSH with `rg`.
+- The scans were rerun with `grep -Ei` / `grep -c` and passed.
+- This is a remote host tooling difference, not an application failure.
+
+### Suggested Fix
+Use `grep` for production-server one-off log scans unless `rg` is explicitly installed there.
+
+### Metadata
+- Reproducible: yes
+- Related Files: docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-035
+
+---
+
+## [ERR-20260527-035] backend_test_script_workdir
+
+**Logged**: 2026-05-27T23:15:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: tests
+
+### Summary
+The backend full-test helper was first launched from `backend/`, but the script lives under the repository root `scripts/`.
+
+### Error
+```
+zsh:1: no such file or directory: ./scripts/backend-test.sh
+```
+
+### Context
+- Attempted command: `./scripts/backend-test.sh`
+- Incorrect workdir: `/Users/swt/projects/niangao/backend`
+- Correct workdir: `/Users/swt/projects/niangao`
+- The command was rerun from the repository root and passed.
+
+### Suggested Fix
+Use repo-root workdir for project helper scripts under `scripts/`; use `backend/` only for raw Go package commands.
+
+### Metadata
+- Reproducible: yes
+- Related Files: scripts/backend-test.sh
+- See Also: ERR-20260527-020
+
+---
+
 ## [ERR-20260527-034] intermittent_ssh_close_and_nested_awk_escape
 
 **Logged**: 2026-05-27T21:16:00+08:00
