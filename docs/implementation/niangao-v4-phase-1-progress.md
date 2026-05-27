@@ -2094,6 +2094,31 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-stats-chat-canonical-fields`
     - `git diff --check`
     - production authenticated stats/chat smoke, cleanup verification, service health checks, and backend/AI `journalctl` severe-error scans
+- Detail scanner canonical V4 field checks pass:
+  - App-facing detail/admin shared scanner now reads canonical V4 `experience_type`, `visibility`, `lifecycle_status`, `source_scene`, `topic`, `quality_tier`, `recommendation_status`, `ai_citable`, and `interpretation_status` directly instead of deriving these response fields from legacy/default fallbacks
+  - owner/display/count compatibility fallbacks remain scoped to their existing migration boundary; V4 detail semantics no longer fall back to legacy `is_private`, `review_status`, `is_official`, or plural `topics`
+  - the Phase 1 contract doc now records that detail/create scanner V4 fields are canonical and must not use legacy/default fallbacks
+  - Linux backend artifact `/tmp/niangao-backend-v4-detail-canonical-fields` was deployed to production at `/root/niangao/deployments/20260527001421/server`
+  - production backend binary hash now matches the local detail-canonical-fields artifact:
+    - `0685b66e4af2847f111d54c40d9db7b992005699c7066b312089b278ee44e342`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-detail-canonical-fields.20260527001421.backend`
+  - post-deploy detail smoke passed with a temporary JWT user and cleanup:
+    - `/health` -> 200
+    - guest public detail -> 200 and returned canonical V4 topic/quality/type fields
+    - guest private detail -> 404
+    - owner private detail -> 200 and returned canonical V4 topic/quality/type fields
+    - cleanup verification -> `0|0|0|0|0` for temporary users, temporary experiences, temporary collections, temporary inspirations, and temporary recommendation sessions
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, detail failure, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestExperienceSelectColsExposeV4DetailOwnershipFields -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestExperienceSelectColsExposeV4DetailOwnershipFields|TestExperienceDetailUsesV4VisibilityLifecycleGate|TestCreateWithReviewSynchronizesLifecycleForPublicReview' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestExperience|TestDeprecatedExperience' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestExperience' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-detail-canonical-fields`
+    - `git diff --check`
+    - production detail smoke, cleanup verification, service health checks, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

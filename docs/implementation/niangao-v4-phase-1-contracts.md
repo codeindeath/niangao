@@ -186,6 +186,7 @@ Response behavior:
   - `quality_tier`
   - `inspiration_count`
   - `collection_count`
+- Detail/create scanner reads canonical V4 fields directly for `experience_type`, `visibility`, `lifecycle_status`, `source_scene`, `topic`, `quality_tier`, `recommendation_status`, `ai_citable`, and `interpretation_status`; legacy/default fallbacks must not change App-facing V4 detail semantics.
 - App owner actions use `owner_user_id` first and fall back to `author_id` only for legacy records.
 - App treats `404` detail responses as unavailable/deleted state, not as weak-network failure.
 - For public own experiences, destructive delete must offer `转为私密` before `删除`.

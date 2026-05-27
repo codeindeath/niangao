@@ -10,9 +10,15 @@ func TestExperienceSelectColsExposeV4DetailOwnershipFields(t *testing.T) {
 	wants := []string{
 		"COALESCE(e.owner_user_id, e.author_id)",
 		"e.creator_display_name",
-		"COALESCE(e.experience_type",
-		"COALESCE(e.visibility",
-		"COALESCE(e.lifecycle_status",
+		"e.experience_type",
+		"e.visibility",
+		"e.lifecycle_status",
+		"e.source_scene",
+		"e.topic",
+		"e.quality_tier",
+		"e.recommendation_status",
+		"e.ai_citable",
+		"e.interpretation_status",
 		"COALESCE(e.inspiration_count",
 		"COALESCE(e.collection_count",
 	}
@@ -20,6 +26,22 @@ func TestExperienceSelectColsExposeV4DetailOwnershipFields(t *testing.T) {
 	for _, want := range wants {
 		if !strings.Contains(experienceSelectCols, want) {
 			t.Fatalf("experienceSelectCols should expose %q for V4 detail responses", want)
+		}
+	}
+
+	for _, forbidden := range []string{
+		"COALESCE(e.experience_type",
+		"COALESCE(e.visibility",
+		"COALESCE(e.lifecycle_status",
+		"COALESCE(e.source_scene",
+		"COALESCE(e.topic, e.topics",
+		"COALESCE(e.quality_tier",
+		"COALESCE(e.recommendation_status",
+		"COALESCE(e.ai_citable",
+		"COALESCE(e.interpretation_status",
+	} {
+		if strings.Contains(experienceSelectCols, forbidden) {
+			t.Fatalf("experienceSelectCols should expose canonical V4 detail fields without fallback fragment %q", forbidden)
 		}
 	}
 }
