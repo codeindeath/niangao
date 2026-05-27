@@ -40,6 +40,7 @@ export default function SearchPage({navigation}: any) {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
+  const searchInFlightRef = useRef(false);
 
   // Auto-focus on mount
   useEffect(() => {
@@ -48,18 +49,21 @@ export default function SearchPage({navigation}: any) {
   }, []);
 
   const handleSearch = useCallback(async () => {
-    if (!keyword.trim()) return;
+    const trimmedKeyword = keyword.trim();
+    if (!trimmedKeyword || searchInFlightRef.current) return;
+    searchInFlightRef.current = true;
     setLoading(true);
     setSearched(true);
     setError(null);
     try {
-      const result = await searchExperiences(keyword.trim());
+      const result = await searchExperiences(trimmedKeyword);
       setResults(result.data || []);
     } catch (e) {
       if (await handleAuthExpired(navigation, e)) return;
       reportHandledError('SearchPage.search', e);
       setError('搜索失败，请检查网络连接');
     } finally {
+      searchInFlightRef.current = false;
       setLoading(false);
     }
   }, [keyword, navigation]);
@@ -128,7 +132,12 @@ export default function SearchPage({navigation}: any) {
             onSubmitEditing={handleSearch}
           />
         </View>
-        <TouchableOpacity style={s.searchBtn} onPress={handleSearch}>
+        <TouchableOpacity
+          style={[s.searchBtn, loading && s.searchBtnDisabled]}
+          onPress={handleSearch}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="搜索">
           <Text style={s.searchBtnText}>搜索</Text>
         </TouchableOpacity>
       </View>
@@ -195,6 +204,7 @@ const s = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
   },
+  searchBtnDisabled: {opacity: 0.55},
   searchBtnText: {color: '#fff', fontSize: 14, fontWeight: '500'},
   list: {paddingVertical: 8},
   resultItem: {

@@ -8,6 +8,13 @@ import * as config from '../services/config';
 jest.mock('../services/api');
 jest.mock('../services/config');
 
+function collectText(node: any): string {
+  if (!node) return '';
+  if (typeof node === 'string') return node;
+  if (Array.isArray(node)) return node.map(collectText).join('');
+  return collectText(node.children);
+}
+
 describe('SearchPage', () => {
   const makeNavigation = () => ({
     navigate: jest.fn(),
@@ -46,14 +53,32 @@ describe('SearchPage', () => {
       }],
     });
 
-    const {getByPlaceholderText, getByText, findByText} = render(
+    const rendered = render(
       <SearchPage navigation={makeNavigation()} />,
     );
 
-    fireEvent.changeText(getByPlaceholderText('输入你想找的经验、创作者...'), '姜文');
+    fireEvent.changeText(rendered.getByPlaceholderText('输入你想找的经验、创作者...'), '姜文');
+    fireEvent.press(rendered.getByText('搜索'));
+
+    await waitFor(() => expect(api.searchExperiences).toHaveBeenCalledTimes(1));
+    const renderedText = collectText(rendered.toJSON());
+    expect(renderedText).toContain('人要活出一点自己的劲儿。');
+    expect(renderedText).toContain('姜文');
+  });
+
+  it('submits a search only once while the current request is in flight', () => {
+    (api.searchExperiences as jest.Mock).mockReturnValue(new Promise(() => {}));
+
+    const {getByPlaceholderText, getByText} = render(
+      <SearchPage navigation={makeNavigation()} />,
+    );
+
+    fireEvent.changeText(getByPlaceholderText('输入你想找的经验、创作者...'), '关系');
+    fireEvent.press(getByText('搜索'));
     fireEvent.press(getByText('搜索'));
 
-    expect(await findByText(/姜文/)).toBeTruthy();
+    expect(api.searchExperiences).toHaveBeenCalledTimes(1);
+    expect(api.searchExperiences).toHaveBeenCalledWith('关系');
   });
 
   it('records a search click before opening result cards', async () => {

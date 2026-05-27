@@ -2280,6 +2280,18 @@ Current result:
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
+- Search repeated-tap weak-state checks pass:
+  - search submission now uses a same-frame in-flight ref guard before calling `/api/v1/search/experiences`, so quick repeated taps cannot start duplicate search requests while the current request is pending
+  - the header search button is disabled visually and functionally while loading, while expired-auth and normal weak-network search handling stay unchanged
+  - SearchPage result verification now waits for the API call and inspects the rendered output text directly, avoiding a brittle React Native nested-text query around creator names
+  - no production backend deployment was needed for this App-only search hardening slice
+  - verification:
+    - `npm run test -- SearchPage.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- SearchPage.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (24 suites, 133 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
 
 Not verified yet:
 
