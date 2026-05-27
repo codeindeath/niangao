@@ -2317,6 +2317,28 @@ Current result:
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
+- AI provider timeout deployment checks pass:
+  - AI service now reads `DEEPSEEK_TIMEOUT_SECONDS`, defaulting to 60 seconds, and passes it to the shared `AsyncOpenAI` client
+  - regression coverage verifies `LLMService` configures the provider timeout when the service starts
+  - latest AI service source was synced to production with `.env`, `venv`, pytest/ruff caches, and `__pycache__` excluded, then `niangao-ai` was restarted
+  - production source backup was created before sync:
+    - `/root/niangao/backups/ai-service.before-v4-provider-timeout.20260527110645.tgz`
+  - production post-deploy smoke passed:
+    - `/ai/health` -> 200
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - direct AI Gateway `chat_topic_classify` smoke -> 200, `function_type=chat_topic_classify`, `clarity_score=0.7`, `should_create_topic=True`
+  - post-deploy backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, model-call failure, invalid model output, or real 5xx response
+  - production venv does not include development-only `ruff`; the deployment used local ruff plus remote pytest/compileall/runtime smoke as the service gate
+  - verification:
+    - `ai-service/venv/bin/python -m pytest ai-service/tests/test_llm.py -q` (RED confirmed before implementation)
+    - `ai-service/venv/bin/python -m pytest ai-service/tests/test_llm.py -q`
+    - `ai-service/venv/bin/python -m pytest ai-service/tests -q`
+    - `ai-service/venv/bin/ruff check ai-service/app ai-service/tests`
+    - `git diff --check`
+    - remote `./venv/bin/python -m pytest tests -q`
+    - remote `./venv/bin/python -m compileall -q app tests`
+    - production public health/feed smoke, direct AI Gateway smoke, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

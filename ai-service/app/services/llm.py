@@ -17,6 +17,7 @@ class LLMService:
         self.client = AsyncOpenAI(
             api_key=settings.deepseek_api_key,
             base_url=settings.deepseek_base_url,
+            timeout=settings.deepseek_timeout_seconds,
         )
 
     async def close(self):

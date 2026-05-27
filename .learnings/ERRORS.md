@@ -4,6 +4,66 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260527-024] nested_remote_python_fstring_quotes
+
+**Logged**: 2026-05-27T03:11:57Z
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+An AI Gateway smoke parser failed after a successful 200 response because a nested remote Python f-string lost quotes around a dictionary key.
+
+### Error
+```
+NameError: name 'function_type' is not defined
+```
+
+### Context
+- The remote curl wrote a successful AI Gateway `chat_topic_classify` response and status file.
+- The subsequent parser used nested shell quoting around `body.get("function_type")`, which was transformed into an unquoted name inside the remote Python script.
+- Re-running the parser with single-quoted Python dictionary keys printed the expected function type, topic decision, and clarity score.
+
+### Suggested Fix
+For Python snippets embedded inside remote shell commands, prefer single-quoted dictionary keys inside the heredoc or avoid f-strings that require escaped quotes.
+
+### Metadata
+- Reproducible: yes
+- Related Files: docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-023
+
+---
+
+## [ERR-20260527-023] production_ai_venv_missing_ruff
+
+**Logged**: 2026-05-27T03:07:36Z
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+The AI service deploy script stopped after syncing code because the production virtualenv does not include the development-only `ruff` executable.
+
+### Error
+```
+bash: line 5: ./venv/bin/ruff: No such file or directory
+```
+
+### Context
+- Local AI verification had already run `ai-service/venv/bin/ruff check ai-service/app ai-service/tests` successfully.
+- The production sync completed, and remote `pytest tests/test_llm.py` passed before the script reached the missing ruff executable.
+- The corrected remote verification used the production virtualenv for `pytest tests -q` plus `compileall`, then restarted `niangao-ai`.
+
+### Suggested Fix
+Keep ruff as a local development gate unless production explicitly installs dev tooling; for production post-sync checks, use service-runtime checks such as pytest, compileall, service restart, health checks, and journal scans.
+
+### Metadata
+- Reproducible: yes
+- Related Files: ai-service/app/services/llm.py, ai-service/app/core/config.py
+- See Also: ERR-20260527-020
+
+---
+
 ## [ERR-20260526-001] production_smoke_psql_variable_mismatch
 
 **Logged**: 2026-05-26T23:10:00+08:00
