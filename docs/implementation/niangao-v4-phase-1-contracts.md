@@ -29,6 +29,7 @@ Source of truth:
 - Backend responses expose `X-Request-ID` through CORS so App/Web clients can attach it to diagnostics.
 - App `ApiError` preserves the response request id from either structured error payloads (`request_id`) or the `X-Request-ID` response header.
 - When a transitional backend error uses `{ "error": "code", "message": "user-facing copy" }`, App treats `error` as the machine code and `message` as the user-facing text. This keeps backend-owned copy such as chat quota messages visible until every route moves to the structured error envelope.
+- Backend access logs are JSON objects and include `request_id`, `method`, `path`, `status`, `latency_ms`, and `client_ip`; they must not log request bodies, authorization headers, or query-string secrets.
 
 ## 2. Shared Experience Card Shape
 

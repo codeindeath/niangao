@@ -48,8 +48,10 @@ func main() {
 	log.Printf("Starting in %s mode (dev=%v)", cfg.Env, devMode)
 
 	// Router
-	r := gin.Default()
+	r := gin.New()
 	r.Use(middleware.RequestID())
+	r.Use(middleware.RequestLogger())
+	r.Use(gin.Recovery())
 	r.Use(middleware.CORS())
 	r.Use(middleware.AuthMiddleware(cfg.JWTSecret, db))
 

@@ -794,6 +794,36 @@ For remote smoke parsing, prefer `python3 -c '...'` with a simple quoted string,
 
 ---
 
+## [ERR-20260527-020] go_test_from_repo_root
+
+**Logged**: 2026-05-27T08:54:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: tests
+
+### Summary
+A targeted Go test failed because it was launched from the repo root instead of the `backend/` Go module directory.
+
+### Error
+```
+go: cannot find main module, but found .git/config in /Users/swt/projects/niangao
+```
+
+### Context
+- The command combined root-relative `gofmt` paths with a raw `go test ./internal/middleware ...`.
+- `gofmt` succeeded from the repo root, but raw Go test commands need `workdir=/Users/swt/projects/niangao/backend`.
+- The test was rerun from `backend/` and passed.
+
+### Suggested Fix
+Run raw Go test commands from `backend/`, or use repo-root scripts such as `./scripts/backend-test.sh` for full-suite verification.
+
+### Metadata
+- Reproducible: yes
+- Related Files: backend/internal/middleware/logging_test.go
+- See Also: ERR-20260527-015
+
+---
+
 ## [ERR-20260527-019] production_smoke_users_schema_assumption
 
 **Logged**: 2026-05-27T07:31:00+08:00

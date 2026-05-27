@@ -2195,6 +2195,29 @@ Current result:
     - `npm run test -- --runInBand` (23 suites, 128 tests)
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- Backend structured access-log checks pass:
+  - production server setup now uses explicit `gin.New()` middleware wiring instead of `gin.Default()` so access logging can be controlled
+  - backend request logs are JSON entries containing `request_id`, `method`, `path`, `status`, `latency_ms`, and `client_ip`
+  - access logs intentionally use URL path without query string and do not log request bodies or auth headers
+  - `gin.Recovery()` remains installed after the request logger so panic recovery behavior is preserved
+  - the Phase 1 contract doc now records the backend access-log traceability contract
+  - Linux backend artifact `/tmp/niangao-backend-v4-structured-access-logs` was deployed to production at `/root/niangao/deployments/20260527084636/server`
+  - production backend binary hash now matches the local structured-access-logs artifact:
+    - `301e7342eb257cc1059f1920e6735175a9b35d07d443056639219602a149bcad`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-structured-access-logs.20260527084636.backend`
+  - post-deploy structured-log smoke passed:
+    - `/health?token=should_not_log` -> 200 with `X-Request-ID: codex-smoke-log-request-id`
+    - backend journal contained a JSON access log with `request_id`, `method=GET`, `path=/health`, `status=200`, and numeric `latency_ms`
+    - the access log did not include the query-string `token`
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, access-log encoding failure, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/middleware -run TestRequestLoggerIncludesRequestIDStatusAndRoute -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/middleware -run 'TestRequestLoggerIncludesRequestIDStatusAndRoute|TestRequestIDMiddleware' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-structured-access-logs`
+    - `git diff --check`
+    - production structured-log smoke and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 
