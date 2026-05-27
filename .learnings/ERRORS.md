@@ -4,6 +4,38 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260527-029] zsh_path_variable_breaks_smoke_script
+
+**Logged**: 2026-05-27T16:34:48+08:00
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+A production smoke script used a local variable named `path` in zsh, which overwrote the shell's command search path and made basic commands unavailable.
+
+### Error
+```
+request:10: command not found: curl
+request:12: command not found: jq
+zsh:23: command not found: rm
+```
+
+### Context
+- The smoke helper accepted a route path argument but assigned it to `path`.
+- In zsh, `path` is tied to `PATH`, so setting it inside the function broke command lookup for later commands.
+- The backend service was not implicated; the failure happened before valid HTTP assertions.
+
+### Suggested Fix
+Avoid variable names `path` and `PATH` in zsh smoke scripts. Use names such as `route_path` for URL paths.
+
+### Metadata
+- Reproducible: yes
+- Related Files: docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-018
+
+---
+
 ## [ERR-20260527-028] scp_connection_closed_during_backend_deploy
 
 **Logged**: 2026-05-27T14:50:00+08:00

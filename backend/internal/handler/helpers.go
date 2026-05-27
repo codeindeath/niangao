@@ -58,7 +58,7 @@ func parseInt(s string) (int, error) {
 func deprecatedMobileEndpoint(c *gin.Context) {
 	c.JSON(http.StatusGone, gin.H{"error": gin.H{
 		"code":    "deprecated_endpoint",
-		"message": "endpoint deprecated; use V4 API contract",
+		"message": "这个入口已下线，请更新到新版年糕",
 	}})
 }
 

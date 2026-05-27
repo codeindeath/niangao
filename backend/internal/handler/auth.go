@@ -47,7 +47,7 @@ type AppleLoginRequest struct {
 func (h *AuthHandler) AppleLogin(c *gin.Context) {
 	var req AppleLoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		respondError(c, http.StatusBadRequest, "missing_identity_token", "缺少 identity_token 参数")
+		respondError(c, http.StatusBadRequest, "missing_identity_token", "登录信息不完整，请重试")
 		return
 	}
 
@@ -82,14 +82,14 @@ func (h *AuthHandler) AppleLogin(c *gin.Context) {
 	).Scan(&userID)
 
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "login_failed", "登录失败")
+		respondError(c, http.StatusInternalServerError, "login_failed", "暂时登录不了，请稍后再试")
 		return
 	}
 
 	// 4. 签发 JWT
 	token, err := auth.GenerateToken(h.jwtSecret, userID, claims.Subject, nickname, false)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "token_generate_failed", "生成 token 失败")
+		respondError(c, http.StatusInternalServerError, "token_generate_failed", "暂时登录不了，请稍后再试")
 		return
 	}
 
@@ -155,13 +155,13 @@ func (h *AuthHandler) DevLogin(c *gin.Context) {
 
 	if err != nil {
 		log.Printf("dev login db error: %v", err)
-		respondError(c, http.StatusInternalServerError, "login_failed", "登录失败")
+		respondError(c, http.StatusInternalServerError, "login_failed", "暂时登录不了，请稍后再试")
 		return
 	}
 
 	token, err := auth.GenerateToken(h.jwtSecret, userID, devUserID, nickname, false)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "token_generate_failed", "生成 token 失败")
+		respondError(c, http.StatusInternalServerError, "token_generate_failed", "暂时登录不了，请稍后再试")
 		return
 	}
 
@@ -205,14 +205,14 @@ type RefreshTokenRequest struct {
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		respondError(c, http.StatusBadRequest, "missing_refresh_token", "缺少 refresh_token 参数")
+		respondError(c, http.StatusBadRequest, "missing_refresh_token", "登录信息不完整，请重新登录")
 		return
 	}
 
 	// 验证并轮换 refresh token
 	userID, err := auth.ValidateAndRotateRefreshToken(c.Request.Context(), h.db, req.RefreshToken)
 	if err != nil {
-		respondError(c, http.StatusUnauthorized, "refresh_token_invalid", "refresh token 无效或已过期，请重新登录")
+		respondError(c, http.StatusUnauthorized, "refresh_token_invalid", "登录已过期，请重新登录")
 		return
 	}
 
@@ -230,7 +230,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	// 签发新 JWT
 	token, err := auth.GenerateToken(h.jwtSecret, userID, appleUserID, nickname, false)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "token_generate_failed", "生成 token 失败")
+		respondError(c, http.StatusInternalServerError, "token_generate_failed", "暂时登录不了，请稍后再试")
 		return
 	}
 

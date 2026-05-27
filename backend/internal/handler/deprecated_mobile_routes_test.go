@@ -44,6 +44,9 @@ func TestDeprecatedExperienceAppRoutesReturnGone(t *testing.T) {
 			if body["error"]["code"] != "deprecated_endpoint" {
 				t.Fatalf("error code = %q, want deprecated_endpoint", body["error"]["code"])
 			}
+			if body["error"]["message"] != "这个入口已下线，请更新到新版年糕" {
+				t.Fatalf("error message = %q", body["error"]["message"])
+			}
 		})
 	}
 }

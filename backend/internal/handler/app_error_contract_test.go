@@ -3,6 +3,7 @@ package handler
 import (
 	"os"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -31,5 +32,30 @@ func TestAppFacingV4HandlersUseStructuredErrorResponses(t *testing.T) {
 				t.Fatalf("%s returns an unstructured App-facing error near %q", file, string(match))
 			}
 		})
+	}
+}
+
+func TestAppFacingAuthErrorsAvoidTechnicalTokenCopy(t *testing.T) {
+	sourceBytes, err := os.ReadFile("auth.go")
+	if err != nil {
+		t.Fatalf("read auth.go: %v", err)
+	}
+	source := string(sourceBytes)
+	respondErrorCall := regexp.MustCompile(`respondError\([^,\n]+,\s*http\.Status[A-Za-z]+,\s*"[^"]+",\s*"([^"]+)"\)`)
+	technicalTerms := []string{
+		"identity_token",
+		"refresh_token",
+		"refresh token",
+		"token",
+	}
+
+	for _, match := range respondErrorCall.FindAllStringSubmatch(source, -1) {
+		message := match[1]
+		lowered := strings.ToLower(message)
+		for _, term := range technicalTerms {
+			if strings.Contains(lowered, term) {
+				t.Fatalf("auth error message %q exposes technical term %q", message, term)
+			}
+		}
 	}
 }

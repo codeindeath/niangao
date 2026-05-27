@@ -2557,6 +2557,28 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-feed-search-stats-error-copy`
     - `git diff --check`
     - production backend deploy, hash verification, public health/feed/search smoke, authenticated temporary JWT stats smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Backend auth/deprecated-route error-copy checks pass:
+  - App-facing auth failure messages no longer expose `identity_token`, `refresh_token`, or `token` technical wording to users
+  - deprecated mobile experience routes still return structured 410 `deprecated_endpoint`, but now use the Chinese App-facing message `这个入口已下线，请更新到新版年糕`
+  - Linux backend artifact `/tmp/niangao-backend-v4-auth-deprecated-error-copy` was deployed to production at `/root/niangao/deployments/20260527162210/server`
+  - production backend binary hash now matches the local artifact:
+    - `7393f1c8f1a3b023884666588c6479c7bebf70b56f6d000d533841ad614739cc`
+  - production backend binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-auth-deprecated-error-copy.20260527162210.backend`
+  - post-deploy public/auth/deprecated smoke passed:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - malformed Apple login payload -> 400, `message=登录信息不完整，请重试`
+    - malformed refresh payload -> 400, `message=登录信息不完整，请重新登录`
+    - deprecated `/api/v1/experiences` -> 410, `message=这个入口已下线，请更新到新版年糕`
+  - post-smoke backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, login/token generation failure, or real 5xx response; request-id matches were found for health, feed, malformed Apple login, malformed refresh, and deprecated-route smokes
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestAppFacingAuthErrorsAvoidTechnicalTokenCopy|TestDeprecatedExperienceAppRoutesReturnGone' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestAppFacingAuthErrorsAvoidTechnicalTokenCopy|TestDeprecatedExperienceAppRoutesReturnGone' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-auth-deprecated-error-copy`
+    - `git diff --check`
+    - production backend deploy, hash verification, public health/feed smoke, malformed auth payload smoke, deprecated-route smoke, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 
