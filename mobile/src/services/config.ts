@@ -182,7 +182,10 @@ export async function apiFetchWithTimeout(path: string, init: Record<string, any
     if (isAbortError(error)) {
       throw new ApiError(0, '网络不稳，请稍后再试', 'request_timeout', requestId);
     }
-    throw error;
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(0, '网络不稳，请稍后再试', 'network_failed', requestId);
   } finally {
     clearTimeout(timeout);
   }

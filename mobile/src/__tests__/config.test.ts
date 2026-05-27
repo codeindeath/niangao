@@ -129,6 +129,20 @@ describe('config API errors', () => {
     });
   });
 
+  it('wraps network failures with the same weak-network user copy', async () => {
+    (global.fetch as jest.Mock).mockRejectedValue(new Error('Network request failed'));
+
+    const request = apiGet('/api/v1/feed/recommend?limit=2');
+
+    await expect(request).rejects.toMatchObject({
+      status: 0,
+      code: 'network_failed',
+      message: '网络不稳，请稍后再试',
+      requestId: expect.stringMatching(/^app-/),
+    });
+    await expect(request).rejects.toBeInstanceOf(ApiError);
+  });
+
   it.each([
     ['chat', '/api/v1/chat/temp-sessions/session-1/messages', {content: '今天有点乱'}],
     ['rewrite', '/api/v1/experiences/rewrite', {content: '今天有点乱'}],

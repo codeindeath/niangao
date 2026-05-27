@@ -2665,6 +2665,16 @@ Current result:
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-account-copy`
     - production backend deploy, hash verification, public health/feed smoke, temporary JWT account-cancellation smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- App API network-failure hardening checks pass:
+  - the shared App HTTP wrapper now converts ordinary fetch/network failures into a structured `ApiError` with `status=0`, `code=network_failed`, request-id propagation, and the weak-network copy `网络不稳，请稍后再试`
+  - timeout failures continue to use `code=request_timeout`, so App weak-network and stalled-backend states remain distinguishable for diagnostics while sharing user-facing copy
+  - this prevents raw runtime messages such as `Network request failed` from reaching App actions or future error surfaces through the service layer
+  - verification:
+    - `npm run test -- config.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- config.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 
