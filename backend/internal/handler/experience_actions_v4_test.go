@@ -213,6 +213,106 @@ func TestV4ExperienceActionFailureReturnsServerError(t *testing.T) {
 	}
 }
 
+func TestV4ExperienceActionFailuresUseUserFacingCopy(t *testing.T) {
+	tests := []struct {
+		name       string
+		method     string
+		path       string
+		body       []byte
+		auth       bool
+		store      *fakeV4ExperienceActionStore
+		wantStatus int
+		wantCopy   string
+	}{
+		{
+			name:       "inspire failure",
+			method:     "POST",
+			path:       "/api/v1/experiences/exp-1/inspire",
+			auth:       true,
+			store:      &fakeV4ExperienceActionStore{fail: true},
+			wantStatus: http.StatusInternalServerError,
+			wantCopy:   "暂时标记不了，请稍后再试",
+		},
+		{
+			name:       "collect failure",
+			method:     "POST",
+			path:       "/api/v1/experiences/exp-1/collect",
+			auth:       true,
+			store:      &fakeV4ExperienceActionStore{fail: true},
+			wantStatus: http.StatusInternalServerError,
+			wantCopy:   "暂时收藏不了，请稍后再试",
+		},
+		{
+			name:       "uncollect failure",
+			method:     "DELETE",
+			path:       "/api/v1/experiences/exp-1/collect",
+			auth:       true,
+			store:      &fakeV4ExperienceActionStore{fail: true},
+			wantStatus: http.StatusInternalServerError,
+			wantCopy:   "暂时取消不了，请稍后再试",
+		},
+		{
+			name:       "unavailable experience",
+			method:     "POST",
+			path:       "/api/v1/experiences/exp-1/inspire",
+			auth:       true,
+			store:      &fakeV4ExperienceActionStore{unavailable: true},
+			wantStatus: http.StatusNotFound,
+			wantCopy:   "这条经验暂时看不了",
+		},
+		{
+			name:       "invalid event payload",
+			method:     "POST",
+			path:       "/api/v1/experiences/exp-1/events",
+			body:       []byte(`{"event_type":`),
+			store:      &fakeV4ExperienceActionStore{},
+			wantStatus: http.StatusBadRequest,
+			wantCopy:   "操作格式不对",
+		},
+		{
+			name:       "unsupported event type",
+			method:     "POST",
+			path:       "/api/v1/experiences/exp-1/events",
+			body:       []byte(`{"event_type":"collect"}`),
+			store:      &fakeV4ExperienceActionStore{},
+			wantStatus: http.StatusBadRequest,
+			wantCopy:   "操作类型不支持",
+		},
+		{
+			name:       "event failure",
+			method:     "POST",
+			path:       "/api/v1/experiences/exp-1/events",
+			body:       []byte(`{"event_type":"search_click"}`),
+			store:      &fakeV4ExperienceActionStore{fail: true},
+			wantStatus: http.StatusInternalServerError,
+			wantCopy:   "暂时记录不了操作",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := gin.New()
+			v1 := r.Group("/api/v1")
+			if tt.auth {
+				v1.Use(func(c *gin.Context) {
+					c.Set("user_id", "user-1")
+				})
+			}
+			RegisterExperienceActionRoutes(v1, tt.store)
+
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(tt.method, tt.path, bytes.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			r.ServeHTTP(w, req)
+
+			if w.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d: %s", w.Code, tt.wantStatus, w.Body.String())
+			}
+			assertActionErrorMessage(t, w, tt.wantCopy)
+		})
+	}
+}
+
 func TestV4ExperienceActionUnavailableReturnsNotFound(t *testing.T) {
 	r := gin.New()
 	v1 := r.Group("/api/v1", func(c *gin.Context) {
@@ -262,5 +362,21 @@ func TestV4ExperienceEventRejectsActionEvents(t *testing.T) {
 
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", w.Code, w.Body.String())
+	}
+}
+
+func assertActionErrorMessage(t *testing.T, w *httptest.ResponseRecorder, want string) {
+	t.Helper()
+
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	errBody, ok := body["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("error = %+v, want structured error object", body["error"])
+	}
+	if errBody["message"] != want {
+		t.Fatalf("error.message = %+v, want %q", errBody["message"], want)
 	}
 }

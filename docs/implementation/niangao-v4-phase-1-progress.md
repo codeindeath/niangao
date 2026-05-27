@@ -2479,6 +2479,32 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-profile-error-copy`
     - `git diff --check`
     - production backend deploy, hash verification, public health/feed smoke, authenticated temporary JWT profile smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Backend action error-copy checks pass:
+  - V4 experience action routes now return Chinese App-facing messages for unavailable experiences, inspiration failure, collect failure, uncollect failure, malformed passive event payloads, unsupported passive event types, and passive event write failure
+  - 看看/详情/搜索卡片 action-alert paths no longer depend on English backend fallback copy for these failure cases
+  - Linux backend artifact `/tmp/niangao-backend-v4-action-error-copy` was deployed to production at `/root/niangao/deployments/20260527151320/server`
+  - production backend binary hash now matches the local artifact:
+    - `b591082ab6d096b0a259bc7c74969487174f1c5f44557bb2e1abb06d59045aac`
+  - production backend binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-action-error-copy.20260527151320.backend`
+  - post-deploy public and authenticated action smoke passed:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - unsupported event type smoke -> 400, `message=操作类型不支持`
+    - authenticated `POST /api/v1/experiences/:id/inspire` -> 200
+    - authenticated `POST /api/v1/experiences/:id/collect` -> 200
+    - authenticated `DELETE /api/v1/experiences/:id/collect` -> 200
+    - passive `search_click` event -> 204
+    - cleanup temporary inspirations, collections, events, and users -> `0|0|0|0`
+  - post-smoke backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, action failure, event failure, or real 5xx response
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run TestV4ExperienceActionFailuresUseUserFacingCopy -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run TestV4ExperienceActionFailuresUseUserFacingCopy -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run TestV4Experience -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-action-error-copy`
+    - `git diff --check`
+    - production backend deploy, hash verification, public health/feed smoke, authenticated temporary JWT action smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

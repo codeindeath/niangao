@@ -26,6 +26,15 @@ type ExperienceActionHandler struct {
 
 type ExperienceEventRequest = model.ExperienceEventRequest
 
+const (
+	experienceUnavailableMessage = "这条经验暂时看不了"
+	inspirationFailedMessage     = "暂时标记不了，请稍后再试"
+	collectFailedMessage         = "暂时收藏不了，请稍后再试"
+	uncollectFailedMessage       = "暂时取消不了，请稍后再试"
+	eventRequestInvalidMessage   = "操作格式不对"
+	eventRecordFailedMessage     = "暂时记录不了操作"
+)
+
 func RegisterExperienceActionRoutes(r *gin.RouterGroup, store V4ExperienceActionStore) {
 	h := &ExperienceActionHandler{store: store}
 
@@ -47,11 +56,11 @@ func (h *ExperienceActionHandler) Inspire(c *gin.Context) {
 	already, err := h.store.InspireExperience(c.Request.Context(), userID, c.Param("id"))
 	if err != nil {
 		if errors.Is(err, repository.ErrExperienceUnavailable) {
-			respondError(c, http.StatusNotFound, "experience_not_found", "experience not found")
+			respondError(c, http.StatusNotFound, "experience_not_found", experienceUnavailableMessage)
 			return
 		}
 		log.Printf("v4 inspire failed experience=%s user=%s: %v", c.Param("id"), userID, err)
-		respondError(c, http.StatusInternalServerError, "inspiration_failed", "failed to mark inspiration")
+		respondError(c, http.StatusInternalServerError, "inspiration_failed", inspirationFailedMessage)
 		return
 	}
 	if already {
@@ -70,11 +79,11 @@ func (h *ExperienceActionHandler) Collect(c *gin.Context) {
 	already, err := h.store.CollectExperience(c.Request.Context(), userID, c.Param("id"))
 	if err != nil {
 		if errors.Is(err, repository.ErrExperienceUnavailable) {
-			respondError(c, http.StatusNotFound, "experience_not_found", "experience not found")
+			respondError(c, http.StatusNotFound, "experience_not_found", experienceUnavailableMessage)
 			return
 		}
 		log.Printf("v4 collect failed experience=%s user=%s: %v", c.Param("id"), userID, err)
-		respondError(c, http.StatusInternalServerError, "collect_failed", "failed to collect experience")
+		respondError(c, http.StatusInternalServerError, "collect_failed", collectFailedMessage)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"collected": true, "already_collected": already})
@@ -88,11 +97,11 @@ func (h *ExperienceActionHandler) Uncollect(c *gin.Context) {
 
 	if err := h.store.UncollectExperience(c.Request.Context(), userID, c.Param("id")); err != nil {
 		if errors.Is(err, repository.ErrExperienceUnavailable) {
-			respondError(c, http.StatusNotFound, "experience_not_found", "experience not found")
+			respondError(c, http.StatusNotFound, "experience_not_found", experienceUnavailableMessage)
 			return
 		}
 		log.Printf("v4 uncollect failed experience=%s user=%s: %v", c.Param("id"), userID, err)
-		respondError(c, http.StatusInternalServerError, "uncollect_failed", "failed to remove collection")
+		respondError(c, http.StatusInternalServerError, "uncollect_failed", uncollectFailedMessage)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"collected": false})
@@ -101,7 +110,7 @@ func (h *ExperienceActionHandler) Uncollect(c *gin.Context) {
 func (h *ExperienceActionHandler) RecordEvent(c *gin.Context) {
 	var req ExperienceEventRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		respondError(c, http.StatusBadRequest, "invalid_event_request", "invalid event request")
+		respondError(c, http.StatusBadRequest, "invalid_event_request", eventRequestInvalidMessage)
 		return
 	}
 	if err := normalizeExperienceEventRequest(&req); err != nil {
@@ -111,11 +120,11 @@ func (h *ExperienceActionHandler) RecordEvent(c *gin.Context) {
 
 	if err := h.store.RecordExperienceEvent(c.Request.Context(), getOptionalUserID(c), c.Param("id"), req); err != nil {
 		if errors.Is(err, repository.ErrExperienceUnavailable) {
-			respondError(c, http.StatusNotFound, "experience_not_found", "experience not found")
+			respondError(c, http.StatusNotFound, "experience_not_found", experienceUnavailableMessage)
 			return
 		}
 		log.Printf("v4 event failed event=%s experience=%s user=%s: %v", req.EventType, c.Param("id"), getOptionalUserID(c), err)
-		respondError(c, http.StatusInternalServerError, "experience_event_failed", "failed to record experience event")
+		respondError(c, http.StatusInternalServerError, "experience_event_failed", eventRecordFailedMessage)
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -132,7 +141,7 @@ func normalizeExperienceEventRequest(req *ExperienceEventRequest) error {
 	switch req.EventType {
 	case "expose", "flip", "search_click", "chat_citation_show", "chat_citation_click":
 	default:
-		return errors.New("invalid event_type")
+		return errors.New("操作类型不支持")
 	}
 
 	if req.SourceContext == "" {
@@ -143,10 +152,10 @@ func normalizeExperienceEventRequest(req *ExperienceEventRequest) error {
 		}
 	}
 	if len(req.SourceContext) > 32 {
-		return errors.New("source_context too long")
+		return errors.New("来源信息过长")
 	}
 	if req.ContextID != "" && !isUUIDLike(req.ContextID) {
-		return errors.New("invalid context_id")
+		return errors.New("上下文标识不正确")
 	}
 	return nil
 }
