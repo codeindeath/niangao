@@ -94,6 +94,17 @@ describe('LoginScreen', () => {
     expect(onLoginSuccess).not.toHaveBeenCalled();
   });
 
+  it('starts Apple login only once while the native prompt is in flight', () => {
+    (AppleAuthentication.signInAsync as jest.Mock).mockReturnValue(new Promise(() => {}));
+
+    const {getByText} = render(<LoginScreen />);
+    fireEvent.press(getByText('Apple登录'));
+    fireEvent.press(getByText('Apple登录'));
+
+    expect(AppleAuthentication.signInAsync).toHaveBeenCalledTimes(1);
+    expect(api.appleLogin).not.toHaveBeenCalled();
+  });
+
   it('rejects Apple login locally when identity token is missing', async () => {
     (AppleAuthentication.signInAsync as jest.Mock).mockResolvedValue({
       identityToken: null,

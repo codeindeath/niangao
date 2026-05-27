@@ -2268,10 +2268,22 @@ Current result:
     - `npm run test -- --runInBand` (24 suites, 131 tests)
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- Login repeated-tap weak-state checks pass:
+  - Apple login now marks the login flow in-flight before opening the native Apple prompt, so same-frame repeated taps cannot start multiple native login requests
+  - the same in-flight guard is shared by development login, and loading is cleared on success, cancellation, local credential failure, and backend failure before showing any failure alert or entering the App
+  - guest browsing remains unchanged, and App-side token persistence still happens before entering the authenticated App
+  - no production backend deployment was needed for this App-only login hardening slice
+  - verification:
+    - `npm run test -- LoginScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- LoginScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (24 suites, 132 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
 
 Not verified yet:
 
-- Real Apple Sign in on a physical device / Apple-authenticated simulator session has not been verified in this checkpoint. Authenticated App runtime was validated through a temporary JWT simulator injection and cleaned up afterward.
+- Real Apple Sign in on a physical device / Apple-authenticated simulator session has not been verified in this checkpoint. The repeated-tap Apple prompt behavior is covered by React Native unit tests; authenticated App runtime was validated through a temporary JWT simulator injection and cleaned up afterward.
 
 ## 4. Next Slice
 

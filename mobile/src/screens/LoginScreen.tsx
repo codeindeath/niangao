@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -24,7 +24,22 @@ export default function LoginScreen({
   onSkip?: () => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const loginInFlightRef = useRef(false);
   const navigation = useNavigation<any>();
+
+  const beginLogin = () => {
+    if (loginInFlightRef.current) {
+      return false;
+    }
+    loginInFlightRef.current = true;
+    setLoading(true);
+    return true;
+  };
+
+  const finishLogin = () => {
+    loginInFlightRef.current = false;
+    setLoading(false);
+  };
 
   const handleSuccess = () => {
     if (onLoginSuccess) {
@@ -36,6 +51,13 @@ export default function LoginScreen({
   };
 
   const handleAppleLogin = async () => {
+    if (!beginLogin()) {
+      return;
+    }
+
+    let shouldEnterApp = false;
+    let failureAlert: {title: string; message: string} | undefined;
+
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -45,38 +67,49 @@ export default function LoginScreen({
       });
 
       if (!credential.identityToken) {
-        Alert.alert('登录失败', 'Apple登录凭证无效，请重试');
-        return;
+        failureAlert = {title: '登录失败', message: 'Apple登录凭证无效，请重试'};
+      } else {
+        const fullName = credential.fullName
+          ? [credential.fullName.givenName, credential.fullName.familyName]
+              .filter(Boolean)
+              .join(' ')
+          : undefined;
+
+        const result = await appleLogin(credential.identityToken, fullName);
+
+        await setToken(result.token);
+        if (result.refresh_token) {
+          await setRefreshToken(result.refresh_token);
+        }
+        await setUserInfo(result.user);
+        shouldEnterApp = true;
       }
-
-      setLoading(true);
-
-      const fullName = credential.fullName
-        ? [credential.fullName.givenName, credential.fullName.familyName]
-            .filter(Boolean)
-            .join(' ')
-        : undefined;
-
-      const result = await appleLogin(credential.identityToken, fullName);
-
-      await setToken(result.token);
-      if (result.refresh_token) {
-        await setRefreshToken(result.refresh_token);
-      }
-      await setUserInfo(result.user);
-      setLoading(false);
-      handleSuccess();
     } catch (e: any) {
-      setLoading(false);
-      if (e.code === 'ERR_CANCELED') {
-        return;
+      if (e.code !== 'ERR_CANCELED') {
+        failureAlert = {title: '登录失败', message: e.message || 'Apple登录出错'};
       }
-      Alert.alert('登录失败', e.message || 'Apple登录出错');
+    } finally {
+      finishLogin();
+    }
+
+    if (failureAlert) {
+      Alert.alert(failureAlert.title, failureAlert.message);
+      return;
+    }
+
+    if (shouldEnterApp) {
+      handleSuccess();
     }
   };
 
   const handleDevLogin = async () => {
-    setLoading(true);
+    if (!beginLogin()) {
+      return;
+    }
+
+    let shouldEnterApp = false;
+    let failureAlert: {title: string; message: string} | undefined;
+
     try {
       const result = await devLogin();
       await setToken(result.token);
@@ -84,15 +117,27 @@ export default function LoginScreen({
         await setRefreshToken(result.refresh_token);
       }
       await setUserInfo(result.user);
-      setLoading(false);
-      handleSuccess();
+      shouldEnterApp = true;
     } catch (e: any) {
-      setLoading(false);
       if (e?.status === 404) {
-        Alert.alert('开发登录不可用', '当前后端还没有启用开发登录接口，请切换到 V4 测试后端再试。');
-        return;
+        failureAlert = {
+          title: '开发登录不可用',
+          message: '当前后端还没有启用开发登录接口，请切换到 V4 测试后端再试。',
+        };
+      } else {
+        failureAlert = {title: '登录失败', message: e.message || '模拟登录失败'};
       }
-      Alert.alert('登录失败', e.message || '模拟登录失败');
+    } finally {
+      finishLogin();
+    }
+
+    if (failureAlert) {
+      Alert.alert(failureAlert.title, failureAlert.message);
+      return;
+    }
+
+    if (shouldEnterApp) {
+      handleSuccess();
     }
   };
 
