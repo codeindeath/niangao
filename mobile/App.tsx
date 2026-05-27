@@ -12,6 +12,7 @@ import SearchCardScreen from './src/screens/SearchCardScreen';
 import ProfileEditScreen from './src/screens/ProfileEditScreen';
 import CreateScreen from './src/screens/CreateScreen';
 import {getToken, clearToken, apiFetchWithTimeout} from './src/services/config';
+import {refreshToken as refreshAuthToken} from './src/services/auth';
 import {reportHandledError} from './src/utils/logging';
 
 const Stack = createNativeStackNavigator();
@@ -26,6 +27,9 @@ export async function checkAndValidateToken(): Promise<boolean> {
       headers: {Authorization: `Bearer ${token}`},
     });
     if (res.status === 401) {
+      if (await refreshAuthToken()) {
+        return true;
+      }
       await clearToken();
       return false;
     }

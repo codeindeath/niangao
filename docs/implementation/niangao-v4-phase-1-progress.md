@@ -2709,6 +2709,16 @@ Current result:
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-refresh-auth-copy`
     - production backend deploy, hash verification, public health/feed smoke, temporary refresh-token smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- App startup stale-token recovery checks pass:
+  - startup auth validation now attempts the existing refresh-token flow when `/api/v1/me/profile` returns 401
+  - if refresh succeeds, the App keeps the local session and proceeds authenticated; if refresh fails, the App clears local auth and returns to login
+  - transient profile validation failures still keep the local session instead of forcing logout
+  - verification:
+    - `npm run test -- startupAuth.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- startupAuth.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 

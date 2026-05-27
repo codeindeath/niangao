@@ -4,6 +4,10 @@ jest.mock('../services/config', () => ({
   apiFetchWithTimeout: jest.fn(),
 }));
 
+jest.mock('../services/auth', () => ({
+  refreshToken: jest.fn(),
+}));
+
 jest.mock('@react-navigation/native-stack', () => ({
   createNativeStackNavigator: () => ({
     Navigator: ({children}: any) => children,
@@ -20,6 +24,7 @@ jest.mock('../screens/ProfileEditScreen', () => () => null);
 jest.mock('../screens/CreateScreen', () => () => null);
 
 const config = require('../services/config');
+const auth = require('../services/auth');
 const {checkAndValidateToken} = require('../../App');
 
 describe('startup auth validation', () => {
@@ -27,6 +32,7 @@ describe('startup auth validation', () => {
     jest.clearAllMocks();
     config.getToken.mockResolvedValue('token-1');
     config.clearToken.mockResolvedValue(undefined);
+    auth.refreshToken.mockResolvedValue(false);
   });
 
   it('keeps the local session when server validation has a transient failure', async () => {
@@ -42,6 +48,17 @@ describe('startup auth validation', () => {
 
     await expect(checkAndValidateToken()).resolves.toBe(false);
 
+    expect(auth.refreshToken).toHaveBeenCalledTimes(1);
     expect(config.clearToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the local session when startup validation refreshes an expired token', async () => {
+    config.apiFetchWithTimeout.mockResolvedValue({status: 401, ok: false});
+    auth.refreshToken.mockResolvedValue(true);
+
+    await expect(checkAndValidateToken()).resolves.toBe(true);
+
+    expect(auth.refreshToken).toHaveBeenCalledTimes(1);
+    expect(config.clearToken).not.toHaveBeenCalled();
   });
 });
