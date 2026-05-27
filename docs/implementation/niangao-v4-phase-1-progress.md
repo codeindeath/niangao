@@ -2815,6 +2815,29 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-ai-call-logs`
     - `git diff --check`
     - production backend deploy, hash verification, public health/feed smoke, authenticated temporary JWT rewrite + AI call-log smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- App guest runtime and search-card layout checks pass:
+  - login screen no longer exposes `开发模拟登录` by default; the dev-login button is gated behind `EXPO_PUBLIC_ENABLE_DEV_LOGIN=1`
+  - simulator screenshot `/tmp/niangao-login-runtime-no-dev.png` confirms the runtime login page shows only `Apple登录`, `先看看`, agreement copy, the selected anime background, and no developer-only entry
+  - iPhone 17 Pro simulator guest flow reached real production 看看 feed, guest `有启发` / `收藏` login prompts, 聊聊/记下 protected login routing, 我的 guest login state, search page, real `Paul` search results, search-card browse, and search-card guest action gating
+  - simulator comparison against `docs/design-drafts/niangao-login-anime-five-directions.png` and `docs/design-drafts/niangao-app-complete-screens.png` found the fixed login screen and current 看看/search-card runtime broadly aligned with the selected visual direction
+  - simulator found and fixed a SearchCardScreen layout bug where action buttons from the previous paged card could overflow into the top of the current card when opening a non-zero search result
+  - `ExperienceCard` action-bar offset is now configurable; Home keeps its existing floating action placement, while SearchCardScreen keeps actions inside the current paged card
+  - screenshot evidence:
+    - `/tmp/niangao-after-click-guest-2.png` for guest 看看 feed
+    - `/tmp/niangao-guest-collect-gate.png` and `/tmp/niangao-guest-inspire-gate.png` for guest action prompts
+    - `/tmp/niangao-guest-chat-gate.png`, `/tmp/niangao-guest-create-gate.png`, and `/tmp/niangao-guest-my-gate.png` for protected-tab/profile routing
+    - `/tmp/niangao-search-paul-results.png` for production search results
+    - `/tmp/niangao-search-card-detail2.png` for the pre-fix search-card action overflow
+    - `/tmp/niangao-searchcard-actions-fixed.png` and `/tmp/niangao-searchcard-guest-action-gate.png` for the fixed search-card page and guest action prompt
+  - no backend deployment was needed for this App-only UI/runtime slice
+  - verification:
+    - `npm run test -- SearchCardScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- SearchCardScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- LoginScreen.test.tsx DetailScreen.test.tsx SearchCardScreen.test.tsx apiContract.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
 
 Not verified yet:
 

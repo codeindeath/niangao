@@ -1,5 +1,5 @@
 import React from 'react';
-import {Alert} from 'react-native';
+import {Alert, StyleSheet} from 'react-native';
 import {act, fireEvent, render, waitFor} from '@testing-library/react-native';
 import SearchCardScreen from '../screens/SearchCardScreen';
 import * as api from '../services/api';
@@ -70,6 +70,31 @@ describe('SearchCardScreen', () => {
       );
     });
     expect(api.deleteExperience).not.toHaveBeenCalled();
+  });
+
+  it('keeps search-card action bars inside their own paged card', async () => {
+    const {findAllByTestId} = render(
+      <SearchCardScreen
+        route={{
+          params: {
+            results: [
+              experience,
+              {...experience, id: '2', content: '第 2 条经验'},
+            ],
+            initialIndex: 1,
+            keyword: '测试',
+          },
+        }}
+        navigation={{goBack: jest.fn(), navigate: jest.fn()}}
+      />,
+    );
+
+    const actionBars = await findAllByTestId('experience-action-bar');
+    expect(actionBars.length).toBeGreaterThan(0);
+    actionBars.forEach(actionBar => {
+      const style = StyleSheet.flatten(actionBar.props.style);
+      expect(style?.bottom).toBeGreaterThanOrEqual(0);
+    });
   });
 
   it('shows action failure feedback when inspiring fails for a non-auth error', async () => {

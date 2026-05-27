@@ -38,12 +38,14 @@ interface FlipCardProps {
   onDelete?: (id: string) => void;
   onFlipChange?: (id: string, isFlipped: boolean) => void;
   showActions?: boolean;
+  actionBottom?: number;
 }
 
 export default function FlipCard({
   item, cardHeight, contentTop = 0,
   currentUserId, onLike, onBookmark, onDelete, onFlipChange,
   showActions = false,
+  actionBottom = -32,
 }: FlipCardProps) {
   const flipAnim = useRef(new Animated.Value(0)).current;
   const [isFlipped, setIsFlipped] = useState(false);
@@ -81,7 +83,7 @@ export default function FlipCard({
           </View>
         </TouchableOpacity>
         {showActions && item.is_collected && (
-          <View style={styles.bottomActions}>
+          <View testID="experience-action-bar" style={[styles.bottomActions, {bottom: actionBottom}]}>
             <TouchableOpacity
               style={[styles.actionBtn, styles.unavailableActionBtn, styles.actionSaved]}
               onPress={(e) => { e.stopPropagation(); onBookmark?.(item.id); }}
@@ -248,7 +250,7 @@ export default function FlipCard({
         </Animated.View>
       </TouchableOpacity>
       {showActions && (
-        <View style={styles.bottomActions}>
+        <View testID="experience-action-bar" style={[styles.bottomActions, {bottom: actionBottom}]}>
           <TouchableOpacity
             style={[styles.actionBtn, item.is_inspired && styles.actionLiked]}
             onPress={(e) => { e.stopPropagation(); onLike?.(item.id); }}

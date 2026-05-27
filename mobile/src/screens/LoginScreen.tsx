@@ -16,6 +16,7 @@ import { setToken, setRefreshToken, setUserInfo } from '../services/config';
 import {userFacingErrorMessage} from '../utils/errors';
 
 declare const __DEV__: boolean;
+declare const process: {env?: Record<string, string | undefined>};
 
 export default function LoginScreen({
   onLoginSuccess,
@@ -27,6 +28,7 @@ export default function LoginScreen({
   const [loading, setLoading] = useState(false);
   const loginInFlightRef = useRef(false);
   const navigation = useNavigation<any>();
+  const showDevLogin = __DEV__ && process.env?.EXPO_PUBLIC_ENABLE_DEV_LOGIN === '1';
 
   const beginLogin = () => {
     if (loginInFlightRef.current) {
@@ -171,7 +173,7 @@ export default function LoginScreen({
             <Text style={styles.secondaryButtonText}>先看看</Text>
           </TouchableOpacity>
 
-          {__DEV__ && (
+          {showDevLogin && (
             <TouchableOpacity
               style={styles.devButton}
               onPress={handleDevLogin}

@@ -207,6 +207,7 @@ export default function SearchCardScreen({route, navigation}: any) {
               onDelete={handleDelete}
               onFlipChange={handleFlipChange}
               showActions
+              actionBottom={0}
             />
           </View>
         )}

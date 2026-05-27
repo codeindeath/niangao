@@ -1,5 +1,5 @@
 import React from 'react';
-import {Alert, Text} from 'react-native';
+import {Alert} from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import DetailScreen from '../screens/DetailScreen';
 import * as api from '../services/api';
@@ -7,6 +7,43 @@ import * as config from '../services/config';
 
 jest.mock('../services/api');
 jest.mock('../services/config');
+
+function textFromJSON(node: any): string {
+  if (!node) return '';
+  if (typeof node === 'string') return node;
+  if (Array.isArray(node)) return node.map(textFromJSON).join('');
+  return textFromJSON(node.children || []);
+}
+
+async function waitForText(rendered: ReturnType<typeof render>, text: string) {
+  await waitFor(() => {
+    expect(textFromJSON(rendered.toJSON())).toContain(text);
+  });
+}
+
+function queryText(rendered: ReturnType<typeof render>, text: string) {
+  return textFromJSON(rendered.toJSON()).includes(text) ? text : null;
+}
+
+async function findNodeByLabel(rendered: ReturnType<typeof render>, label: string) {
+  let found: any;
+  await waitFor(() => {
+    const matches = rendered.UNSAFE_root.findAll(node => node.props?.accessibilityLabel === label);
+    expect(matches.length).toBeGreaterThan(0);
+    found = matches[0];
+  });
+  return found;
+}
+
+async function findTextNode(rendered: ReturnType<typeof render>, text: string) {
+  let found: any;
+  await waitFor(() => {
+    const matches = rendered.UNSAFE_root.findAll(node => node.props?.children === text);
+    expect(matches.length).toBeGreaterThan(0);
+    found = matches[0];
+  });
+  return found;
+}
 
 describe('DetailScreen', () => {
   const mockExp = {
@@ -21,7 +58,7 @@ describe('DetailScreen', () => {
     is_inspired: false,
     is_collected: false,
     visibility: 'public',
-    review_status: 'approved',
+    lifecycle_status: 'active',
     quality_score: 7.5,
     score_details: '{"value":8,"actionable":7,"universal":7,"original":6,"clarity":9}',
     created_at: '2026-01-01T00:00:00Z',
@@ -44,34 +81,30 @@ describe('DetailScreen', () => {
     await waitFor(() => {
       expect(api.fetchExperience).toHaveBeenCalledWith('1');
     });
-    await new Promise(resolve => setTimeout(resolve, 0));
-    const text = rendered.UNSAFE_root.findAllByType(Text)
-      .flatMap(node => Array.isArray(node.props.children) ? node.props.children : [node.props.children])
-      .filter(child => typeof child === 'string')
-      .join('');
-    expect(text).toContain('测试经验');
+    await waitForText(rendered, '测试经验');
+    const text = textFromJSON(rendered.toJSON());
     expect(text).toContain('价值度');
-    expect(text.match(/★/g)).toHaveLength(4);
-    expect(text.match(/☆/g)).toHaveLength(1);
+    expect((text.match(/★/g) || [])).toHaveLength(4);
+    expect((text.match(/☆/g) || [])).toHaveLength(1);
   });
 
   it('shows private marker for private experiences', async () => {
-    (api.fetchExperience as jest.Mock).mockResolvedValue({...mockExp, visibility: 'private', review_status: 'private'});
-    const { findByLabelText } = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
-    expect(await findByLabelText('私密经验')).toBeTruthy();
+    (api.fetchExperience as jest.Mock).mockResolvedValue({...mockExp, visibility: 'private'});
+    const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
+    expect(await findNodeByLabel(rendered, '私密经验')).toBeTruthy();
   });
 
   it('shows sub-domain label when available', async () => {
     (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);
-    const { findByText } = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
-    expect(await findByText('自我')).toBeTruthy();
+    const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
+    await waitForText(rendered, '自我');
   });
 
   it('clears expired auth when detail loading returns 401', async () => {
     (api.fetchExperience as jest.Mock).mockRejectedValueOnce({status: 401});
     const navigation = {navigate: jest.fn(), getParent: jest.fn()};
 
-    const {queryByText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={navigation} />);
+    const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={navigation} />);
 
     await waitFor(() => {
       expect(config.clearToken).toHaveBeenCalledTimes(1);
@@ -81,7 +114,7 @@ describe('DetailScreen', () => {
         expect.any(Array),
       );
     });
-    expect(queryByText('加载失败，请检查网络连接')).toBeNull();
+    expect(queryText(rendered, '加载失败，请检查网络连接')).toBeNull();
 
     const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
     buttons.find((button: any) => button.text === 'Apple登录').onPress();
@@ -91,18 +124,18 @@ describe('DetailScreen', () => {
   it('shows unavailable empty state instead of weak-network copy when detail returns 404', async () => {
     (api.fetchExperience as jest.Mock).mockRejectedValueOnce({status: 404});
 
-    const {findByText, queryByText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
+    const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
 
-    expect(await findByText('经验不存在或已被删除')).toBeTruthy();
-    expect(queryByText('加载失败，请检查网络连接')).toBeNull();
-    expect(queryByText('重试')).toBeNull();
+    await waitForText(rendered, '经验不存在或已被删除');
+    expect(queryText(rendered, '加载失败，请检查网络连接')).toBeNull();
+    expect(queryText(rendered, '重试')).toBeNull();
   });
 
   it('marks an experience as inspiring once', async () => {
     (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);
     (api.markInspired as jest.Mock).mockResolvedValue({inspired: true});
-    const { findByLabelText } = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
-    const likeBtn = await findByLabelText('标记有启发');
+    const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
+    const likeBtn = await findNodeByLabel(rendered, '标记有启发');
     fireEvent.press(likeBtn);
     await waitFor(() => {
       expect(api.markInspired).toHaveBeenCalledWith('1');
@@ -113,8 +146,8 @@ describe('DetailScreen', () => {
     (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);
     (api.markInspired as jest.Mock).mockRejectedValueOnce(new Error('network down'));
 
-    const {findByLabelText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
-    fireEvent.press(await findByLabelText('标记有启发'));
+    const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
+    fireEvent.press(await findNodeByLabel(rendered, '标记有启发'));
 
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith('操作失败', '网络不稳，请稍后再试');
@@ -125,8 +158,8 @@ describe('DetailScreen', () => {
     (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);
     (api.markInspired as jest.Mock).mockReturnValue(new Promise(() => {}));
 
-    const {findByLabelText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
-    const likeButton = await findByLabelText('标记有启发');
+    const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
+    const likeButton = await findNodeByLabel(rendered, '标记有启发');
     fireEvent.press(likeButton);
     fireEvent.press(likeButton);
 
@@ -140,8 +173,8 @@ describe('DetailScreen', () => {
     (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);
     (api.setCollected as jest.Mock).mockReturnValue(new Promise(() => {}));
 
-    const {findByLabelText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
-    const collectButton = await findByLabelText('收藏经验');
+    const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
+    const collectButton = await findNodeByLabel(rendered, '收藏经验');
     fireEvent.press(collectButton);
     fireEvent.press(collectButton);
 
@@ -157,9 +190,9 @@ describe('DetailScreen', () => {
     (api.updateExperience as jest.Mock).mockResolvedValue({status: 'ok'});
 
     const navigation = {goBack: jest.fn(), navigate: jest.fn()};
-    const {findByText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={navigation} />);
+    const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={navigation} />);
 
-    fireEvent.press(await findByText('删除'));
+    fireEvent.press(await findTextNode(rendered, '删除'));
     const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
     const makePrivateButton = buttons.find((button: any) => button.text === '转为私密');
     const deleteButton = buttons.find((button: any) => button.text === '删除');
@@ -187,9 +220,9 @@ describe('DetailScreen', () => {
     (api.deleteExperience as jest.Mock).mockResolvedValue({status: 'ok'});
 
     const navigation = {goBack: jest.fn(), navigate: jest.fn()};
-    const {findByText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={navigation} />);
+    const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={navigation} />);
 
-    fireEvent.press(await findByText('删除'));
+    fireEvent.press(await findTextNode(rendered, '删除'));
     const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
     const deleteButton = buttons.find((button: any) => button.text === '删除');
     deleteButton.onPress();
@@ -207,10 +240,10 @@ describe('DetailScreen', () => {
       owner_user_id: 'author-1',
     });
 
-    const {findByText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={{navigate: jest.fn()}} />);
+    const rendered = render(<DetailScreen route={{params: {id: '1'}}} navigation={{navigate: jest.fn()}} />);
 
-    expect(await findByText('编辑')).toBeTruthy();
-    expect(await findByText('转为私密')).toBeTruthy();
-    expect(await findByText('删除')).toBeTruthy();
+    expect(await findTextNode(rendered, '编辑')).toBeTruthy();
+    expect(await findTextNode(rendered, '转为私密')).toBeTruthy();
+    expect(await findTextNode(rendered, '删除')).toBeTruthy();
   });
 });

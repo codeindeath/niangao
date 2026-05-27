@@ -19,6 +19,7 @@ jest.mock('expo-apple-authentication', () => ({
 describe('LoginScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    delete process.env.EXPO_PUBLIC_ENABLE_DEV_LOGIN;
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   });
 
@@ -41,7 +42,14 @@ describe('LoginScreen', () => {
     expect(config.setToken).not.toHaveBeenCalled();
   });
 
+  it('hides dev login unless it is explicitly enabled', () => {
+    const {queryByText} = render(<LoginScreen />);
+
+    expect(queryByText('开发模拟登录')).toBeNull();
+  });
+
   it('stores the dev-login session before entering the app', async () => {
+    process.env.EXPO_PUBLIC_ENABLE_DEV_LOGIN = '1';
     const onLoginSuccess = jest.fn();
     (api.devLogin as jest.Mock).mockResolvedValue({
       token: 'token-1',
@@ -62,6 +70,7 @@ describe('LoginScreen', () => {
   });
 
   it('shows a useful message when dev login is unavailable on the current backend', async () => {
+    process.env.EXPO_PUBLIC_ENABLE_DEV_LOGIN = '1';
     (api.devLogin as jest.Mock).mockRejectedValue({
       status: 404,
       message: '404 page not found',
@@ -80,6 +89,7 @@ describe('LoginScreen', () => {
   });
 
   it('sanitizes technical dev login failures before showing the alert', async () => {
+    process.env.EXPO_PUBLIC_ENABLE_DEV_LOGIN = '1';
     (api.devLogin as jest.Mock).mockRejectedValue(new Error('network down'));
 
     const {getByText} = render(<LoginScreen />);

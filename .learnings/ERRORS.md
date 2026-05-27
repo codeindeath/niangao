@@ -4,6 +4,67 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260528-039] search_card_action_overflow
+
+**Logged**: 2026-05-28T02:10:00+08:00
+**Priority**: high
+**Status**: fixed
+**Area**: frontend
+
+### Summary
+SearchCardScreen could show action buttons from the previous paged search card clipped at the top of the current card when opening a non-zero result index.
+
+### Error
+```
+The simulator screenshot showed the 有启发 / 收藏 action bar at the top edge of SearchCardScreen, partially clipped by the status area.
+```
+
+### Context
+- SearchCardScreen renders paged cards in a FlatList with `initialScrollIndex`.
+- ExperienceCard positioned its action bar with `bottom: -32` so Home could float actions below the card.
+- In paged search results, that negative offset could overflow into the next FlatList item and appear at the top after snapping to `initialIndex > 0`.
+
+### Suggested Fix
+Keep floating action offset contextual: preserve the Home default, but let SearchCardScreen pass a non-negative `actionBottom` so actions stay inside the current paged card. Add a regression test that asserts search-card action bars use non-negative bottom positioning.
+
+### Metadata
+- Reproducible: yes
+- Related Files: mobile/src/components/ExperienceCard.tsx, mobile/src/screens/SearchCardScreen.tsx, mobile/src/__tests__/SearchCardScreen.test.tsx
+- Evidence: /tmp/niangao-search-card-detail2.png, /tmp/niangao-searchcard-actions-fixed.png
+
+---
+
+## [ERR-20260527-038] rntl_find_query_false_negative
+
+**Logged**: 2026-05-28T00:34:00+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: frontend
+
+### Summary
+React Native Testing Library public `findByText` / `findByLabelText` queries returned false negatives in `DetailScreen` tests even when the failure snapshot clearly contained the target text or accessibility label.
+
+### Error
+```
+Unable to find an element with text: 测试经验
+Unable to find an element with accessibility label: 私密经验
+```
+
+### Context
+- The failure snapshot showed `测试经验`, `价值度`, stars, and `accessibilityLabel="私密经验"` already rendered.
+- The older full-tree `UNSAFE_root.findAllByType(Text)` approach was slow and timed out under load.
+- The stable fix was to use small test-local helpers over `toJSON()` for text assertions and targeted `UNSAFE_root.findAll` for accessibility labels / press targets.
+
+### Suggested Fix
+For this RN 0.81 / React 19 / jest-expo 54 setup, prefer focused render-tree helpers in flaky component tests when public RNTL queries produce false negatives despite rendered snapshots.
+
+### Metadata
+- Reproducible: yes
+- Related Files: mobile/src/__tests__/DetailScreen.test.tsx
+- See Also: ERR-20260527-021
+
+---
+
 ## [ERR-20260527-037] git_add_ignored_tracked_paths
 
 **Logged**: 2026-05-28T00:24:00+08:00
