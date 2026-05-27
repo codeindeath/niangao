@@ -18,6 +18,10 @@ func TestMeStatsQueriesUseV4VisibilityFacts(t *testing.T) {
 		"e.visibility='private'",
 		"e.lifecycle_status <> 'deleted'",
 		"e.lifecycle_status='active'",
+		"e.experience_type='user_original'",
+		"e.source_scene IN ('note', 'chat')",
+		"e.source_scene='note'",
+		"e.source_scene='chat'",
 	} {
 		if !strings.Contains(source, required) {
 			t.Fatalf("me stats queries should use V4 predicate %q", required)
@@ -29,6 +33,8 @@ func TestMeStatsQueriesUseV4VisibilityFacts(t *testing.T) {
 		"CASE WHEN e.is_private",
 		"COALESCE(e.lifecycle_status, 'active') <> 'deleted'",
 		"COALESCE(e.lifecycle_status, 'active')='active'",
+		"COALESCE(e.experience_type",
+		"COALESCE(e.source_scene",
 	} {
 		if strings.Contains(source, legacy) {
 			t.Fatalf("me stats queries should not fall back to legacy/V4 default field %q", legacy)

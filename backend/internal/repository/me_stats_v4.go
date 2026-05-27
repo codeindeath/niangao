@@ -24,7 +24,7 @@ func (r *ExperienceRepo) AssetStats(ctx context.Context, userID string) (*model.
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
-			   AND COALESCE(e.source_scene, 'note') IN ('note', 'chat')
+			   AND e.source_scene IN ('note', 'chat')
 			   AND e.created_at >= date_trunc('month', NOW())
 			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL),
@@ -43,13 +43,13 @@ func (r *ExperienceRepo) AssetStats(ctx context.Context, userID string) (*model.
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
-			   AND COALESCE(e.source_scene, 'note')='note'
+			   AND e.source_scene='note'
 			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL),
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
-			   AND COALESCE(e.source_scene, '')='chat'
+			   AND e.source_scene='chat'
 			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL)`,
 		userID,
@@ -75,7 +75,7 @@ func (r *ExperienceRepo) ContributionStats(ctx context.Context, userID string) (
 			SELECT id
 			FROM experiences e
 			WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
-			  AND COALESCE(e.experience_type, 'user_original')='user_original'
+			  AND e.experience_type='user_original'
 			  AND e.visibility='public'
 			  AND e.lifecycle_status='active'
 			  AND e.deleted_at IS NULL
@@ -120,7 +120,7 @@ func (r *ExperienceRepo) ChangeStats(ctx context.Context, userID string) (*model
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
-			   AND COALESCE(e.source_scene, '')='chat'
+			   AND e.source_scene='chat'
 			   AND e.created_at >= date_trunc('month', NOW())
 			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL)`,
@@ -142,7 +142,7 @@ func (r *ExperienceRepo) RecentHarvestStats(ctx context.Context, userID string, 
 			SELECT id
 			FROM experiences e
 			WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
-			  AND COALESCE(e.experience_type, 'user_original')='user_original'
+			  AND e.experience_type='user_original'
 			  AND e.visibility='public'
 			  AND e.lifecycle_status='active'
 			  AND e.deleted_at IS NULL
@@ -151,14 +151,14 @@ func (r *ExperienceRepo) RecentHarvestStats(ctx context.Context, userID string, 
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
-			   AND COALESCE(e.source_scene, 'note')='note'
+			   AND e.source_scene='note'
 			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL
 			   %s),
 			(SELECT COUNT(*)
 			 FROM experiences e
 			 WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
-			   AND COALESCE(e.source_scene, '')='chat'
+			   AND e.source_scene='chat'
 			   AND e.lifecycle_status <> 'deleted'
 			   AND e.deleted_at IS NULL
 			   %s),
@@ -204,7 +204,7 @@ func (r *ExperienceRepo) RecentRespondedExperiences(ctx context.Context, userID 
 				COALESCE(quality_score, 0) AS quality_score
 			FROM experiences e
 			WHERE COALESCE(e.owner_user_id, e.author_id)=$1::uuid
-			  AND COALESCE(e.experience_type, 'user_original')='user_original'
+			  AND e.experience_type='user_original'
 			  AND e.visibility='public'
 			  AND e.lifecycle_status='active'
 			  AND e.deleted_at IS NULL

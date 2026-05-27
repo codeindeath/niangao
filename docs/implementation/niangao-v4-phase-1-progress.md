@@ -2071,6 +2071,29 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-canonical-feed-payload`
     - `git diff --check`
     - production public/authenticated feed/search smoke, cleanup verification, service health checks, and backend/AI `journalctl` severe-error scans
+- 我的 stats and chat candidate canonical V4 field checks pass:
+  - App-facing `/me/stats/*` and `/me/recent-responded-experiences` queries now use canonical V4 `experience_type='user_original'` and `source_scene` facts directly instead of V4 default fallbacks for user-original contribution and note/chat source split semantics
+  - chat candidate retrieval now uses canonical V4 `quality_tier`, `source_reliability`, `topic`, and `experience_type` directly in AI candidate payload/ranking, while still keeping `source_derivation_type` as a compatible emitted value until the future content-production column lands
+  - the Phase 1 contract doc now records that stats and chat candidates must not use legacy/default fallbacks for these V4 semantics
+  - Linux backend artifact `/tmp/niangao-backend-v4-stats-chat-canonical-fields` was deployed to production at `/root/niangao/deployments/20260527000553/server`
+  - production backend binary hash now matches the local stats-chat-canonical-fields artifact:
+    - `c17837436112ffb18e5fdefbe41b33f4e3e2812577903665d9e089062ccf0908`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-stats-chat-canonical-fields.20260527000553.backend`
+  - post-deploy authenticated stats/chat smoke passed with temporary JWT users and cleanup:
+    - `/health` -> 200
+    - `/api/v1/me/stats/assets` -> 200 and verified `my_experiences=2`, `public_experiences=1`, `private_experiences=1`, `from_note=1`, and `from_chat=1`
+    - `/api/v1/me/stats/contribution`, `/api/v1/me/stats/change`, `/api/v1/me/stats/recent-harvest?range=7d`, and `/api/v1/me/recent-responded-experiences?limit=3` -> 200
+    - `POST /api/v1/chat/temp-sessions/:id/messages` -> 200, exercising candidate retrieval before the deployed AI chat call
+    - cleanup verification -> `0|0|0|0|0|0|0|0|0` for temporary users, temporary experiences, temporary collections, temporary inspirations, chat messages, chat topics, temp sessions, citations, and AI call logs tied to the smoke user/data
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, chat-candidate failure, stats failure, feed/search failure, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestMeStatsQueriesUseV4VisibilityFacts|TestChatCandidateQueryUsesCanonicalV4PayloadFields' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestMeStats|TestChatCandidate|TestChatReference|TestPromoteTemp|TestAddChatMessage|TestChatDailyUsage' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-stats-chat-canonical-fields`
+    - `git diff --check`
+    - production authenticated stats/chat smoke, cleanup verification, service health checks, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

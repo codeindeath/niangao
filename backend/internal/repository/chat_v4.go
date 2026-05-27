@@ -651,15 +651,15 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 		WITH collected_recent AS (
 		  SELECT e.id, e.content, COALESCE(e.creator_display_name, u.display_name, u.nickname, '一个年糕用户') AS creator_name,
 		         'collected'::text AS source_relation, e.visibility AS visibility,
-		         COALESCE(e.quality_tier, 'public_visible') AS quality_tier,
-		         COALESCE(e.source_reliability, '') AS source_reliability,
+		         e.quality_tier AS quality_tier,
+		         e.source_reliability AS source_reliability,
 		         '' AS source_derivation_type,
 		         TRUE AS is_collected,
 		         c.created_at AS relation_time,
 		         2 AS source_priority,
 		         CASE WHEN COALESCE(e.domain::text, '')=$2 THEN 2 ELSE 0 END +
 		         CASE WHEN COALESCE(e.sub_domain, '')=$3 AND $3<>'' THEN 1 ELSE 0 END +
-		         CASE WHEN COALESCE(e.topic, '')=$4 AND $4<>'' THEN 1 ELSE 0 END AS relevance_score
+		         CASE WHEN e.topic=$4 AND $4<>'' THEN 1 ELSE 0 END AS relevance_score
 		  FROM experience_collections c
 		  JOIN experiences e ON e.id=c.experience_id
 		  LEFT JOIN users u ON u.id=e.owner_user_id
@@ -672,8 +672,8 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 		own_recent AS (
 		  SELECT e.id, e.content, COALESCE(e.creator_display_name, u.display_name, u.nickname, '你') AS creator_name,
 		         'own'::text AS source_relation, e.visibility AS visibility,
-		         COALESCE(e.quality_tier, 'private_only') AS quality_tier,
-		         COALESCE(e.source_reliability, '') AS source_reliability,
+		         e.quality_tier AS quality_tier,
+		         e.source_reliability AS source_reliability,
 		         'user_original' AS source_derivation_type,
 		         EXISTS (
 		           SELECT 1 FROM experience_collections c
@@ -683,7 +683,7 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 		         1 AS source_priority,
 		         CASE WHEN COALESCE(e.domain::text, '')=$2 THEN 2 ELSE 0 END +
 		         CASE WHEN COALESCE(e.sub_domain, '')=$3 AND $3<>'' THEN 1 ELSE 0 END +
-		         CASE WHEN COALESCE(e.topic, '')=$4 AND $4<>'' THEN 1 ELSE 0 END AS relevance_score
+		         CASE WHEN e.topic=$4 AND $4<>'' THEN 1 ELSE 0 END AS relevance_score
 		  FROM experiences e
 		  LEFT JOIN users u ON u.id=e.owner_user_id
 		  WHERE e.owner_user_id=$1::uuid
@@ -694,24 +694,24 @@ func (r *ConversationRepo) CandidateExperiencesForChat(ctx context.Context, user
 		),
 		public_pool AS (
 		  SELECT e.id, e.content, COALESCE(e.creator_display_name, '精选') AS creator_name,
-		         CASE WHEN COALESCE(e.experience_type, 'platform_selected')='user_original' THEN 'public_original' ELSE 'public' END AS source_relation,
+		         CASE WHEN e.experience_type='user_original' THEN 'public_original' ELSE 'public' END AS source_relation,
 		         e.visibility AS visibility,
-		         COALESCE(e.quality_tier, 'ai_citable') AS quality_tier,
-		         COALESCE(e.source_reliability, '') AS source_reliability,
+		         e.quality_tier AS quality_tier,
+		         e.source_reliability AS source_reliability,
 		         '' AS source_derivation_type,
 		         FALSE AS is_collected,
 		         e.updated_at AS relation_time,
 		         3 AS source_priority,
 		         CASE WHEN COALESCE(e.domain::text, '')=$2 THEN 2 ELSE 0 END +
 		         CASE WHEN COALESCE(e.sub_domain, '')=$3 AND $3<>'' THEN 1 ELSE 0 END +
-		         CASE WHEN COALESCE(e.topic, '')=$4 AND $4<>'' THEN 1 ELSE 0 END AS relevance_score
+		         CASE WHEN e.topic=$4 AND $4<>'' THEN 1 ELSE 0 END AS relevance_score
 		  FROM experiences e
 		  WHERE e.visibility='public'
 		    AND e.lifecycle_status='active'
 		    AND e.deleted_at IS NULL
 		    AND e.ai_citable=TRUE
 		    AND e.quality_tier IN ('ai_citable', 'high_trust')
-		    AND ($5::boolean OR COALESCE(e.source_reliability, '') <> 'low')
+		    AND ($5::boolean OR e.source_reliability <> 'low')
 		  ORDER BY e.updated_at DESC
 		  LIMIT 80
 		)

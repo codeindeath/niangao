@@ -112,6 +112,43 @@ func TestChatReferenceAndCandidateQueriesUseV4VisibilityLifecycleGates(t *testin
 	}
 }
 
+func TestChatCandidateQueryUsesCanonicalV4PayloadFields(t *testing.T) {
+	sourceBytes, err := os.ReadFile("chat_v4.go")
+	if err != nil {
+		t.Fatalf("read chat_v4.go: %v", err)
+	}
+	source := string(sourceBytes)
+
+	candidateStart := strings.Index(source, "func (r *ConversationRepo) CandidateExperiencesForChat")
+	if candidateStart < 0 {
+		t.Fatal("ConversationRepo should implement CandidateExperiencesForChat")
+	}
+	candidateSource := source[candidateStart:]
+
+	for _, required := range []string{
+		"e.quality_tier AS quality_tier",
+		"e.source_reliability AS source_reliability",
+		"CASE WHEN e.experience_type='user_original'",
+		"CASE WHEN e.topic=$4 AND $4<>''",
+		"e.source_reliability <> 'low'",
+	} {
+		if !strings.Contains(candidateSource, required) {
+			t.Fatalf("chat candidate query should use canonical V4 fragment %q", required)
+		}
+	}
+
+	for _, forbidden := range []string{
+		"COALESCE(e.quality_tier",
+		"COALESCE(e.experience_type",
+		"COALESCE(e.source_reliability",
+		"COALESCE(e.topic, '')=$4",
+	} {
+		if strings.Contains(candidateSource, forbidden) {
+			t.Fatalf("chat candidate query should not use V4 field fallback fragment %q", forbidden)
+		}
+	}
+}
+
 func TestChatDailyUsageUsesV4MessagesAndSystemConfig(t *testing.T) {
 	sourceBytes, err := os.ReadFile("chat_v4.go")
 	if err != nil {

@@ -466,6 +466,7 @@ Behavior:
 - If topic classification fails or score is below threshold, chat reply still succeeds and the session remains `temp_session`.
 - If AI fails, keep user message and return retryable error.
 - Candidate experience retrieval is non-fatal; it must use currently deployed V4 fields only. Until content-production fields land, `source_derivation_type` is emitted as a compatible fallback rather than read from `experiences`.
+- Candidate experience payload and ranking use canonical V4 `experience_type`, `topic`, `quality_tier`, and `source_reliability` directly; legacy or default fallbacks must not change the AI candidate semantics.
 - Candidate and historical reference-card visibility use canonical V4 `visibility` and `lifecycle_status`; public active experiences are visible, owner active experiences are usable as own context, and non-visible citations return placeholder cards instead of leaking content.
 
 Response:
@@ -587,7 +588,7 @@ Behavior:
 - `change` returns chat topics, clearer count, and chat-derived experiences.
 - `recent-harvest` supports `7d`, `30d`, and `all`; it returns note-created experiences, chat-derived experiences, new inspired users, and new collections in the selected range.
 - `recent-responded-experiences` returns public user-original experiences with real response data. Cards include content, star rating, domain/sub_domain, inspiration count, collection count, and latest response time.
-- App-facing stats use V4 `visibility` and `lifecycle_status` facts for public/private, contribution, recent-harvest, and recent-responded eligibility; legacy `is_private` and fallback lifecycle predicates must not be used as runtime gates.
+- App-facing stats use V4 `visibility`, `lifecycle_status`, `experience_type`, and `source_scene` facts for public/private, contribution, source split, recent-harvest, and recent-responded eligibility; legacy `is_private` and V4 default fallbacks must not be used as runtime gates.
 - Stats failures must not be shown as zero in the App.
 
 ### 8.3 Account Actions
