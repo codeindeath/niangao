@@ -2431,6 +2431,29 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-rewrite-error-copy`
     - `git diff --check`
     - production backend deploy, hash verification, public health/feed smoke, authenticated temporary JWT rewrite smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Backend feedback error-copy checks pass:
+  - `POST /api/v1/me/feedback` now returns Chinese App-facing messages for malformed feedback payloads and backend submit failures
+  - the App-visible alert path in 我的 no longer depends on English backend fallback copy for these feedback failure cases
+  - Linux backend artifact `/tmp/niangao-backend-v4-feedback-error-copy` was deployed to production at `/root/niangao/deployments/20260527142144/server`
+  - production backend binary hash now matches the local artifact:
+    - `e6ca5774d41f409273b694ca50d3efa66cba95d0916298b5c745437fb1362c37`
+  - production backend binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-feedback-error-copy.20260527142144.backend`
+  - post-deploy public and authenticated feedback smoke passed:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - authenticated malformed `/api/v1/me/feedback` -> 400, `message=反馈内容格式不对`
+    - authenticated valid `/api/v1/me/feedback` -> 201
+    - cleanup temporary feedback rows and users -> `0|0`
+  - post-smoke backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, feedback failure, or real 5xx response
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestV4MeFeedback(InvalidPayloadUsesUserFacingCopy|StoreFailureUsesUserFacingCopy)' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestV4MeFeedback(InvalidPayloadUsesUserFacingCopy|StoreFailureUsesUserFacingCopy)' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run TestV4MeFeedback -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-feedback-error-copy`
+    - `git diff --check`
+    - production backend deploy, hash verification, public health/feed smoke, authenticated temporary JWT feedback smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 
