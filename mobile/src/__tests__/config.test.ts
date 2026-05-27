@@ -53,6 +53,26 @@ describe('config API errors', () => {
     );
   });
 
+  it('uses sibling backend message when legacy string errors include a user-facing message', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 429,
+      headers: {get: jest.fn().mockReturnValue('quota-request-1')},
+      text: jest.fn().mockResolvedValue(JSON.stringify({
+        error: 'chat_quota_exceeded',
+        message: '今日对话已达上限（50轮），明天再来聊吧。',
+        retryable: false,
+      })),
+    });
+
+    await expect(apiPost('/api/v1/chat/temp-sessions/temp-1/messages', {content: '再聊一句'})).rejects.toMatchObject({
+      status: 429,
+      message: '今日对话已达上限（50轮），明天再来聊吧。',
+      code: 'chat_quota_exceeded',
+      requestId: 'quota-request-1',
+    });
+  });
+
   it('aborts slow normal API requests with a structured timeout error', async () => {
     jest.useFakeTimers();
     let signal: AbortSignal | undefined;

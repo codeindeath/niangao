@@ -2183,6 +2183,18 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - production request-id health/feed/CORS smoke and backend/AI `journalctl` severe-error scans
+- Transitional backend error parsing checks pass:
+  - mobile API error parsing now treats transitional backend errors shaped as `{error: "code", message: "user-facing copy"}` as machine-code plus user-facing copy instead of showing the code as copy
+  - this fixes the real deployed V4 chat quota path so Chat can display backend-owned quota text from the network response, not only from mocked `ApiError` objects
+  - structured `{error: {code, message}}` responses and response-header request-id preservation still work
+  - the Phase 1 contract doc now records this transition contract until all App-facing routes move to the structured error envelope
+  - no production backend deployment was needed for this App-only parser slice
+  - verification:
+    - `npm run test -- config.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- config.test.ts ChatScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (23 suites, 128 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 

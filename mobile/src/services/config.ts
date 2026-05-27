@@ -69,7 +69,13 @@ export function isTokenExpired(token: string): boolean {
 function parseErrorPayload(text: string): {message: string; code?: string; requestId?: string} {
   try {
     const json = JSON.parse(text);
-    if (typeof json.error === 'string') return {message: json.error, requestId: json.request_id};
+    if (typeof json.error === 'string') {
+      return {
+        message: typeof json.message === 'string' ? json.message : json.error,
+        code: typeof json.message === 'string' ? json.error : json.code,
+        requestId: json.request_id,
+      };
+    }
     if (json.error && typeof json.error.message === 'string') {
       return {message: json.error.message, code: json.error.code, requestId: json.error.request_id || json.request_id};
     }
