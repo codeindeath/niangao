@@ -119,6 +119,75 @@ func TestV4MeProfileRejectsLongDisplayName(t *testing.T) {
 	}
 }
 
+func TestV4MeProfileGetFailureUsesUserFacingCopy(t *testing.T) {
+	r := gin.New()
+	v1 := r.Group("/api/v1", func(c *gin.Context) {
+		c.Set("user_id", "user-1")
+	})
+	RegisterMeProfileRoutes(v1, &fakeV4MeProfileStore{fail: true})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/api/v1/me/profile", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want 500: %s", w.Code, w.Body.String())
+	}
+	assertStructuredErrorMessage(t, w, "暂时加载不了资料")
+}
+
+func TestV4MeProfileInvalidPayloadUsesUserFacingCopy(t *testing.T) {
+	r := gin.New()
+	v1 := r.Group("/api/v1", func(c *gin.Context) {
+		c.Set("user_id", "user-1")
+	})
+	RegisterMeProfileRoutes(v1, &fakeV4MeProfileStore{})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/api/v1/me/profile", strings.NewReader(`{"display_name":`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400: %s", w.Code, w.Body.String())
+	}
+	assertStructuredErrorMessage(t, w, "资料格式不对")
+}
+
+func TestV4MeProfileUpdateFailureUsesUserFacingCopy(t *testing.T) {
+	r := gin.New()
+	v1 := r.Group("/api/v1", func(c *gin.Context) {
+		c.Set("user_id", "user-1")
+	})
+	RegisterMeProfileRoutes(v1, &fakeV4MeProfileStore{fail: true})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/api/v1/me/profile", strings.NewReader(`{"display_name":"阿树"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want 500: %s", w.Code, w.Body.String())
+	}
+	assertStructuredErrorMessage(t, w, "暂时保存不了资料，请稍后再试")
+}
+
+func assertStructuredErrorMessage(t *testing.T, w *httptest.ResponseRecorder, want string) {
+	t.Helper()
+
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	errBody, ok := body["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("error = %+v, want structured error object", body["error"])
+	}
+	if errBody["message"] != want {
+		t.Fatalf("error.message = %+v, want %q", errBody["message"], want)
+	}
+}
+
 func valueOr(v *string, fallback string) string {
 	if v == nil {
 		return fallback

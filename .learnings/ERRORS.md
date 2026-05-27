@@ -4,6 +4,37 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260527-028] scp_connection_closed_during_backend_deploy
+
+**Logged**: 2026-05-27T14:50:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+A production backend deploy upload failed because the SCP connection was closed before the artifact reached the timestamped deployment directory.
+
+### Error
+```
+Connection closed by 115.190.177.146 port 22
+scp: Connection closed
+```
+
+### Context
+- Operation attempted: upload `/tmp/niangao-backend-v4-profile-error-copy` to `/root/niangao/deployments/20260527144814/server`.
+- The failure happened before replacing `/root/niangao/backend/server`; a follow-up SSH check confirmed `niangao-backend` was still active and still running the previous artifact hash.
+- The upload was retried, the uploaded hash matched the local artifact, and only then was the backend binary replaced and restarted.
+
+### Suggested Fix
+After any interrupted deploy upload, verify the running binary hash and service health before retrying. Do not proceed to `install` or restart until the uploaded artifact hash matches the local artifact.
+
+### Metadata
+- Reproducible: no
+- Related Files: docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-004
+
+---
+
 ## [ERR-20260527-027] python39_union_type_annotation
 
 **Logged**: 2026-05-27T04:40:51Z

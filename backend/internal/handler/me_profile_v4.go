@@ -38,7 +38,7 @@ func (h *MeProfileHandler) Get(c *gin.Context) {
 	profile, err := h.store.MeProfile(c.Request.Context(), userID)
 	if err != nil {
 		log.Printf("v4 me profile failed user=%s: %v", userID, err)
-		respondError(c, http.StatusInternalServerError, "profile_load_failed", "failed to load profile")
+		respondError(c, http.StatusInternalServerError, "profile_load_failed", "暂时加载不了资料")
 		return
 	}
 	c.JSON(http.StatusOK, profile)
@@ -52,7 +52,7 @@ func (h *MeProfileHandler) Update(c *gin.Context) {
 
 	var patch model.MeProfilePatch
 	if err := c.ShouldBindJSON(&patch); err != nil {
-		respondError(c, http.StatusBadRequest, "invalid_profile_payload", "invalid profile payload")
+		respondError(c, http.StatusBadRequest, "invalid_profile_payload", "资料格式不对")
 		return
 	}
 	if err := normalizeMeProfilePatch(&patch); err != nil {
@@ -63,7 +63,7 @@ func (h *MeProfileHandler) Update(c *gin.Context) {
 	profile, err := h.store.UpdateMeProfile(c.Request.Context(), userID, patch)
 	if err != nil {
 		log.Printf("v4 me profile update failed user=%s: %v", userID, err)
-		respondError(c, http.StatusInternalServerError, "profile_update_failed", "failed to update profile")
+		respondError(c, http.StatusInternalServerError, "profile_update_failed", "暂时保存不了资料，请稍后再试")
 		return
 	}
 	c.JSON(http.StatusOK, profile)

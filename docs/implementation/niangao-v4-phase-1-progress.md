@@ -2454,6 +2454,31 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-feedback-error-copy`
     - `git diff --check`
     - production backend deploy, hash verification, public health/feed smoke, authenticated temporary JWT feedback smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Backend profile error-copy checks pass:
+  - `GET/PATCH /api/v1/me/profile` now returns Chinese App-facing messages for profile load failure, malformed profile payloads, and profile update failure
+  - the App-visible alert paths in 我的资料编辑 and first-time display-name setup no longer depend on English backend fallback copy for these profile failure cases
+  - Linux backend artifact `/tmp/niangao-backend-v4-profile-error-copy` was deployed to production at `/root/niangao/deployments/20260527144814/server`
+  - production backend binary hash now matches the local artifact:
+    - `11af3d547b035ea80f58d4ad4aea5a288e0b4ff7bc41092539dedb16f6bd6ba4`
+  - production backend binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-profile-error-copy.20260527144814.backend`
+  - the first `scp` upload attempt closed before the artifact reached the remote deployment path; the running backend was verified still active on the previous hash, the upload was retried, and replacement happened only after the uploaded hash matched the local artifact
+  - post-deploy public and authenticated profile smoke passed:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - authenticated `/api/v1/me/profile` -> 200, `display_name=Codex Smoke`
+    - authenticated malformed `PATCH /api/v1/me/profile` -> 400, `message=资料格式不对`
+    - authenticated valid `PATCH /api/v1/me/profile` -> 200, `display_name=Codex Smoke 2`
+    - cleanup temporary users -> 0
+  - post-smoke backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, profile failure, profile update failure, or real 5xx response
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestV4MeProfile(GetFailureUsesUserFacingCopy|InvalidPayloadUsesUserFacingCopy|UpdateFailureUsesUserFacingCopy)' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestV4MeProfile(GetFailureUsesUserFacingCopy|InvalidPayloadUsesUserFacingCopy|UpdateFailureUsesUserFacingCopy)' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run TestV4MeProfile -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-profile-error-copy`
+    - `git diff --check`
+    - production backend deploy, hash verification, public health/feed smoke, authenticated temporary JWT profile smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 
