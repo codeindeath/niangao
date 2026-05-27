@@ -2728,6 +2728,16 @@ Current result:
   - verification:
     - `rg -n "缺少 refresh_token 参数|missing_refresh_token|登录信息不完整，请重新登录" docs/implementation/niangao-v4-phase-1-progress.md backend/internal/handler/auth.go backend/internal/handler/app_error_contract_test.go`
     - `git diff --check`
+- App local Expo runtime baseline checks pass:
+  - no existing Metro/Expo service or booted iOS simulator was active before the check
+  - `npm run start -- --localhost` started Expo/Metro for the mobile project
+  - `GET http://127.0.0.1:8081/status` returned `packager-status:running`
+  - the listener on TCP `*:8081` belonged to the expected Expo node process under `/Users/swt/projects/niangao/mobile`
+  - the Expo server was stopped after verification, leaving no required long-running command session
+  - verification:
+    - `lsof -nP -iTCP:8081 -sTCP:LISTEN`
+    - `curl -sS http://127.0.0.1:8081/status`
+    - Expo session stop output `Stopped server`
 
 Not verified yet:
 
