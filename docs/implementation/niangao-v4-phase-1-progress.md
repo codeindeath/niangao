@@ -2719,6 +2719,10 @@ Current result:
     - `npm run test -- --runInBand`
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- App account API test contract drift cleanup checks pass:
+  - mobile account API tests now use the deployed V4 account-cancellation success copy `账号已注销` instead of the older `账号已删除` mock copy
+  - verification:
+    - `npm run test -- apiAccount.test.ts --runInBand --no-cache`
 
 Not verified yet:
 
