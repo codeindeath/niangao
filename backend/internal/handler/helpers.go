@@ -12,7 +12,7 @@ import (
 func getAuthUserID(c *gin.Context) string {
 	uid, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "请先登录"})
+		respondError(c, http.StatusUnauthorized, "auth_required", "请先登录")
 		c.Abort()
 		return ""
 	}
@@ -60,4 +60,32 @@ func deprecatedMobileEndpoint(c *gin.Context) {
 		"code":    "deprecated_endpoint",
 		"message": "endpoint deprecated; use V4 API contract",
 	}})
+}
+
+func respondError(c *gin.Context, status int, code string, message string) {
+	respondErrorWith(c, status, code, message, nil)
+}
+
+func respondErrorWith(c *gin.Context, status int, code string, message string, extra gin.H) {
+	errorBody := gin.H{
+		"code":    code,
+		"message": message,
+	}
+	if requestID := requestIDFromContext(c); requestID != "" {
+		errorBody["request_id"] = requestID
+	}
+	body := gin.H{"error": errorBody}
+	for key, value := range extra {
+		body[key] = value
+	}
+	c.JSON(status, body)
+}
+
+func requestIDFromContext(c *gin.Context) string {
+	raw, exists := c.Get("request_id")
+	if !exists {
+		return ""
+	}
+	requestID, _ := raw.(string)
+	return requestID
 }

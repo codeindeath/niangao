@@ -25,7 +25,7 @@ func deleteMeAccount(c *gin.Context, db *pgxpool.Pool) {
 
 	tx, err := db.Begin(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除账号失败"})
+		respondError(c, http.StatusInternalServerError, "account_delete_failed", "删除账号失败")
 		return
 	}
 	defer tx.Rollback(c.Request.Context())
@@ -45,24 +45,24 @@ func deleteMeAccount(c *gin.Context, db *pgxpool.Pool) {
 		userID,
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除账号失败"})
+		respondError(c, http.StatusInternalServerError, "account_delete_failed", "删除账号失败")
 		return
 	}
 	if ct.RowsAffected() == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		respondError(c, http.StatusNotFound, "user_not_found", "用户不存在")
 		return
 	}
 
 	if _, err := tx.Exec(c.Request.Context(), `DELETE FROM refresh_tokens WHERE user_id = $1`, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除账号失败"})
+		respondError(c, http.StatusInternalServerError, "account_delete_failed", "删除账号失败")
 		return
 	}
 	if _, err := tx.Exec(c.Request.Context(), `DELETE FROM token_revocations WHERE user_id = $1`, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除账号失败"})
+		respondError(c, http.StatusInternalServerError, "account_delete_failed", "删除账号失败")
 		return
 	}
 	if err := tx.Commit(c.Request.Context()); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除账号失败"})
+		respondError(c, http.StatusInternalServerError, "account_delete_failed", "删除账号失败")
 		return
 	}
 

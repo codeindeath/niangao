@@ -84,7 +84,16 @@ func RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get("user_id")
 		if !exists || userID == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "请先登录"})
+			errorBody := gin.H{
+				"code":    "auth_required",
+				"message": "请先登录",
+			}
+			if requestID, _ := c.Get(RequestIDContextKey); requestID != nil {
+				if s, ok := requestID.(string); ok && s != "" {
+					errorBody["request_id"] = s
+				}
+			}
+			c.JSON(http.StatusUnauthorized, gin.H{"error": errorBody})
 			c.Abort()
 			return
 		}

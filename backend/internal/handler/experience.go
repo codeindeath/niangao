@@ -55,23 +55,23 @@ func (h *ExperienceHandler) Rewrite(c *gin.Context) {
 	}
 	var req model.ExperienceRewriteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid rewrite payload"})
+		respondError(c, http.StatusBadRequest, "invalid_rewrite_payload", "invalid rewrite payload")
 		return
 	}
 	req.Content = strings.TrimSpace(req.Content)
 	if req.Content == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "content is required"})
+		respondError(c, http.StatusBadRequest, "content_required", "content is required")
 		return
 	}
 	if len([]rune(req.Content)) > 2000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "content is too long"})
+		respondError(c, http.StatusBadRequest, "content_too_long", "content is too long")
 		return
 	}
 	if req.Source == "" {
 		req.Source = "manual_note"
 	}
 	if req.Source != "manual_note" && req.Source != "chat_note" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid source"})
+		respondError(c, http.StatusBadRequest, "invalid_source", "invalid source")
 		return
 	}
 	if req.DefaultVisibility == "" {
@@ -82,24 +82,24 @@ func (h *ExperienceHandler) Rewrite(c *gin.Context) {
 		}
 	}
 	if !model.IsValidVisibility(req.DefaultVisibility) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid default_visibility"})
+		respondError(c, http.StatusBadRequest, "invalid_default_visibility", "invalid default_visibility")
 		return
 	}
 	if req.UserSelectedDomain != "" && !model.IsValidDomain(req.UserSelectedDomain) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_selected_domain"})
+		respondError(c, http.StatusBadRequest, "invalid_user_selected_domain", "invalid user_selected_domain")
 		return
 	}
 	if req.UserSelectedSubDomain != "" && !model.IsValidSubDomain(req.UserSelectedSubDomain) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_selected_sub_domain"})
+		respondError(c, http.StatusBadRequest, "invalid_user_selected_sub_domain", "invalid user_selected_sub_domain")
 		return
 	}
 	if req.UserSelectedDomain != "" && req.UserSelectedSubDomain != "" &&
 		!model.SubDomainBelongsToParent(req.UserSelectedDomain, req.UserSelectedSubDomain) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "sub_domain does not belong to domain"})
+		respondError(c, http.StatusBadRequest, "invalid_sub_domain_parent", "sub_domain does not belong to domain")
 		return
 	}
 	if h.aiGateway == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "rewrite service unavailable", "retryable": true})
+		respondErrorWith(c, http.StatusServiceUnavailable, "rewrite_service_unavailable", "rewrite service unavailable", gin.H{"retryable": true})
 		return
 	}
 
@@ -115,12 +115,12 @@ func (h *ExperienceHandler) Rewrite(c *gin.Context) {
 	})
 	if err != nil || result == nil {
 		log.Printf("v4 rewrite gateway failed user=%s: %v", userID, err)
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "rewrite service unavailable", "retryable": true})
+		respondErrorWith(c, http.StatusServiceUnavailable, "rewrite_service_unavailable", "rewrite service unavailable", gin.H{"retryable": true})
 		return
 	}
 	result.RewrittenContent = strings.TrimSpace(result.RewrittenContent)
 	if result.CanRewrite && (result.RewrittenContent == "" || len([]rune(result.RewrittenContent)) > 100) {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "invalid rewrite output", "retryable": true})
+		respondErrorWith(c, http.StatusBadGateway, "invalid_rewrite_output", "invalid rewrite output", gin.H{"retryable": true})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -144,7 +144,7 @@ func (h *ExperienceHandler) Get(c *gin.Context) {
 
 	exp, err := h.repo.GetByID(c.Request.Context(), id, viewerStr)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "experience not found"})
+		respondError(c, http.StatusNotFound, "experience_not_found", "experience not found")
 		return
 	}
 
@@ -240,12 +240,12 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 
 	var req model.CreateExperienceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请输入经验内容"})
+		respondError(c, http.StatusBadRequest, "invalid_experience_payload", "请输入经验内容")
 		return
 	}
 
 	if err := normalizeCreateExperienceRequest(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(c, http.StatusBadRequest, "invalid_experience", err.Error())
 		return
 	}
 
@@ -253,14 +253,11 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		displayName, err := h.repo.GetUserDisplayName(c.Request.Context(), userID)
 		if err != nil {
 			log.Printf("display name gate failed user=%s: %v", userID, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check display name"})
+			respondError(c, http.StatusInternalServerError, "display_name_check_failed", "failed to check display name")
 			return
 		}
 		if strings.TrimSpace(displayName) == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{
-				"code":    "display_name_required",
-				"message": "需要先设置展示名",
-			}})
+			respondError(c, http.StatusBadRequest, "display_name_required", "需要先设置展示名")
 			return
 		}
 	}
@@ -273,7 +270,7 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 	exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
 		reviewStatus, nil, nil, nil, nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save experience"})
+		respondError(c, http.StatusInternalServerError, "experience_save_failed", "failed to save experience")
 		return
 	}
 
@@ -399,17 +396,17 @@ func (h *ExperienceHandler) Update(c *gin.Context) {
 
 	var req model.CreateExperienceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请输入经验内容"})
+		respondError(c, http.StatusBadRequest, "invalid_experience_payload", "请输入经验内容")
 		return
 	}
 
 	if err := normalizeCreateExperienceRequest(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(c, http.StatusBadRequest, "invalid_experience", err.Error())
 		return
 	}
 
 	if err := h.repo.Update(c.Request.Context(), id, userID, req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update"})
+		respondError(c, http.StatusInternalServerError, "experience_update_failed", "failed to update")
 		return
 	}
 
@@ -424,7 +421,7 @@ func (h *ExperienceHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := h.repo.Delete(c.Request.Context(), id, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete"})
+		respondError(c, http.StatusInternalServerError, "experience_delete_failed", "failed to delete")
 		return
 	}
 

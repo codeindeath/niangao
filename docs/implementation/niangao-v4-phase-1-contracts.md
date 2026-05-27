@@ -28,7 +28,8 @@ Source of truth:
 - Backend echoes incoming `X-Request-ID`; if absent, backend generates one and stores it in the Gin context as `request_id`.
 - Backend responses expose `X-Request-ID` through CORS so App/Web clients can attach it to diagnostics.
 - App `ApiError` preserves the response request id from either structured error payloads (`request_id`) or the `X-Request-ID` response header.
-- When a transitional backend error uses `{ "error": "code", "message": "user-facing copy" }`, App treats `error` as the machine code and `message` as the user-facing text. This keeps backend-owned copy such as chat quota messages visible until every route moves to the structured error envelope.
+- App-facing V4 backend errors use the structured envelope `{ "error": { "code": "...", "message": "...", "request_id": "..." } }`. Business flags that the App acts on, such as `retryable` or `user_message_id`, remain top-level siblings.
+- When a transitional backend error uses `{ "error": "code", "message": "user-facing copy" }`, App treats `error` as the machine code and `message` as the user-facing text for compatibility, but new App-facing V4 handlers must not emit this shape.
 - Backend access logs are JSON objects and include `request_id`, `method`, `path`, `status`, `latency_ms`, and `client_ip`; they must not log request bodies, authorization headers, or query-string secrets.
 
 ## 2. Shared Experience Card Shape

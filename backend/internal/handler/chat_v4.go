@@ -72,7 +72,7 @@ func (h *ChatV4Handler) RecentTopics(c *gin.Context) {
 	topics, err := h.store.RecentChatTopics(c.Request.Context(), userID, 10)
 	if err != nil {
 		log.Printf("v4 recent topics failed user=%s: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load recent topics"})
+		respondError(c, http.StatusInternalServerError, "recent_topics_load_failed", "暂时加载不了最近聊过的话题")
 		return
 	}
 	if topics == nil {
@@ -89,7 +89,7 @@ func (h *ChatV4Handler) Topics(c *gin.Context) {
 	page, err := h.store.ChatTopics(c.Request.Context(), userID, parseFeedLimit(c), c.Query("cursor"))
 	if err != nil {
 		log.Printf("v4 topics failed user=%s: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load topics"})
+		respondError(c, http.StatusInternalServerError, "topics_load_failed", "暂时加载不了话题")
 		return
 	}
 	if page == nil {
@@ -113,7 +113,7 @@ func (h *ChatV4Handler) CreateTempSession(c *gin.Context) {
 	session, err := h.store.CreateTempSession(c.Request.Context(), userID, req.ForcedNewTopic)
 	if err != nil {
 		log.Printf("v4 create temp session failed user=%s: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create temp session"})
+		respondError(c, http.StatusInternalServerError, "temp_session_create_failed", "暂时开始不了对话")
 		return
 	}
 	c.JSON(http.StatusCreated, session)
@@ -126,13 +126,13 @@ func (h *ChatV4Handler) CreateTopic(c *gin.Context) {
 	}
 	var req model.CreateChatTopicRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid topic payload"})
+		respondError(c, http.StatusBadRequest, "invalid_topic_payload", "话题内容不完整")
 		return
 	}
 	topic, err := h.store.CreateChatTopic(c.Request.Context(), userID, req)
 	if err != nil {
 		log.Printf("v4 create topic failed user=%s: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create topic"})
+		respondError(c, http.StatusInternalServerError, "topic_create_failed", "暂时创建不了话题")
 		return
 	}
 	c.JSON(http.StatusCreated, topic)
@@ -145,13 +145,13 @@ func (h *ChatV4Handler) UpdateTopic(c *gin.Context) {
 	}
 	var req model.UpdateChatTopicRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid topic payload"})
+		respondError(c, http.StatusBadRequest, "invalid_topic_payload", "话题内容不完整")
 		return
 	}
 	topic, err := h.store.UpdateChatTopic(c.Request.Context(), userID, c.Param("id"), req)
 	if err != nil {
 		log.Printf("v4 update topic failed user=%s topic=%s: %v", userID, c.Param("id"), err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update topic"})
+		respondError(c, http.StatusInternalServerError, "topic_update_failed", "暂时更新不了话题")
 		return
 	}
 	c.JSON(http.StatusOK, topic)
@@ -164,7 +164,7 @@ func (h *ChatV4Handler) DeleteTopic(c *gin.Context) {
 	}
 	if err := h.store.DeleteChatTopic(c.Request.Context(), userID, c.Param("id")); err != nil {
 		log.Printf("v4 delete topic failed user=%s topic=%s: %v", userID, c.Param("id"), err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete topic"})
+		respondError(c, http.StatusInternalServerError, "topic_delete_failed", "暂时删除不了话题")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
@@ -179,11 +179,11 @@ func (h *ChatV4Handler) TopicMessages(c *gin.Context) {
 	page, err := h.store.ChatMessages(c.Request.Context(), userID, scope, parseFeedLimit(c), c.Query("cursor"))
 	if err != nil {
 		if errors.Is(err, repository.ErrExperienceUnavailable) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "topic not found"})
+			respondError(c, http.StatusNotFound, "topic_not_found", "这个话题不存在或已不可用")
 			return
 		}
 		log.Printf("v4 chat messages failed user=%s topic=%s: %v", userID, scope.ID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load messages"})
+		respondError(c, http.StatusInternalServerError, "chat_messages_load_failed", "暂时加载不了对话")
 		return
 	}
 	if page == nil {
@@ -211,36 +211,34 @@ func (h *ChatV4Handler) sendMessage(c *gin.Context, scope model.ChatMessageScope
 
 	var req model.SendChatMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid message payload"})
+		respondError(c, http.StatusBadRequest, "invalid_message_payload", "消息内容不完整")
 		return
 	}
 	content := strings.TrimSpace(req.Content)
 	if content == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "message content is required"})
+		respondError(c, http.StatusBadRequest, "message_content_required", "先写点想聊的内容")
 		return
 	}
 	if len([]rune(content)) > 2000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "message content is too long"})
+		respondError(c, http.StatusBadRequest, "message_content_too_long", "这次说得太长了，先拆成一小段")
 		return
 	}
 
 	scopeContext, err := h.store.VerifyChatScope(c.Request.Context(), userID, scope)
 	if err != nil {
 		if errors.Is(err, repository.ErrExperienceUnavailable) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "chat scope not found"})
+			respondError(c, http.StatusNotFound, "chat_scope_not_found", "这段对话不存在或已不可用")
 			return
 		}
 		log.Printf("v4 verify chat scope failed user=%s scope=%s/%s: %v", userID, scope.Kind, scope.ID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to verify chat scope"})
+		respondError(c, http.StatusInternalServerError, "chat_scope_verify_failed", "暂时确认不了对话状态")
 		return
 	}
 
 	used, limit, err := h.store.ChatDailyUsage(c.Request.Context(), userID)
 	if err != nil {
 		log.Printf("v4 check chat daily quota failed user=%s scope=%s/%s: %v", userID, scope.Kind, scope.ID, err)
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error":     "chat quota unavailable",
-			"message":   "暂时没法确认今日对话额度，请稍后再试。",
+		respondErrorWith(c, http.StatusServiceUnavailable, "chat_quota_unavailable", "暂时没法确认今日对话额度，请稍后再试。", gin.H{
 			"retryable": true,
 		})
 		return
@@ -249,9 +247,7 @@ func (h *ChatV4Handler) sendMessage(c *gin.Context, scope model.ChatMessageScope
 		limit = defaultChatDailyLimit
 	}
 	if used >= limit {
-		c.JSON(http.StatusTooManyRequests, gin.H{
-			"error":     "chat_quota_exceeded",
-			"message":   chatQuotaExceededMessage(limit),
+		respondErrorWith(c, http.StatusTooManyRequests, "chat_quota_exceeded", chatQuotaExceededMessage(limit), gin.H{
 			"retryable": false,
 		})
 		return
@@ -271,13 +267,12 @@ func (h *ChatV4Handler) sendMessage(c *gin.Context, scope model.ChatMessageScope
 	})
 	if err != nil {
 		log.Printf("v4 save user chat message failed user=%s scope=%s/%s: %v", userID, scope.Kind, scope.ID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save message"})
+		respondError(c, http.StatusInternalServerError, "chat_message_save_failed", "暂时发送不了这条消息")
 		return
 	}
 
 	if h.gateway == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error":           "chat service unavailable",
+		respondErrorWith(c, http.StatusServiceUnavailable, "chat_service_unavailable", "暂时聊不了，请稍后再试。", gin.H{
 			"retryable":       true,
 			"user_message_id": userMsg.ID,
 		})
@@ -314,8 +309,7 @@ func (h *ChatV4Handler) sendMessage(c *gin.Context, scope model.ChatMessageScope
 	aiResp, err := h.gateway.GenerateChatReply(c.Request.Context(), gatewayReq)
 	if err != nil || aiResp == nil || strings.TrimSpace(aiResp.ReplyText) == "" {
 		log.Printf("v4 chat gateway failed user=%s scope=%s/%s message=%s: %v", userID, scope.Kind, scope.ID, userMsg.ID, err)
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error":           "chat service unavailable",
+		respondErrorWith(c, http.StatusServiceUnavailable, "chat_service_unavailable", "暂时聊不了，请稍后再试。", gin.H{
 			"retryable":       true,
 			"user_message_id": userMsg.ID,
 		})
@@ -342,7 +336,7 @@ func (h *ChatV4Handler) sendMessage(c *gin.Context, scope model.ChatMessageScope
 	})
 	if err != nil {
 		log.Printf("v4 save assistant chat message failed user=%s scope=%s/%s: %v", userID, scope.Kind, scope.ID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save assistant message"})
+		respondError(c, http.StatusInternalServerError, "assistant_message_save_failed", "暂时保存不了回复")
 		return
 	}
 	if len(cards) > 0 {

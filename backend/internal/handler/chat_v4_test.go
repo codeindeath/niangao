@@ -633,11 +633,15 @@ func TestV4ChatSendRejectsDailyQuotaBeforeSavingMessage(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if body["error"] != "chat_quota_exceeded" {
-		t.Fatalf("error = %+v, want chat_quota_exceeded", body["error"])
+	errBody, ok := body["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("error = %+v, want structured error object", body["error"])
 	}
-	if body["message"] != "今日对话已达上限（50轮），明天再来聊吧。" {
-		t.Fatalf("message = %+v, want backend-owned quota copy", body["message"])
+	if errBody["code"] != "chat_quota_exceeded" {
+		t.Fatalf("error.code = %+v, want chat_quota_exceeded", errBody["code"])
+	}
+	if errBody["message"] != "今日对话已达上限（50轮），明天再来聊吧。" {
+		t.Fatalf("error.message = %+v, want backend-owned quota copy", errBody["message"])
 	}
 	if retryable, _ := body["retryable"].(bool); retryable {
 		t.Fatalf("retryable = %+v, want false", body["retryable"])

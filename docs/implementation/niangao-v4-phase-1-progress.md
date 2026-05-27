@@ -2218,6 +2218,32 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-structured-access-logs`
     - `git diff --check`
     - production structured-log smoke and backend/AI `journalctl` severe-error scans
+- App-facing backend structured-error checks pass:
+  - App-facing V4 handlers now return errors as `{ "error": { "code": "...", "message": "...", "request_id": "..." } }`
+  - `retryable` and `user_message_id` remain top-level business fields so App retry and saved-user-message flows keep their current behavior
+  - auth middleware and shared `getAuthUserID` now use the same `auth_required` structured envelope
+  - chat quota rejection now returns structured `error.code=chat_quota_exceeded` while preserving the backend-owned quota copy and `retryable=false`
+  - a static contract test prevents `auth`, `chat`, `experience`, `feed`, `search`, and `me` App-facing handlers from reintroducing transitional string errors; admin routes are outside this slice
+  - the Phase 1 contract doc now records the structured error envelope as the App-facing V4 standard and limits transitional string errors to compatibility only
+  - Linux backend artifact `/tmp/niangao-backend-v4-structured-errors` was deployed to production at `/root/niangao/deployments/20260527090258/server`
+  - production backend binary hash now matches the local structured-error artifact:
+    - `e41d0c136b7c9bd7072515c25314782e1e0263e922eef423e5263f89a2f1352d`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-structured-errors.20260527090258.backend`
+  - post-deploy structured-error smoke passed:
+    - `/health` -> 200 and echoed `X-Request-ID: codex-smoke-structured-health`
+    - `/api/v1/feed/recommend?limit=1` -> 200 and echoed `X-Request-ID: codex-smoke-structured-feed`
+    - unauthenticated `/api/v1/me/profile` -> 401 with `error.code=auth_required`, `message=请先登录`, and `request_id=codex-smoke-structured-auth`
+    - `POST /api/v1/auth/refresh` with `{}` -> 400 with `error.code=missing_refresh_token`, `message=缺少 refresh_token 参数`, and `request_id=codex-smoke-structured-refresh`
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, or real 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run TestAppFacingV4HandlersUseStructuredErrorResponses -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestAppFacingV4HandlersUseStructuredErrorResponses|TestV4ChatSendRejectsDailyQuotaBeforeSavingMessage|TestV4Chat|TestExperience|TestV4Feed|TestV4Search|TestMe|TestV4Experience' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/middleware -run TestAuth -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-structured-errors`
+    - `npm run test -- config.test.ts ChatScreen.test.tsx --runInBand --no-cache`
+    - production structured-error health/feed/auth/refresh smoke and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

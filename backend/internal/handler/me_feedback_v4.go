@@ -43,17 +43,17 @@ func (h *MeFeedbackHandler) Create(c *gin.Context) {
 
 	var req meFeedbackRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid feedback payload"})
+		respondError(c, http.StatusBadRequest, "invalid_feedback_payload", "invalid feedback payload")
 		return
 	}
 	if err := normalizeMeFeedbackRequest(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(c, http.StatusBadRequest, "invalid_feedback", err.Error())
 		return
 	}
 
 	if err := h.store.CreateMeFeedback(c.Request.Context(), userID, req.Type, req.Content, req.AppVersion, req.Device, req.OSVersion); err != nil {
 		log.Printf("v4 me feedback failed user=%s: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit feedback"})
+		respondError(c, http.StatusInternalServerError, "feedback_submit_failed", "failed to submit feedback")
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"status": "ok"})

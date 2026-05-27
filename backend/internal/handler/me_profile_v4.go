@@ -38,7 +38,7 @@ func (h *MeProfileHandler) Get(c *gin.Context) {
 	profile, err := h.store.MeProfile(c.Request.Context(), userID)
 	if err != nil {
 		log.Printf("v4 me profile failed user=%s: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load profile"})
+		respondError(c, http.StatusInternalServerError, "profile_load_failed", "failed to load profile")
 		return
 	}
 	c.JSON(http.StatusOK, profile)
@@ -52,18 +52,18 @@ func (h *MeProfileHandler) Update(c *gin.Context) {
 
 	var patch model.MeProfilePatch
 	if err := c.ShouldBindJSON(&patch); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile payload"})
+		respondError(c, http.StatusBadRequest, "invalid_profile_payload", "invalid profile payload")
 		return
 	}
 	if err := normalizeMeProfilePatch(&patch); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(c, http.StatusBadRequest, "invalid_profile", err.Error())
 		return
 	}
 
 	profile, err := h.store.UpdateMeProfile(c.Request.Context(), userID, patch)
 	if err != nil {
 		log.Printf("v4 me profile update failed user=%s: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update profile"})
+		respondError(c, http.StatusInternalServerError, "profile_update_failed", "failed to update profile")
 		return
 	}
 	c.JSON(http.StatusOK, profile)

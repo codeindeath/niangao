@@ -47,11 +47,11 @@ func (h *ExperienceActionHandler) Inspire(c *gin.Context) {
 	already, err := h.store.InspireExperience(c.Request.Context(), userID, c.Param("id"))
 	if err != nil {
 		if errors.Is(err, repository.ErrExperienceUnavailable) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "experience not found"})
+			respondError(c, http.StatusNotFound, "experience_not_found", "experience not found")
 			return
 		}
 		log.Printf("v4 inspire failed experience=%s user=%s: %v", c.Param("id"), userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to mark inspiration"})
+		respondError(c, http.StatusInternalServerError, "inspiration_failed", "failed to mark inspiration")
 		return
 	}
 	if already {
@@ -70,11 +70,11 @@ func (h *ExperienceActionHandler) Collect(c *gin.Context) {
 	already, err := h.store.CollectExperience(c.Request.Context(), userID, c.Param("id"))
 	if err != nil {
 		if errors.Is(err, repository.ErrExperienceUnavailable) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "experience not found"})
+			respondError(c, http.StatusNotFound, "experience_not_found", "experience not found")
 			return
 		}
 		log.Printf("v4 collect failed experience=%s user=%s: %v", c.Param("id"), userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to collect experience"})
+		respondError(c, http.StatusInternalServerError, "collect_failed", "failed to collect experience")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"collected": true, "already_collected": already})
@@ -88,11 +88,11 @@ func (h *ExperienceActionHandler) Uncollect(c *gin.Context) {
 
 	if err := h.store.UncollectExperience(c.Request.Context(), userID, c.Param("id")); err != nil {
 		if errors.Is(err, repository.ErrExperienceUnavailable) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "experience not found"})
+			respondError(c, http.StatusNotFound, "experience_not_found", "experience not found")
 			return
 		}
 		log.Printf("v4 uncollect failed experience=%s user=%s: %v", c.Param("id"), userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove collection"})
+		respondError(c, http.StatusInternalServerError, "uncollect_failed", "failed to remove collection")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"collected": false})
@@ -101,21 +101,21 @@ func (h *ExperienceActionHandler) Uncollect(c *gin.Context) {
 func (h *ExperienceActionHandler) RecordEvent(c *gin.Context) {
 	var req ExperienceEventRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event request"})
+		respondError(c, http.StatusBadRequest, "invalid_event_request", "invalid event request")
 		return
 	}
 	if err := normalizeExperienceEventRequest(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(c, http.StatusBadRequest, "invalid_event", err.Error())
 		return
 	}
 
 	if err := h.store.RecordExperienceEvent(c.Request.Context(), getOptionalUserID(c), c.Param("id"), req); err != nil {
 		if errors.Is(err, repository.ErrExperienceUnavailable) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "experience not found"})
+			respondError(c, http.StatusNotFound, "experience_not_found", "experience not found")
 			return
 		}
 		log.Printf("v4 event failed event=%s experience=%s user=%s: %v", req.EventType, c.Param("id"), getOptionalUserID(c), err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to record experience event"})
+		respondError(c, http.StatusInternalServerError, "experience_event_failed", "failed to record experience event")
 		return
 	}
 	c.Status(http.StatusNoContent)
