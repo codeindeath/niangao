@@ -2604,6 +2604,32 @@ Current result:
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
     - static scan for direct `Alert.alert(... e.message ...)` / `err.message` usage in `mobile/src/screens` and `mobile/src/utils`
+- AI service legacy direct-route exposure checks pass:
+  - AI service now registers only `/api/v1/ai-gateway/call` by default, keeping legacy direct `/api/v1/chat/*`, `/api/v1/review`, `/api/v1/translate`, and `/api/v1/normalize` routes behind explicit `ENABLE_LEGACY_AI_ROUTES`
+  - legacy route implementations remain available for later content-production/admin work when the environment flag is deliberately enabled
+  - legacy review route type annotations were made compatible with the production Python runtime so explicit legacy enablement still imports cleanly
+  - AI service archive `/tmp/niangao-ai-service-v4-gateway-only.tgz` was deployed to production at `/root/niangao/deployments/20260527172520/ai-service.tgz`
+  - production archive hash matched the local artifact:
+    - `4cc98b5b4d9ba5e2a966cdbcc4cd6ff462e004292917da40bd75c19a75f2db01`
+  - production AI service backup was created before extraction:
+    - `/root/niangao/backups/ai-service.before-v4-gateway-only.20260527172520.tgz`
+  - remote pytest passed before restart; initial remote `compileall` failed only on macOS AppleDouble `._*.py` metadata files in the archive, those metadata files were deleted before service restart, and the deployment got a learning entry `ERR-20260527-030`
+  - post-deploy AI service smoke passed:
+    - `/ai/health` -> 200
+    - direct `/api/v1/ai-gateway/call` with unsupported function -> 400, `detail=unsupported function_type`
+    - direct legacy `/api/v1/chat/send` -> 404
+    - direct legacy `/api/v1/review` -> 404
+    - direct legacy `/api/v1/translate` -> 404
+    - direct legacy `/api/v1/normalize` -> 404
+  - post-restart backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, model-call failure, invalid model output, AppleDouble compile error, or `status=5xx` response
+  - verification:
+    - `./venv/bin/python -m pytest tests/test_app_routes.py -q` (RED confirmed before implementation)
+    - `./venv/bin/python -m pytest tests/test_app_routes.py -q`
+    - `./venv/bin/python -m pytest tests -q`
+    - `./venv/bin/ruff check app tests`
+    - `./venv/bin/python -m compileall -q app tests`
+    - `git diff --check`
+    - remote AI pytest/compileall, production AI service deploy/restart, gateway/legacy-route smoke, and backend/AI `journalctl` runtime scans
 
 Not verified yet:
 

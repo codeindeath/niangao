@@ -1,6 +1,8 @@
 """经验审核 + 打分 API"""
 import json
 import logging
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -26,7 +28,7 @@ class ScoreDetail(BaseModel):
 class ReviewResponse(BaseModel):
     approved: bool
     reason: str
-    score: ScoreDetail | None = None
+    score: Optional[ScoreDetail] = None
 
 
 REVIEW_PROMPT = """你是一个经验内容审核专家。请审核以下用户提交的经验：

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     max_daily_chat_rounds: int = int(os.getenv("MAX_DAILY_CHAT_ROUNDS", "50"))
     max_context_experiences: int = int(os.getenv("MAX_CONTEXT_EXPERIENCES", "50"))
+    enable_legacy_ai_routes: bool = os.getenv("ENABLE_LEGACY_AI_ROUTES", "").lower() in {"1", "true", "yes", "on"}
 
 
 settings = Settings()

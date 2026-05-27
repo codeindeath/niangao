@@ -4,6 +4,38 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260527-030] macos_tar_appledouble_python_compile_failure
+
+**Logged**: 2026-05-27T17:45:11+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: infra
+
+### Summary
+A production AI service source archive created on macOS included AppleDouble `._*.py` metadata files, causing remote Python compile verification to fail.
+
+### Error
+```
+*** Error compiling 'app/._main.py'...
+Sorry: ValueError: source code string cannot contain null bytes
+```
+
+### Context
+- The AI service source tarball was created locally and extracted on the Linux production host.
+- Remote pytest passed, but `compileall` failed on AppleDouble metadata files such as `app/._main.py` and `tests/._test_gateway.py`.
+- The service had not been restarted yet, so the bad metadata did not become a running service issue.
+- Removing `._*` files from `app` and `tests` allowed `compileall` to pass and the service restart to complete.
+
+### Suggested Fix
+For macOS-created deployment tarballs, set `COPYFILE_DISABLE=1` or delete `._*` files before remote compile/restart. Keep `find app tests -name '._*' -delete` as a defensive remote cleanup step.
+
+### Metadata
+- Reproducible: yes
+- Related Files: ai-service/app/main.py
+- See Also: ERR-20260527-029
+
+---
+
 ## [ERR-20260527-029] zsh_path_variable_breaks_smoke_script
 
 **Logged**: 2026-05-27T16:34:48+08:00

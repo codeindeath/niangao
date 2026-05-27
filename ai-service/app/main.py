@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import chat, gateway, review, translate, normalize
+from app.api import gateway
+from app.core.config import settings
 from app.middleware.request_id import RequestIDMiddleware
 from app.services.llm import LLMService
 import app.services.llm as llm_module
@@ -35,11 +36,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(chat.router, prefix="/api/v1/chat", tags=["chat"])
-app.include_router(gateway.router, prefix="/api/v1/ai-gateway", tags=["ai-gateway"])
-app.include_router(review.router, prefix="/api/v1", tags=["review"])
-app.include_router(translate.router, prefix="/api/v1", tags=["translate"])
-app.include_router(normalize.router, prefix="/api/v1", tags=["normalize"])
+def register_api_routers(fastapi_app: FastAPI, enable_legacy_ai_routes: bool = False) -> None:
+    fastapi_app.include_router(gateway.router, prefix="/api/v1/ai-gateway", tags=["ai-gateway"])
+    if not enable_legacy_ai_routes:
+        return
+
+    from app.api import chat, normalize, review, translate
+
+    fastapi_app.include_router(chat.router, prefix="/api/v1/chat", tags=["chat"])
+    fastapi_app.include_router(review.router, prefix="/api/v1", tags=["review"])
+    fastapi_app.include_router(translate.router, prefix="/api/v1", tags=["translate"])
+    fastapi_app.include_router(normalize.router, prefix="/api/v1", tags=["normalize"])
+
+
+register_api_routers(app, settings.enable_legacy_ai_routes)
 
 
 @app.get("/health")
