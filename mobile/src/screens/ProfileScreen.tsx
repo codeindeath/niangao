@@ -33,6 +33,7 @@ import {logout} from '../services/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {reportHandledError} from '../utils/logging';
 import {handleAuthExpired} from '../utils/authGate';
+import {userFacingErrorMessage} from '../utils/errors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const STATS_CACHE_KEY = 'niangao:v4:me-stats-cache';
@@ -250,7 +251,7 @@ export default function ProfileScreen({navigation}: any) {
                     clearLocalProfileState();
                     return;
                   }
-                  Alert.alert('注销失败', e?.message || '请稍后再试');
+                  Alert.alert('注销失败', userFacingErrorMessage(e));
                 }
               },
             },
@@ -284,7 +285,7 @@ export default function ProfileScreen({navigation}: any) {
         setFeedbackVisible(false);
         return;
       }
-      Alert.alert('提交失败', e?.message || '请稍后再试');
+      Alert.alert('提交失败', userFacingErrorMessage(e));
     } finally {
       setFeedbackSending(false);
     }

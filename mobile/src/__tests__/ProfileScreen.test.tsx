@@ -272,6 +272,22 @@ describe('ProfileScreen', () => {
     expect(navigation.navigate).toHaveBeenCalledWith('login');
   });
 
+  it('sanitizes technical feedback submission failures before showing the alert', async () => {
+    (api.submitFeedback as jest.Mock).mockRejectedValueOnce(new Error('network down'));
+
+    const rendered = render(<ProfileScreen navigation={navigation} />);
+    fireEvent.press(await rendered.findByText('意见反馈'));
+    fireEvent.changeText(rendered.getByPlaceholderText('写下你的反馈'), '这里提交起来不顺');
+
+    await act(async () => {
+      fireEvent.press(rendered.getByText('提交'));
+    });
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('提交失败', '网络不稳，请稍后再试');
+    });
+  });
+
   it('routes expired auth during account deletion back to login without a generic failure alert', async () => {
     (api.deleteAccount as jest.Mock).mockRejectedValueOnce({status: 401});
 
@@ -295,5 +311,25 @@ describe('ProfileScreen', () => {
       );
     });
     expect(Alert.alert).not.toHaveBeenCalledWith('注销失败', expect.any(String));
+  });
+
+  it('sanitizes technical account deletion failures before showing the alert', async () => {
+    (api.deleteAccount as jest.Mock).mockRejectedValueOnce(new Error('network down'));
+
+    const {findByText} = render(<ProfileScreen navigation={navigation} />);
+    fireEvent.press(await findByText('注销账号'));
+
+    let buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
+    await act(async () => {
+      await buttons.find((button: any) => button.text === '继续').onPress();
+    });
+    buttons = (Alert.alert as jest.Mock).mock.calls[1][2];
+    await act(async () => {
+      await buttons.find((button: any) => button.text === '确认注销').onPress();
+    });
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('注销失败', '网络不稳，请稍后再试');
+    });
   });
 });

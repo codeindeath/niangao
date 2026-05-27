@@ -2591,6 +2591,19 @@ Current result:
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
+- Mobile remaining user-facing alert error-copy checks pass:
+  - Create publish/save, Chat reference-card collect, Profile feedback/account deletion, Profile edit save, and Login Apple/dev failure alerts now reuse the same user-facing error sanitizer
+  - ordinary technical runtime errors no longer surface as English raw messages in these App-facing alerts; Chinese backend `ApiError.message` copy is still preserved
+  - `chatQuotaMessage` also sanitizes 429 messages before rendering assistant-bubble quota copy, falling back to the product quota message when needed
+  - no production backend deployment was needed for this App-only weak-state slice
+  - verification:
+    - `npm run test -- CreateScreen.test.tsx ChatScreen.test.tsx ProfileScreen.test.tsx ProfileEditScreen.test.tsx LoginScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- CreateScreen.test.tsx ChatScreen.test.tsx ProfileScreen.test.tsx ProfileEditScreen.test.tsx LoginScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - static scan for direct `Alert.alert(... e.message ...)` / `err.message` usage in `mobile/src/screens` and `mobile/src/utils`
 
 Not verified yet:
 

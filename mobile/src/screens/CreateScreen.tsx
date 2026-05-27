@@ -19,6 +19,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {createExperience, updateExperience, rewriteExperience, updateProfile, ApiError, Experience} from '../services/api';
 import {triggerTabRefresh} from './HomeScreen';
 import {handleAuthExpired} from '../utils/authGate';
+import {userFacingErrorMessage} from '../utils/errors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const PRIMARY_DOMAINS: {key: string; label: string}[] = [
@@ -287,7 +288,7 @@ export default function CreateScreen({navigation, route}: any) {
       setDisplayNameRetryPrivate(privateSave);
       setDisplayNameModalVisible(true);
     } else {
-      Alert.alert('发布失败', e?.message || String(e));
+      Alert.alert('发布失败', userFacingErrorMessage(e));
     }
   };
 

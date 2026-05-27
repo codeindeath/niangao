@@ -110,4 +110,20 @@ describe('ProfileEditScreen', () => {
     buttons.find((button: any) => button.text === 'Apple登录').onPress();
     expect(navigation.navigate).toHaveBeenCalledWith('login');
   });
+
+  it('sanitizes technical profile save failures before showing the alert', async () => {
+    (api.fetchProfile as jest.Mock).mockResolvedValue({
+      display_name: '阿年',
+      free_description: '认真生活',
+      common_issues: [],
+    });
+    (api.updateProfile as jest.Mock).mockRejectedValue(new Error('network down'));
+
+    const rendered = render(<ProfileEditScreen navigation={navigation} />);
+    fireEvent.press(await rendered.findByText('保存'));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('保存失败', '网络不稳，请稍后再试');
+    });
+  });
 });

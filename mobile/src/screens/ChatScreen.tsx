@@ -29,6 +29,7 @@ import {
   ChatMessageItem,
 } from '../services/api';
 import {clearToken} from '../services/config';
+import {userFacingErrorMessage} from '../utils/errors';
 import {reportHandledError} from '../utils/logging';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -58,7 +59,7 @@ const AUTH_EXPIRED_MESSAGE: MessageBubble = {
 
 function chatQuotaMessage(err: any): string | null {
   if (err?.status !== 429) return null;
-  return err?.message || '今日对话已达上限，明天再来聊吧。';
+  return userFacingErrorMessage(err, '今日对话已达上限，明天再来聊吧。');
 }
 
 function isRecentlyActiveTopic(topic: ChatTopic): boolean {
@@ -423,7 +424,7 @@ export default function ChatScreen({navigation}: any) {
         };
       }));
       if (handleAuthExpired(err)) return;
-      Alert.alert('操作失败', err?.message || '请稍后再试');
+      Alert.alert('操作失败', userFacingErrorMessage(err));
     }
   };
 

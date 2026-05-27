@@ -429,7 +429,7 @@ describe('ChatScreen', () => {
     fireEvent.press(getByLabelText('收藏参考经验'));
 
     await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith('操作失败', 'network down');
+      expect(Alert.alert).toHaveBeenCalledWith('操作失败', '网络不稳，请稍后再试');
     });
     expect(config.clearToken).not.toHaveBeenCalled();
   });

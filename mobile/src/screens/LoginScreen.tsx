@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { appleLogin, devLogin } from '../services/api';
 import { setToken, setRefreshToken, setUserInfo } from '../services/config';
+import {userFacingErrorMessage} from '../utils/errors';
 
 declare const __DEV__: boolean;
 
@@ -86,7 +87,7 @@ export default function LoginScreen({
       }
     } catch (e: any) {
       if (e.code !== 'ERR_CANCELED') {
-        failureAlert = {title: '登录失败', message: e.message || 'Apple登录出错'};
+        failureAlert = {title: '登录失败', message: userFacingErrorMessage(e)};
       }
     } finally {
       finishLogin();
@@ -125,7 +126,7 @@ export default function LoginScreen({
           message: '当前后端还没有启用开发登录接口，请切换到 V4 测试后端再试。',
         };
       } else {
-        failureAlert = {title: '登录失败', message: e.message || '模拟登录失败'};
+        failureAlert = {title: '登录失败', message: userFacingErrorMessage(e)};
       }
     } finally {
       finishLogin();

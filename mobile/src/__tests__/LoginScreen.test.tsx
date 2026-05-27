@@ -79,6 +79,18 @@ describe('LoginScreen', () => {
     expect(config.setToken).not.toHaveBeenCalled();
   });
 
+  it('sanitizes technical dev login failures before showing the alert', async () => {
+    (api.devLogin as jest.Mock).mockRejectedValue(new Error('network down'));
+
+    const {getByText} = render(<LoginScreen />);
+    fireEvent.press(getByText('开发模拟登录'));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('登录失败', '网络不稳，请稍后再试');
+    });
+    expect(config.setToken).not.toHaveBeenCalled();
+  });
+
   it('silently stays on the login page when Apple login is cancelled', async () => {
     const onLoginSuccess = jest.fn();
     (AppleAuthentication.signInAsync as jest.Mock).mockRejectedValue({code: 'ERR_CANCELED'});
@@ -92,6 +104,22 @@ describe('LoginScreen', () => {
     expect(Alert.alert).not.toHaveBeenCalled();
     expect(api.appleLogin).not.toHaveBeenCalled();
     expect(onLoginSuccess).not.toHaveBeenCalled();
+  });
+
+  it('sanitizes technical Apple login failures before showing the alert', async () => {
+    (AppleAuthentication.signInAsync as jest.Mock).mockResolvedValue({
+      identityToken: 'apple-token',
+      fullName: {givenName: '年', familyName: '糕'},
+    });
+    (api.appleLogin as jest.Mock).mockRejectedValue(new Error('network down'));
+
+    const {getByText} = render(<LoginScreen />);
+    fireEvent.press(getByText('Apple登录'));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('登录失败', '网络不稳，请稍后再试');
+    });
+    expect(config.setToken).not.toHaveBeenCalled();
   });
 
   it('starts Apple login only once while the native prompt is in flight', () => {

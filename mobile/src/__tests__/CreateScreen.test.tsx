@@ -200,6 +200,21 @@ describe('CreateScreen', () => {
     });
   });
 
+  it('sanitizes technical publish failures before showing the alert', async () => {
+    (api.createExperience as jest.Mock).mockRejectedValueOnce(new Error('network down'));
+
+    const {getByPlaceholderText, getByText} = render(
+      <CreateScreen navigation={makeNavigation()} route={{params: {}}} />,
+    );
+
+    fireEvent.changeText(getByPlaceholderText('此刻你有什么想说的？'), '今天先把事情做小一点');
+    fireEvent.press(getByText('保存'));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('发布失败', '网络不稳，请稍后再试');
+    });
+  });
+
   it('allows a 30-character display name in the first public note gate', async () => {
     const displayName = 'abcdefghijklmnopqrstuvwxy12345';
     (api.createExperience as jest.Mock)
