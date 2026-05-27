@@ -66,14 +66,14 @@ export function isTokenExpired(token: string): boolean {
   }
 }
 
-function parseErrorPayload(text: string): {message: string; code?: string} {
+function parseErrorPayload(text: string): {message: string; code?: string; requestId?: string} {
   try {
     const json = JSON.parse(text);
-    if (typeof json.error === 'string') return {message: json.error};
+    if (typeof json.error === 'string') return {message: json.error, requestId: json.request_id};
     if (json.error && typeof json.error.message === 'string') {
-      return {message: json.error.message, code: json.error.code};
+      return {message: json.error.message, code: json.error.code, requestId: json.error.request_id || json.request_id};
     }
-    if (typeof json.message === 'string') return {message: json.message, code: json.code};
+    if (typeof json.message === 'string') return {message: json.message, code: json.code, requestId: json.request_id};
   } catch {}
   return {message: text || '请求失败'};
 }
@@ -81,10 +81,13 @@ function parseErrorPayload(text: string): {message: string; code?: string} {
 export class ApiError extends Error {
   status: number;
   code?: string;
-  constructor(status: number, message: string, code?: string) {
+  requestId?: string;
+  constructor(status: number, message: string, code?: string, requestId?: string) {
     super(message);
+    Object.defineProperty(this, 'message', {value: message, enumerable: true, configurable: true});
     this.status = status;
     this.code = code;
+    this.requestId = requestId;
     this.name = 'ApiError';
   }
 }
@@ -103,13 +106,33 @@ function isAbortError(error: unknown): boolean {
   return Boolean(error && typeof error === 'object' && (error as {name?: string}).name === 'AbortError');
 }
 
+function newRequestId(): string {
+  const random = Math.random().toString(36).slice(2, 10);
+  return `app-${Date.now().toString(36)}-${random}`;
+}
+
+function responseRequestId(res: Response): string | undefined {
+  return res.headers?.get?.('X-Request-ID') || res.headers?.get?.('x-request-id') || undefined;
+}
+
+function withRequestIdHeader(init: Record<string, any>): Record<string, any> {
+  return {
+    ...init,
+    headers: {
+      ...(init.headers || {}),
+      'X-Request-ID': init.headers?.['X-Request-ID'] || init.headers?.['x-request-id'] || newRequestId(),
+    },
+  };
+}
+
 export async function apiFetchWithTimeout(path: string, init: Record<string, any> = {}): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), requestTimeoutForPath(path));
 
   try {
+    const requestInit = withRequestIdHeader(init);
     return await fetch(`${API_BASE}${path}`, {
-      ...init,
+      ...requestInit,
       signal: controller.signal,
     });
   } catch (error) {
@@ -131,7 +154,7 @@ export async function apiGet(path: string): Promise<any> {
   const text = await res.text();
   if (!res.ok) {
     const error = parseErrorPayload(text);
-    throw new ApiError(res.status, error.message, error.code);
+    throw new ApiError(res.status, error.message, error.code, error.requestId || responseRequestId(res));
   }
   try { return JSON.parse(text); } catch { return text; }
 }
@@ -149,7 +172,7 @@ export async function apiPost(path: string, body: any): Promise<any> {
   const text = await res.text();
   if (!res.ok) {
     const error = parseErrorPayload(text);
-    throw new ApiError(res.status, error.message, error.code);
+    throw new ApiError(res.status, error.message, error.code, error.requestId || responseRequestId(res));
   }
   try { return JSON.parse(text); } catch { return text; }
 }
@@ -167,7 +190,7 @@ export async function apiPut(path: string, body: any): Promise<any> {
   const text = await res.text();
   if (!res.ok) {
     const error = parseErrorPayload(text);
-    throw new ApiError(res.status, error.message, error.code);
+    throw new ApiError(res.status, error.message, error.code, error.requestId || responseRequestId(res));
   }
   try { return JSON.parse(text); } catch { return text; }
 }
@@ -185,7 +208,7 @@ export async function apiPatch(path: string, body: any): Promise<any> {
   const text = await res.text();
   if (!res.ok) {
     const error = parseErrorPayload(text);
-    throw new ApiError(res.status, error.message, error.code);
+    throw new ApiError(res.status, error.message, error.code, error.requestId || responseRequestId(res));
   }
   try { return JSON.parse(text); } catch { return text; }
 }
@@ -199,7 +222,7 @@ export async function apiDelete(path: string): Promise<any> {
   const text = await res.text();
   if (!res.ok) {
     const error = parseErrorPayload(text);
-    throw new ApiError(res.status, error.message, error.code);
+    throw new ApiError(res.status, error.message, error.code, error.requestId || responseRequestId(res));
   }
   try { return JSON.parse(text); } catch { return text; }
 }

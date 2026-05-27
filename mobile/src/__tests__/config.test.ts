@@ -17,6 +17,7 @@ describe('config API errors', () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: false,
       status: 400,
+      headers: {get: jest.fn().mockReturnValue('server-request-1')},
       text: jest.fn().mockResolvedValue(JSON.stringify({
         error: {
           code: 'display_name_required',
@@ -29,8 +30,27 @@ describe('config API errors', () => {
       status: 400,
       message: '需要先设置展示名',
       code: 'display_name_required',
+      requestId: 'server-request-1',
     });
     await expect(apiPost('/api/v1/experiences', {})).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it('sends a request id header for backend traceability', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: jest.fn().mockResolvedValue(JSON.stringify({status: 'ok'})),
+    });
+
+    await apiPost('/api/v1/experiences', {content: '今天先把事情做小一点'});
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-Request-ID': expect.stringMatching(/^app-/),
+        }),
+      }),
+    );
   });
 
   it('aborts slow normal API requests with a structured timeout error', async () => {

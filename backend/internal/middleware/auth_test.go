@@ -53,6 +53,61 @@ func TestCORSMiddleware(t *testing.T) {
 	}
 }
 
+func TestRequestIDMiddlewareGeneratesAndEchoesRequestID(t *testing.T) {
+	r := gin.New()
+	r.Use(RequestID())
+	r.GET("/test", func(c *gin.Context) {
+		requestID, _ := c.Get(RequestIDContextKey)
+		c.JSON(http.StatusOK, gin.H{"request_id": requestID})
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/test", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	headerID := w.Header().Get(RequestIDHeader)
+	if headerID == "" {
+		t.Fatal("missing X-Request-ID response header")
+	}
+
+	var body map[string]string
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body["request_id"] != headerID {
+		t.Fatalf("body request_id = %q, want header id %q", body["request_id"], headerID)
+	}
+}
+
+func TestRequestIDMiddlewarePreservesIncomingRequestID(t *testing.T) {
+	r := gin.New()
+	r.Use(RequestID())
+	r.GET("/test", func(c *gin.Context) {
+		requestID, _ := c.Get(RequestIDContextKey)
+		c.JSON(http.StatusOK, gin.H{"request_id": requestID})
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/test", nil)
+	req.Header.Set(RequestIDHeader, "client-request-1")
+	r.ServeHTTP(w, req)
+
+	if got := w.Header().Get(RequestIDHeader); got != "client-request-1" {
+		t.Fatalf("X-Request-ID = %q, want incoming request id", got)
+	}
+
+	var body map[string]string
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body["request_id"] != "client-request-1" {
+		t.Fatalf("body request_id = %q, want incoming request id", body["request_id"])
+	}
+}
+
 func TestAuthMiddlewareNoToken(t *testing.T) {
 	r := gin.New()
 	r.Use(AuthMiddleware("test-secret", nil))

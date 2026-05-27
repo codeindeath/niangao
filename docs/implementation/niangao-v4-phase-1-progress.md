@@ -2156,6 +2156,33 @@ Current result:
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
+- App/backend request-id traceability checks pass:
+  - backend now installs a request-id middleware in the production server path, echoes incoming `X-Request-ID`, generates one when absent, and stores it in Gin context as `request_id`
+  - backend CORS now allows and exposes `X-Request-ID` for Web/Admin diagnostics while keeping the App-native path unchanged
+  - mobile API requests now attach an App-generated `X-Request-ID`, and `ApiError` preserves the backend response request id from either structured payloads or response headers
+  - the Phase 1 contract doc now records the shared request-id traceability contract
+  - Linux backend artifact `/tmp/niangao-backend-v4-request-id-traceability` was deployed to production at `/root/niangao/deployments/20260527083636/server`
+  - production backend binary hash now matches the local request-id traceability artifact:
+    - `1037310a4f9df06457caeddc14f8f676537faad579463c831d7098eee56a433d`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-request-id-traceability.20260527083636.backend`
+  - post-deploy public smoke passed:
+    - `/health` -> 200 and echoed `X-Request-ID: codex-smoke-health-request-id`
+    - `/api/v1/feed/recommend?limit=1` -> 200 and echoed `X-Request-ID: codex-smoke-feed-request-id`
+    - `OPTIONS /api/v1/feed/recommend` -> 204 with `Access-Control-Allow-Headers: Authorization,Content-Type,X-Request-ID` and `Access-Control-Expose-Headers: X-Request-ID`
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, request-id failure, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/middleware -run 'TestRequestIDMiddleware' -count=1 -v` (RED confirmed before implementation)
+    - `npm run test -- config.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/middleware -run 'TestRequestIDMiddleware|TestCORS' -count=1 -v`
+    - `npm run test -- config.test.ts --runInBand --no-cache`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-request-id-traceability`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
+    - production request-id health/feed/CORS smoke and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

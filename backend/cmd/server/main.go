@@ -49,6 +49,7 @@ func main() {
 
 	// Router
 	r := gin.Default()
+	r.Use(middleware.RequestID())
 	r.Use(middleware.CORS())
 	r.Use(middleware.AuthMiddleware(cfg.JWTSecret, db))
 

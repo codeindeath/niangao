@@ -22,6 +22,13 @@ Source of truth:
 - Public distribution uses V4 facts: `visibility`, `lifecycle_status`, `quality_tier`, `recommendation_status`, `ai_citable`.
 - Legacy fields may be backfilled and read as compatibility fallbacks during migration, but new handlers should not expose legacy semantics.
 
+## 1.1 Shared Transport And Error Traceability
+
+- App requests include `X-Request-ID` with an App-generated id unless the caller already provided one.
+- Backend echoes incoming `X-Request-ID`; if absent, backend generates one and stores it in the Gin context as `request_id`.
+- Backend responses expose `X-Request-ID` through CORS so App/Web clients can attach it to diagnostics.
+- App `ApiError` preserves the response request id from either structured error payloads (`request_id`) or the `X-Request-ID` response header.
+
 ## 2. Shared Experience Card Shape
 
 Backend response object:
