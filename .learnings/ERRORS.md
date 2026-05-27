@@ -12,7 +12,7 @@ Command failures and integration errors.
 **Area**: frontend
 
 ### Summary
-SearchCardScreen could show action buttons from the previous paged search card clipped at the top of the current card when opening a non-zero result index.
+Paged card screens could show action buttons from an adjacent card clipped at the top of the current card when the shared ExperienceCard action bar used a negative bottom offset.
 
 ### Error
 ```
@@ -20,16 +20,16 @@ The simulator screenshot showed the 有启发 / 收藏 action bar at the top edg
 ```
 
 ### Context
-- SearchCardScreen renders paged cards in a FlatList with `initialScrollIndex`.
+- SearchCardScreen and HomeScreen render paged cards in FlatList.
 - ExperienceCard positioned its action bar with `bottom: -32` so Home could float actions below the card.
-- In paged search results, that negative offset could overflow into the next FlatList item and appear at the top after snapping to `initialIndex > 0`.
+- In paged results, that negative offset could overflow into the next FlatList item and appear at the top after snapping or switching visible cards.
 
 ### Suggested Fix
-Keep floating action offset contextual: preserve the Home default, but let SearchCardScreen pass a non-negative `actionBottom` so actions stay inside the current paged card. Add a regression test that asserts search-card action bars use non-negative bottom positioning.
+Keep floating action offset contextual: use a non-negative `actionBottom` in paged App screens so actions stay inside the current card. Add regression tests that assert feed and search-card action bars use non-negative bottom positioning.
 
 ### Metadata
 - Reproducible: yes
-- Related Files: mobile/src/components/ExperienceCard.tsx, mobile/src/screens/SearchCardScreen.tsx, mobile/src/__tests__/SearchCardScreen.test.tsx
+- Related Files: mobile/src/components/ExperienceCard.tsx, mobile/src/screens/HomeScreen.tsx, mobile/src/screens/SearchCardScreen.tsx, mobile/src/__tests__/HomeScreen.test.tsx, mobile/src/__tests__/SearchCardScreen.test.tsx
 - Evidence: /tmp/niangao-search-card-detail2.png, /tmp/niangao-searchcard-actions-fixed.png
 
 ---

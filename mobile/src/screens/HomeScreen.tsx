@@ -513,6 +513,7 @@ export default function HomeScreen() {
               onDelete={handleDelete}
               onFlipChange={handleFlipChange}
               showActions
+              actionBottom={0}
             />
           </View>
         )}

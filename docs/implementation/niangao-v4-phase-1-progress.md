@@ -2821,7 +2821,8 @@ Current result:
   - iPhone 17 Pro simulator guest flow reached real production 看看 feed, guest `有启发` / `收藏` login prompts, 聊聊/记下 protected login routing, 我的 guest login state, search page, real `Paul` search results, search-card browse, and search-card guest action gating
   - simulator comparison against `docs/design-drafts/niangao-login-anime-five-directions.png` and `docs/design-drafts/niangao-app-complete-screens.png` found the fixed login screen and current 看看/search-card runtime broadly aligned with the selected visual direction
   - simulator found and fixed a SearchCardScreen layout bug where action buttons from the previous paged card could overflow into the top of the current card when opening a non-zero search result
-  - `ExperienceCard` action-bar offset is now configurable; Home keeps its existing floating action placement, while SearchCardScreen keeps actions inside the current paged card
+  - follow-up regression coverage closed the same paged-action overflow risk in 看看 feed cards
+  - `ExperienceCard` action-bar offset is now configurable; 看看 and SearchCardScreen keep actions inside the current paged card
   - screenshot evidence:
     - `/tmp/niangao-after-click-guest-2.png` for guest 看看 feed
     - `/tmp/niangao-guest-collect-gate.png` and `/tmp/niangao-guest-inspire-gate.png` for guest action prompts
@@ -2829,10 +2830,13 @@ Current result:
     - `/tmp/niangao-search-paul-results.png` for production search results
     - `/tmp/niangao-search-card-detail2.png` for the pre-fix search-card action overflow
     - `/tmp/niangao-searchcard-actions-fixed.png` and `/tmp/niangao-searchcard-guest-action-gate.png` for the fixed search-card page and guest action prompt
+    - `/tmp/niangao-home-actions-in-card.png` for the fixed 看看 action placement after moving actions inside the paged card
   - no backend deployment was needed for this App-only UI/runtime slice
   - verification:
     - `npm run test -- SearchCardScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
     - `npm run test -- SearchCardScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- HomeScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- HomeScreen.test.tsx --runInBand --no-cache`
     - `npm run test -- LoginScreen.test.tsx DetailScreen.test.tsx SearchCardScreen.test.tsx apiContract.test.ts --runInBand --no-cache`
     - `npm run test -- --runInBand`
     - `npm run typecheck`

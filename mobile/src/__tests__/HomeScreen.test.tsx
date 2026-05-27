@@ -1,5 +1,5 @@
 import React from 'react';
-import {Alert, Dimensions} from 'react-native';
+import {Alert, Dimensions, StyleSheet} from 'react-native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 jest.mock('../services/api');
@@ -222,6 +222,25 @@ describe('HomeScreen', () => {
       );
     });
     expect(api.setCollected).not.toHaveBeenCalled();
+  });
+
+  it('keeps feed action bars inside their own paged card', async () => {
+    (config.getToken as jest.Mock).mockResolvedValue(null);
+    (api.fetchRecommendations as jest.Mock).mockResolvedValue({
+      data: [makeExperience('1'), makeExperience('2')],
+      total: 2,
+      has_more: false,
+    });
+
+    const {findByText, findAllByTestId} = render(<HomeScreen navigation={{}} />);
+
+    await findByText('第 1 条经验');
+    const actionBars = await findAllByTestId('experience-action-bar');
+    expect(actionBars.length).toBeGreaterThan(0);
+    actionBars.forEach(actionBar => {
+      const style = StyleSheet.flatten(actionBar.props.style);
+      expect(style?.bottom).toBeGreaterThanOrEqual(0);
+    });
   });
 
   it('clears expired auth when an authenticated card action returns 401', async () => {
