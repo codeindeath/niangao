@@ -2406,6 +2406,31 @@ Current result:
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
+- Backend rewrite weak-state copy checks pass:
+  - `POST /api/v1/experiences/rewrite` now returns the App-facing weak-state copy `暂时改不了，原文可以直接记下` for backend-owned retryable rewrite failures
+  - the existing structured error shape and `retryable=true` contract are preserved for both AI gateway unavailable/failure and invalid rewrite output branches
+  - Linux backend artifact `/tmp/niangao-backend-v4-rewrite-error-copy` was deployed to production at `/root/niangao/deployments/20260527133135/server`
+  - production backend binary hash now matches the local artifact:
+    - `0a4e4aa7d33e3f4dd642f8ec96a912a4b3339606d0ba7d48b8145a3da9009da5`
+  - production backend binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-rewrite-error-copy.20260527133135.backend`
+  - post-deploy public and authenticated smoke passed:
+    - `/health` -> 200
+    - `/ai/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - authenticated `/api/v1/me/profile` with a temporary JWT user -> 200, `display_name=Codex Smoke`
+    - authenticated `POST /api/v1/experiences/rewrite` with a temporary JWT user -> 200, `can_rewrite=true`
+    - cleanup temporary users -> 0
+  - the first authenticated profile smoke attempt returned 500 because the smoke script again captured PostgreSQL's trailing `INSERT 0 1` command tag as the JWT `user_id`; the temporary user was cleaned up, the script was corrected to use `psql -X -qAt` plus a single-row CTE select and UUID validation, and the corrected smoke passed
+  - post-corrected-smoke backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, AI gateway call failure, rewrite gateway failure, model-call failure, invalid model output, or real 5xx response
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestV4ExperienceRewrite(GatewayFailureIsRetryable|RejectsOverlongGatewayOutput)' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestV4ExperienceRewrite(GatewayFailureIsRetryable|RejectsOverlongGatewayOutput)' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run TestV4ExperienceRewrite -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-rewrite-error-copy`
+    - `git diff --check`
+    - production backend deploy, hash verification, public health/feed smoke, authenticated temporary JWT rewrite smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

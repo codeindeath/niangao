@@ -111,6 +111,13 @@ func TestV4ExperienceRewriteGatewayFailureIsRetryable(t *testing.T) {
 	if retryable, _ := body["retryable"].(bool); !retryable {
 		t.Fatalf("retryable = %+v, want true", body["retryable"])
 	}
+	errBody, ok := body["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("error = %+v, want structured error object", body["error"])
+	}
+	if errBody["message"] != "暂时改不了，原文可以直接记下" {
+		t.Fatalf("error.message = %+v, want rewrite weak-state copy", errBody["message"])
+	}
 }
 
 func TestV4ExperienceRewriteRejectsOverlongGatewayOutput(t *testing.T) {
@@ -132,5 +139,16 @@ func TestV4ExperienceRewriteRejectsOverlongGatewayOutput(t *testing.T) {
 
 	if w.Code != http.StatusBadGateway {
 		t.Fatalf("status = %d, want 502: %s", w.Code, w.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	errBody, ok := body["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("error = %+v, want structured error object", body["error"])
+	}
+	if errBody["message"] != "暂时改不了，原文可以直接记下" {
+		t.Fatalf("error.message = %+v, want rewrite weak-state copy", errBody["message"])
 	}
 }

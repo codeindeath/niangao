@@ -23,6 +23,8 @@ type ExperienceAIGateway interface {
 	RewriteExperience(ctx context.Context, req model.ExperienceRewriteGatewayRequest) (*model.ExperienceRewriteGatewayResponse, error)
 }
 
+const rewriteWeakStateMessage = "暂时改不了，原文可以直接记下"
+
 func RegisterExperienceRoutes(r *gin.RouterGroup, expRepo *repository.ExperienceRepo, gateways ...ExperienceAIGateway) {
 	var aiGateway ExperienceAIGateway
 	if len(gateways) > 0 {
@@ -99,7 +101,7 @@ func (h *ExperienceHandler) Rewrite(c *gin.Context) {
 		return
 	}
 	if h.aiGateway == nil {
-		respondErrorWith(c, http.StatusServiceUnavailable, "rewrite_service_unavailable", "rewrite service unavailable", gin.H{"retryable": true})
+		respondErrorWith(c, http.StatusServiceUnavailable, "rewrite_service_unavailable", rewriteWeakStateMessage, gin.H{"retryable": true})
 		return
 	}
 
@@ -115,12 +117,12 @@ func (h *ExperienceHandler) Rewrite(c *gin.Context) {
 	})
 	if err != nil || result == nil {
 		log.Printf("v4 rewrite gateway failed user=%s: %v", userID, err)
-		respondErrorWith(c, http.StatusServiceUnavailable, "rewrite_service_unavailable", "rewrite service unavailable", gin.H{"retryable": true})
+		respondErrorWith(c, http.StatusServiceUnavailable, "rewrite_service_unavailable", rewriteWeakStateMessage, gin.H{"retryable": true})
 		return
 	}
 	result.RewrittenContent = strings.TrimSpace(result.RewrittenContent)
 	if result.CanRewrite && (result.RewrittenContent == "" || len([]rune(result.RewrittenContent)) > 100) {
-		respondErrorWith(c, http.StatusBadGateway, "invalid_rewrite_output", "invalid rewrite output", gin.H{"retryable": true})
+		respondErrorWith(c, http.StatusBadGateway, "invalid_rewrite_output", rewriteWeakStateMessage, gin.H{"retryable": true})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
