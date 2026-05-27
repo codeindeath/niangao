@@ -2234,7 +2234,7 @@ Current result:
     - `/health` -> 200 and echoed `X-Request-ID: codex-smoke-structured-health`
     - `/api/v1/feed/recommend?limit=1` -> 200 and echoed `X-Request-ID: codex-smoke-structured-feed`
     - unauthenticated `/api/v1/me/profile` -> 401 with `error.code=auth_required`, `message=请先登录`, and `request_id=codex-smoke-structured-auth`
-    - `POST /api/v1/auth/refresh` with `{}` -> 400 with `error.code=missing_refresh_token`, `message=缺少 refresh_token 参数`, and `request_id=codex-smoke-structured-refresh`
+    - `POST /api/v1/auth/refresh` with `{}` -> 400 with `error.code=missing_refresh_token`, later auth-copy hardening changed the deployed user-facing message to `登录信息不完整，请重新登录`
   - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, or real 5xx matches
   - verification:
     - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run TestAppFacingV4HandlersUseStructuredErrorResponses -count=1 -v` (RED confirmed before implementation)
@@ -2723,6 +2723,11 @@ Current result:
   - mobile account API tests now use the deployed V4 account-cancellation success copy `账号已注销` instead of the older `账号已删除` mock copy
   - verification:
     - `npm run test -- apiAccount.test.ts --runInBand --no-cache`
+- Progress document auth-copy drift cleanup checks pass:
+  - the earlier structured-error smoke note for malformed refresh payload now records the later deployed message `登录信息不完整，请重新登录` instead of the pre-hardening `缺少 refresh_token 参数`
+  - verification:
+    - `rg -n "缺少 refresh_token 参数|missing_refresh_token|登录信息不完整，请重新登录" docs/implementation/niangao-v4-phase-1-progress.md backend/internal/handler/auth.go backend/internal/handler/app_error_contract_test.go`
+    - `git diff --check`
 
 Not verified yet:
 
