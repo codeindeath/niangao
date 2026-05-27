@@ -374,7 +374,6 @@ export async function fetchRecommendations(
 
 export interface ChatMessageItem {
   id: string;
-  conversation_id?: string;
   topic_id?: string;
   temp_session_id?: string;
   role: 'user' | 'assistant';

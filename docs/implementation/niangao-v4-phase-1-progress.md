@@ -2144,6 +2144,18 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-conversation-legacy-cleanup`
     - `git diff --check`
     - production V4 chat route smoke, cleanup verification, service health checks, and backend/AI `journalctl` severe-error scans
+- Mobile chat message contract cleanup checks pass:
+  - exported App `ChatMessageItem` no longer carries legacy `conversation_id`; V4 chat messages expose `topic_id` and/or `temp_session_id`
+  - App API contract coverage now fails if `conversation_id` returns to the exported chat message type
+  - the Phase 1 contract doc now records that V4 chat message types must not carry legacy `conversation_id`
+  - no production backend deployment was needed for this App-only type/contract slice
+  - verification:
+    - `npm run test -- apiContract.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- apiContract.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (23 suites, 126 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
 
 Not verified yet:
 

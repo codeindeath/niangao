@@ -516,6 +516,7 @@ App behavior:
 - If `promoted_topic` is present, Chat switches from `tempSessionId` to `activeTopic`.
 - Follow-up messages use `POST /api/v1/chat/topics/:id/messages`.
 - Citation show/click events after promotion use `topic_id`, not the old `temp_session_id`.
+- V4 chat message types expose `topic_id` and/or `temp_session_id`; the App contract must not carry legacy `conversation_id`.
 - `429` quota errors display the backend-provided `message` when present; the App must not hard-code a numeric daily chat limit.
 - Backend V4 chat quota is enforced before saving a new user message or calling AI. The limit is read from `system_config.chat_limit_per_day` with a defensive default of 50, and usage is counted from today's non-deleted V4 `chat_messages` rows where `role='user'`.
 

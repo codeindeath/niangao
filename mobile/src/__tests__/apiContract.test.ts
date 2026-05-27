@@ -158,4 +158,15 @@ describe('App V4 API contract', () => {
     expect(profileType).not.toMatch(/\bbookmark_count\b/);
     expect(profileType).not.toMatch(/\bpracticed_count\b/);
   });
+
+  it('keeps legacy conversation id out of the exported chat message type', () => {
+    const apiSource = read('src/services/api.ts');
+    const start = apiSource.indexOf('export interface ChatMessageItem {');
+    const end = apiSource.indexOf('export interface ChatTempSession {');
+    const chatMessageType = apiSource.slice(start, end);
+
+    expect(chatMessageType).not.toMatch(/\bconversation_id\b/);
+    expect(chatMessageType).toMatch(/\btopic_id\b/);
+    expect(chatMessageType).toMatch(/\btemp_session_id\b/);
+  });
 });
