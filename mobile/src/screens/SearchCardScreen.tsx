@@ -39,6 +39,8 @@ export default function SearchCardScreen({route, navigation}: any) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
   const [visibleCardId, setVisibleCardId] = useState<string | null>(null);
+  const inspiringIdsRef = useRef<Set<string>>(new Set());
+  const collectingIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     getUserInfo().then(u => setCurrentUserId(u?.id || null));
@@ -49,30 +51,51 @@ export default function SearchCardScreen({route, navigation}: any) {
   };
 
   const handleLike = async (id: string) => {
-    if (!(await requireLogin(navigation, '登录后可以标记有启发，年糕也会更懂你的偏好。'))) return;
-    const card = cards.find(c => c.id === id);
-    if (!card || card.is_inspired) return;
-    updateCard(id, {is_inspired: true, inspiration_count: card.inspiration_count + 1});
-    try { await markInspired(id); } catch (e: any) {
-      updateCard(id, {is_inspired: card.is_inspired, inspiration_count: card.inspiration_count});
+    if (inspiringIdsRef.current.has(id)) return;
+    inspiringIdsRef.current.add(id);
+    let previousCard: Experience | undefined;
+    try {
+      if (!(await requireLogin(navigation, '登录后可以标记有启发，年糕也会更懂你的偏好。'))) return;
+      const card = cards.find(c => c.id === id);
+      if (!card || card.is_inspired) return;
+      previousCard = card;
+      updateCard(id, {is_inspired: true, inspiration_count: card.inspiration_count + 1});
+      await markInspired(id);
+    } catch (e: any) {
+      if (previousCard) {
+        updateCard(id, {is_inspired: previousCard.is_inspired, inspiration_count: previousCard.inspiration_count});
+      }
       if (await handleAuthExpired(navigation, e)) return;
       Alert.alert('操作失败', e?.message || '请稍后再试');
+    } finally {
+      inspiringIdsRef.current.delete(id);
     }
   };
 
   const handleBookmark = async (id: string) => {
-    if (!(await requireLogin(navigation, '登录后可以收藏经验，之后在看看里随时翻回来。'))) return;
-    const card = cards.find(c => c.id === id);
-    if (!card) return;
-    const nextCollected = !card.is_collected;
-    updateCard(id, {
-      is_collected: nextCollected,
-      collection_count: Math.max(card.collection_count + (nextCollected ? 1 : -1), 0),
-    });
-    try { await setCollected(id, nextCollected); } catch (e: any) {
-      updateCard(id, {is_collected: card.is_collected, collection_count: card.collection_count});
+    if (collectingIdsRef.current.has(id)) return;
+    collectingIdsRef.current.add(id);
+    let previousCard: Experience | undefined;
+    let nextCollected = false;
+    try {
+      if (!(await requireLogin(navigation, '登录后可以收藏经验，之后在看看里随时翻回来。'))) return;
+      const card = cards.find(c => c.id === id);
+      if (!card) return;
+      previousCard = card;
+      nextCollected = !card.is_collected;
+      updateCard(id, {
+        is_collected: nextCollected,
+        collection_count: Math.max(card.collection_count + (nextCollected ? 1 : -1), 0),
+      });
+      await setCollected(id, nextCollected);
+    } catch (e: any) {
+      if (previousCard) {
+        updateCard(id, {is_collected: previousCard.is_collected, collection_count: previousCard.collection_count});
+      }
       if (await handleAuthExpired(navigation, e)) return;
       Alert.alert('操作失败', e?.message || '请稍后再试');
+    } finally {
+      collectingIdsRef.current.delete(id);
     }
   };
 

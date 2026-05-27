@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -41,6 +41,8 @@ export default function DetailScreen({route, navigation}: any) {
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showScoreReason, setShowScoreReason] = useState(false);
+  const inspiringRef = useRef(false);
+  const collectingRef = useRef(false);
 
   useEffect(() => {
     getUserInfo().then(u => setCurrentUserId(u?.id || null));
@@ -70,31 +72,49 @@ export default function DetailScreen({route, navigation}: any) {
   };
 
   const handleLike = async () => {
-    if (!(await requireLogin(navigation, '登录后可以标记有启发，年糕也会更懂你的偏好。'))) return;
-    if (!exp || exp.is_inspired) return;
-    const previous = exp;
-    setExp({...exp, is_inspired: true, inspiration_count: exp.inspiration_count + 1});
-    try { await markInspired(exp.id); } catch (e: any) {
-      setExp(previous);
+    if (inspiringRef.current) return;
+    inspiringRef.current = true;
+    let previous: Experience | null = null;
+    try {
+      if (!(await requireLogin(navigation, '登录后可以标记有启发，年糕也会更懂你的偏好。'))) return;
+      if (!exp || exp.is_inspired) return;
+      previous = exp;
+      setExp({...exp, is_inspired: true, inspiration_count: exp.inspiration_count + 1});
+      await markInspired(exp.id);
+    } catch (e: any) {
+      if (previous) {
+        setExp(previous);
+      }
       if (await handleAuthExpired(navigation, e)) return;
       Alert.alert('操作失败', e?.message || '请稍后再试');
+    } finally {
+      inspiringRef.current = false;
     }
   };
 
   const handleBookmark = async () => {
-    if (!(await requireLogin(navigation, '登录后可以收藏经验，之后在看看里随时翻回来。'))) return;
-    if (!exp) return;
-    const previous = exp;
-    const nextCollected = !exp.is_collected;
-    setExp({
-      ...exp,
-      is_collected: nextCollected,
-      collection_count: Math.max(exp.collection_count + (nextCollected ? 1 : -1), 0),
-    });
-    try { await setCollected(exp.id, nextCollected); } catch (e: any) {
-      setExp(previous);
+    if (collectingRef.current) return;
+    collectingRef.current = true;
+    let previous: Experience | null = null;
+    try {
+      if (!(await requireLogin(navigation, '登录后可以收藏经验，之后在看看里随时翻回来。'))) return;
+      if (!exp) return;
+      previous = exp;
+      const nextCollected = !exp.is_collected;
+      setExp({
+        ...exp,
+        is_collected: nextCollected,
+        collection_count: Math.max(exp.collection_count + (nextCollected ? 1 : -1), 0),
+      });
+      await setCollected(exp.id, nextCollected);
+    } catch (e: any) {
+      if (previous) {
+        setExp(previous);
+      }
       if (await handleAuthExpired(navigation, e)) return;
       Alert.alert('操作失败', e?.message || '请稍后再试');
+    } finally {
+      collectingRef.current = false;
     }
   };
 

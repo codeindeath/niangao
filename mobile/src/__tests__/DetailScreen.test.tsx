@@ -121,6 +121,36 @@ describe('DetailScreen', () => {
     });
   });
 
+  it('marks inspiration only once while the detail action is in flight', async () => {
+    (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);
+    (api.markInspired as jest.Mock).mockReturnValue(new Promise(() => {}));
+
+    const {findByLabelText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
+    const likeButton = await findByLabelText('标记有启发');
+    fireEvent.press(likeButton);
+    fireEvent.press(likeButton);
+
+    await waitFor(() => {
+      expect(api.markInspired).toHaveBeenCalledTimes(1);
+      expect(api.markInspired).toHaveBeenCalledWith('1');
+    });
+  });
+
+  it('updates collection only once while the detail action is in flight', async () => {
+    (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);
+    (api.setCollected as jest.Mock).mockReturnValue(new Promise(() => {}));
+
+    const {findByLabelText} = render(<DetailScreen route={{params: {id: '1'}}} navigation={{}} />);
+    const collectButton = await findByLabelText('收藏经验');
+    fireEvent.press(collectButton);
+    fireEvent.press(collectButton);
+
+    await waitFor(() => {
+      expect(api.setCollected).toHaveBeenCalledTimes(1);
+      expect(api.setCollected).toHaveBeenCalledWith('1', true);
+    });
+  });
+
   it('offers turn-private as the safer path when deleting a public own experience', async () => {
     (config.getUserInfo as jest.Mock).mockResolvedValue({id: 'author-1'});
     (api.fetchExperience as jest.Mock).mockResolvedValue(mockExp);

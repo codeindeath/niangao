@@ -2304,6 +2304,19 @@ Current result:
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
+- Search-card and detail action repeated-tap checks pass:
+  - 搜索结果卡片页和详情页的“有启发”和“收藏”动作现在会在首个后端动作请求结束前加 in-flight 守卫
+  - these views no longer send duplicate `markInspired` or `setCollected` calls on rapid repeated taps
+  - existing optimistic updates, failure rollback, expired-auth routing, guest login prompts, owner actions, and non-auth failure alerts remain unchanged
+  - no production backend deployment was needed for this App-only interaction hardening slice
+  - verification:
+    - `npm run test -- SearchCardScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation for search-card actions)
+    - `npm run test -- DetailScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation for detail actions)
+    - `npm run test -- DetailScreen.test.tsx SearchCardScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (24 suites, 139 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
 
 Not verified yet:
 

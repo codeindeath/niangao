@@ -88,4 +88,43 @@ describe('SearchCardScreen', () => {
       expect(Alert.alert).toHaveBeenCalledWith('操作失败', 'network down');
     });
   });
+
+  it('marks inspiration only once while the search-card action is in flight', async () => {
+    (api.markInspired as jest.Mock).mockReturnValue(new Promise(() => {}));
+
+    const {findByLabelText} = render(
+      <SearchCardScreen
+        route={{params: {results: [experience], initialIndex: 0, keyword: '测试'}}}
+        navigation={{goBack: jest.fn(), navigate: jest.fn()}}
+      />,
+    );
+
+    const inspireButton = await findByLabelText('标记有启发');
+    fireEvent.press(inspireButton, {stopPropagation: jest.fn()});
+    fireEvent.press(inspireButton, {stopPropagation: jest.fn()});
+
+    await waitFor(() => {
+      expect(api.markInspired).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('updates collection only once while the search-card action is in flight', async () => {
+    (api.setCollected as jest.Mock).mockReturnValue(new Promise(() => {}));
+
+    const {findByLabelText} = render(
+      <SearchCardScreen
+        route={{params: {results: [experience], initialIndex: 0, keyword: '测试'}}}
+        navigation={{goBack: jest.fn(), navigate: jest.fn()}}
+      />,
+    );
+
+    const collectButton = await findByLabelText('收藏经验');
+    fireEvent.press(collectButton, {stopPropagation: jest.fn()});
+    fireEvent.press(collectButton, {stopPropagation: jest.fn()});
+
+    await waitFor(() => {
+      expect(api.setCollected).toHaveBeenCalledTimes(1);
+      expect(api.setCollected).toHaveBeenCalledWith('1', true);
+    });
+  });
 });
