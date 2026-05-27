@@ -824,6 +824,36 @@ For App API transport and `ApiError` behavior, inspect `mobile/src/services/conf
 
 ---
 
+## [ERR-20260527-022] react_native_actual_spread_triggers_getters
+
+**Logged**: 2026-05-27T09:36:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: tests
+
+### Summary
+A ChatScreen FlatList test mock initially spread `jest.requireActual('react-native')`, which triggered React Native index getters and failed on unavailable native modules.
+
+### Error
+```
+Invariant Violation: TurboModuleRegistry.getEnforcing(...): 'DevMenu' could not be found.
+```
+
+### Context
+- Full mobile Jest verification surfaced a React Native `VirtualizedList` delayed `act(...)` warning from ChatScreen tests.
+- The first mock attempted `return {...RN, FlatList}`, which enumerated React Native getters such as DevMenu and deprecated core modules.
+- The corrected mock uses `Object.defineProperty(RN, 'FlatList', {value: FlatList})` and returns `RN` without spreading, avoiding getter evaluation.
+
+### Suggested Fix
+When overriding one React Native export in Jest, patch the actual module object with `Object.defineProperty` instead of spreading `jest.requireActual('react-native')`.
+
+### Metadata
+- Reproducible: yes
+- Related Files: mobile/src/__tests__/ChatScreen.test.tsx
+- See Also: ERR-20260527-021
+
+---
+
 ---
 
 ## [ERR-20260527-020] go_test_from_repo_root

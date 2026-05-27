@@ -2,6 +2,34 @@ import React from 'react';
 import {Alert} from 'react-native';
 import {fireEvent, render, waitFor} from '@testing-library/react-native';
 
+jest.mock('react-native', () => {
+  const React = require('react');
+  const RN = jest.requireActual('react-native');
+
+  const FlatList = React.forwardRef(({data = [], renderItem, keyExtractor}: any, ref: any) => {
+    React.useImperativeHandle(ref, () => ({
+      scrollToEnd: () => {},
+    }));
+    return React.createElement(
+      RN.View,
+      null,
+      data.map((item: any, index: number) =>
+        React.createElement(
+          React.Fragment,
+          {key: keyExtractor ? keyExtractor(item, index) : String(index)},
+          renderItem({item, index}),
+        ),
+      ),
+    );
+  });
+
+  Object.defineProperty(RN, 'FlatList', {
+    configurable: true,
+    value: FlatList,
+  });
+  return RN;
+});
+
 jest.mock('../services/api');
 jest.mock('../services/config', () => ({
   clearToken: jest.fn(),

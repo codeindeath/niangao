@@ -2255,6 +2255,19 @@ Current result:
     - `npm run test -- --runInBand` (23 suites, 129 tests)
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- App startup auth weak-state checks pass:
+  - App startup token validation still clears local auth on `/api/v1/me/profile` `401`
+  - transient non-401 server failures during startup validation now keep the local session instead of incorrectly returning the user to logged-out state
+  - network errors already kept the local token; the behavior is now consistent across weak-network and temporary backend failure states
+  - ChatScreen test verification now uses a lightweight FlatList mock to avoid React Native `VirtualizedList` delayed act warnings from polluting full Jest output
+  - no production backend deployment was needed for this App-only startup/auth slice
+  - verification:
+    - `npm run test -- startupAuth.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- startupAuth.test.ts --runInBand --no-cache`
+    - `npm run test -- ChatScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (24 suites, 131 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 

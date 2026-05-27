@@ -16,7 +16,7 @@ import {reportHandledError} from './src/utils/logging';
 
 const Stack = createNativeStackNavigator();
 
-async function checkAndValidateToken(): Promise<boolean> {
+export async function checkAndValidateToken(): Promise<boolean> {
   try {
     const token = await getToken();
     if (!token) return false;
@@ -28,6 +28,9 @@ async function checkAndValidateToken(): Promise<boolean> {
     if (res.status === 401) {
       await clearToken();
       return false;
+    }
+    if (!res.ok) {
+      return true;
     }
     return res.ok;
   } catch {

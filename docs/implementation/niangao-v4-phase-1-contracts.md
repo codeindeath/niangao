@@ -33,6 +33,12 @@ Source of truth:
 - When a transitional backend error uses `{ "error": "code", "message": "user-facing copy" }`, App treats `error` as the machine code and `message` as the user-facing text for compatibility, but new App-facing V4 handlers must not emit this shape.
 - Backend access logs are JSON objects and include `request_id`, `method`, `path`, `status`, `latency_ms`, and `client_ip`; they must not log request bodies, authorization headers, or query-string secrets.
 
+## 1.2 App Startup Auth Validation
+
+- App startup validates a stored token through `GET /api/v1/me/profile`.
+- `401` from startup validation clears local auth and returns the user to logged-out state.
+- Network errors and non-401 server failures during startup validation keep the local session so temporary backend weakness does not log the user out. Later protected API calls still use the unified expired-auth flow if they receive `401`.
+
 ## 2. Shared Experience Card Shape
 
 Backend response object:
