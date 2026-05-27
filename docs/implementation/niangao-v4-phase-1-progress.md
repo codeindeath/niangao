@@ -2675,6 +2675,16 @@ Current result:
     - `npm run test -- --runInBand`
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- App API plain-text error fallback checks pass:
+  - non-JSON HTTP error bodies now preserve Chinese user-facing text but replace technical/plain English bodies such as `Bad Gateway` with `请求失败`
+  - this keeps reverse-proxy, gateway, or unexpected backend plain-text failures from leaking raw infrastructure wording into App error objects
+  - structured backend JSON errors are unchanged, including V4 error codes, request IDs, retryable flags, and Chinese messages
+  - verification:
+    - `npm run test -- config.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- config.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 

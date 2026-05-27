@@ -18,6 +18,7 @@ const REFRESH_KEY = 'refresh_token';
 const USER_KEY = 'user_info';
 const STANDARD_REQUEST_TIMEOUT_MS = 15_000;
 const AI_REQUEST_TIMEOUT_MS = 60_000;
+const CHINESE_TEXT = /[\u3400-\u9fff]/;
 
 type ParsedErrorPayload = {
   message: string;
@@ -26,6 +27,12 @@ type ParsedErrorPayload = {
   retryable?: boolean;
   userMessageId?: string;
 };
+
+function plainTextErrorMessage(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return '请求失败';
+  return CHINESE_TEXT.test(trimmed) ? trimmed : '请求失败';
+}
 
 // ---------- Token 管理 ----------
 export async function getToken(): Promise<string | null> {
@@ -101,7 +108,7 @@ function parseErrorPayload(text: string): ParsedErrorPayload {
       return {message: json.message, code: json.code, requestId: json.request_id, ...actionFields};
     }
   } catch {}
-  return {message: text || '请求失败'};
+  return {message: plainTextErrorMessage(text)};
 }
 
 export class ApiError extends Error {

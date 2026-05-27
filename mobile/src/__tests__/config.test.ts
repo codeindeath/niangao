@@ -99,6 +99,21 @@ describe('config API errors', () => {
     });
   });
 
+  it('does not expose plain technical HTTP error bodies to the App', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 502,
+      headers: {get: jest.fn().mockReturnValue('proxy-request-1')},
+      text: jest.fn().mockResolvedValue('Bad Gateway'),
+    });
+
+    await expect(apiGet('/api/v1/feed/recommend?limit=2')).rejects.toMatchObject({
+      status: 502,
+      message: '请求失败',
+      requestId: 'proxy-request-1',
+    });
+  });
+
   it('aborts slow normal API requests with a structured timeout error', async () => {
     jest.useFakeTimers();
     let signal: AbortSignal | undefined;
