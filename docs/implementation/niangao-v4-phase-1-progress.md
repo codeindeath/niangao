@@ -2763,6 +2763,17 @@ Current result:
     - `./scripts/backend-test.sh`
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-deprecated-request-id`
     - production backend deploy, hash verification, public health/deprecated-route smoke, and backend/AI `journalctl` severe-error scans
+- App API stale-token auto-refresh checks pass:
+  - the shared App API wrapper now handles a protected-request `401` by refreshing the stored refresh token once, storing rotated credentials, and retrying the original request with the new JWT
+  - auth endpoints are excluded from the automatic retry path, so login/logout/refresh failures do not recurse
+  - startup token validation and normal App API calls now use the same refresh implementation instead of maintaining separate refresh logic
+  - no production backend deployment was needed for this App-only stale-token slice
+  - verification:
+    - `npm run test -- config.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- config.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 

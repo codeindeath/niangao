@@ -158,6 +158,52 @@ describe('config API errors', () => {
     await expect(request).rejects.toBeInstanceOf(ApiError);
   });
 
+  it('refreshes expired auth once and retries the protected request', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockImplementation((key: string) => {
+      if (key === 'auth_token') return Promise.resolve('old-token');
+      if (key === 'refresh_token') return Promise.resolve('refresh-1');
+      return Promise.resolve(null);
+    });
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        headers: {get: jest.fn().mockReturnValue('expired-request-1')},
+        text: jest.fn().mockResolvedValue(JSON.stringify({
+          error: {
+            code: 'auth_required',
+            message: '登录已过期，请重新登录',
+          },
+        })),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: {get: jest.fn().mockReturnValue('refresh-request-1')},
+        json: jest.fn().mockResolvedValue({token: 'new-token', refresh_token: 'refresh-2'}),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: {get: jest.fn().mockReturnValue('retry-request-1')},
+        text: jest.fn().mockResolvedValue(JSON.stringify({display_name: '年糕用户'})),
+      });
+
+    await expect(apiGet('/api/v1/me/profile')).resolves.toEqual({display_name: '年糕用户'});
+
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+    expect((global.fetch as jest.Mock).mock.calls[0][1].headers.Authorization).toBe('Bearer old-token');
+    expect((global.fetch as jest.Mock).mock.calls[1][0]).toContain('/api/v1/auth/refresh');
+    expect((global.fetch as jest.Mock).mock.calls[1][1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({refresh_token: 'refresh-1'}),
+    });
+    expect((global.fetch as jest.Mock).mock.calls[1][1].headers.Authorization).toBeUndefined();
+    expect((global.fetch as jest.Mock).mock.calls[2][1].headers.Authorization).toBe('Bearer new-token');
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith('auth_token', 'new-token');
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith('refresh_token', 'refresh-2');
+  });
+
   it.each([
     ['chat', '/api/v1/chat/temp-sessions/session-1/messages', {content: '今天有点乱'}],
     ['rewrite', '/api/v1/experiences/rewrite', {content: '今天有点乱'}],

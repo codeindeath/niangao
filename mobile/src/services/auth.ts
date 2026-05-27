@@ -2,10 +2,8 @@ import {
   apiFetchWithTimeout,
   clearToken,
   getToken,
-  getRefreshToken,
-  setToken,
-  setRefreshToken,
   isTokenExpired,
+  refreshStoredAuthToken,
 } from './config';
 
 // 登出：先调服务端吊销，再清本地
@@ -29,30 +27,7 @@ export async function logout(): Promise<void> {
 
 // 刷新 token
 export async function refreshToken(): Promise<boolean> {
-  try {
-    const refresh = await getRefreshToken();
-    if (!refresh) return false;
-
-    const res = await apiFetchWithTimeout('/api/v1/auth/refresh', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({refresh_token: refresh}),
-    });
-
-    if (!res.ok) return false;
-
-    const data = await res.json();
-    if (data.token) {
-      await setToken(data.token);
-      if (data.refresh_token) {
-        await setRefreshToken(data.refresh_token);
-      }
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
+  return refreshStoredAuthToken();
 }
 
 // 检查登录状态：token 存在且未过期

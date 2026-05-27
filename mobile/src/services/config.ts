@@ -28,6 +28,8 @@ type ParsedErrorPayload = {
   userMessageId?: string;
 };
 
+type TokenRequestInit = (token: string | null) => Record<string, any>;
+
 function plainTextErrorMessage(text: string): string {
   const trimmed = text.trim();
   if (!trimmed) return '请求失败';
@@ -174,6 +176,10 @@ function withRequestIdHeader(init: Record<string, any>): Record<string, any> {
   };
 }
 
+function shouldRefreshAuthForPath(path: string): boolean {
+  return !path.startsWith('/api/v1/auth/');
+}
+
 export async function apiFetchWithTimeout(path: string, init: Record<string, any> = {}): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), requestTimeoutForPath(path));
@@ -198,79 +204,97 @@ export async function apiFetchWithTimeout(path: string, init: Record<string, any
   }
 }
 
-// ---------- Go 后端 HTTP 请求 ----------
-export async function apiGet(path: string): Promise<any> {
+async function refreshStoredAuthTokenValue(): Promise<string | null> {
+  try {
+    const refresh = await getRefreshToken();
+    if (!refresh) return null;
+
+    const res = await apiFetchWithTimeout('/api/v1/auth/refresh', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({refresh_token: refresh}),
+    });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (typeof data.token !== 'string' || !data.token) return null;
+
+    await setToken(data.token);
+    if (typeof data.refresh_token === 'string' && data.refresh_token) {
+      await setRefreshToken(data.refresh_token);
+    }
+    return data.token;
+  } catch {
+    return null;
+  }
+}
+
+export async function refreshStoredAuthToken(): Promise<boolean> {
+  return Boolean(await refreshStoredAuthTokenValue());
+}
+
+async function requestJson(path: string, initForToken: TokenRequestInit): Promise<any> {
   const token = await getToken();
-  const res = await apiFetchWithTimeout(path, {
-    headers: token ? {Authorization: `Bearer ${token}`} : {},
-  });
-  const text = await res.text();
+  let res = await apiFetchWithTimeout(path, initForToken(token));
+  let text = await res.text();
+
+  if (res.status === 401 && token && shouldRefreshAuthForPath(path)) {
+    const refreshedToken = await refreshStoredAuthTokenValue();
+    if (refreshedToken) {
+      res = await apiFetchWithTimeout(path, initForToken(refreshedToken));
+      text = await res.text();
+    }
+  }
+
   if (!res.ok) {
     throw apiErrorFromResponse(res, text);
   }
   try { return JSON.parse(text); } catch { return text; }
 }
 
+// ---------- Go 后端 HTTP 请求 ----------
+export async function apiGet(path: string): Promise<any> {
+  return requestJson(path, token => ({
+    headers: token ? {Authorization: `Bearer ${token}`} : {},
+  }));
+}
+
 export async function apiPost(path: string, body: any): Promise<any> {
-  const token = await getToken();
-  const res = await apiFetchWithTimeout(path, {
+  return requestJson(path, token => ({
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? {Authorization: `Bearer ${token}`} : {}),
     },
     body: JSON.stringify(body),
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw apiErrorFromResponse(res, text);
-  }
-  try { return JSON.parse(text); } catch { return text; }
+  }));
 }
 
 export async function apiPut(path: string, body: any): Promise<any> {
-  const token = await getToken();
-  const res = await apiFetchWithTimeout(path, {
+  return requestJson(path, token => ({
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? {Authorization: `Bearer ${token}`} : {}),
     },
     body: JSON.stringify(body),
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw apiErrorFromResponse(res, text);
-  }
-  try { return JSON.parse(text); } catch { return text; }
+  }));
 }
 
 export async function apiPatch(path: string, body: any): Promise<any> {
-  const token = await getToken();
-  const res = await apiFetchWithTimeout(path, {
+  return requestJson(path, token => ({
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? {Authorization: `Bearer ${token}`} : {}),
     },
     body: JSON.stringify(body),
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw apiErrorFromResponse(res, text);
-  }
-  try { return JSON.parse(text); } catch { return text; }
+  }));
 }
 
 export async function apiDelete(path: string): Promise<any> {
-  const token = await getToken();
-  const res = await apiFetchWithTimeout(path, {
+  return requestJson(path, token => ({
     method: 'DELETE',
     headers: token ? {Authorization: `Bearer ${token}`} : {},
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw apiErrorFromResponse(res, text);
-  }
-  try { return JSON.parse(text); } catch { return text; }
+  }));
 }
