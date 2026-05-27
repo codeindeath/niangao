@@ -273,6 +273,49 @@ describe('HomeScreen', () => {
     });
   });
 
+  it('marks inspiration only once while the card action is in flight', async () => {
+    (config.getToken as jest.Mock).mockResolvedValue('fake-token');
+    (api.fetchRecommendations as jest.Mock).mockResolvedValue({
+      data: [makeExperience('1')],
+      total: 1,
+      has_more: false,
+    });
+    (api.markInspired as jest.Mock).mockReturnValue(new Promise(() => {}));
+
+    const {findByText, getByLabelText} = render(<HomeScreen />);
+
+    await findByText('第 1 条经验');
+    const inspireButton = getByLabelText('标记有启发');
+    fireEvent.press(inspireButton, {stopPropagation: jest.fn()});
+    fireEvent.press(inspireButton, {stopPropagation: jest.fn()});
+
+    await waitFor(() => {
+      expect(api.markInspired).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('updates collection only once while the card action is in flight', async () => {
+    (config.getToken as jest.Mock).mockResolvedValue('fake-token');
+    (api.fetchRecommendations as jest.Mock).mockResolvedValue({
+      data: [makeExperience('1')],
+      total: 1,
+      has_more: false,
+    });
+    (api.setCollected as jest.Mock).mockReturnValue(new Promise(() => {}));
+
+    const {findByText, getByLabelText} = render(<HomeScreen />);
+
+    await findByText('第 1 条经验');
+    const collectButton = getByLabelText('收藏经验');
+    fireEvent.press(collectButton, {stopPropagation: jest.fn()});
+    fireEvent.press(collectButton, {stopPropagation: jest.fn()});
+
+    await waitFor(() => {
+      expect(api.setCollected).toHaveBeenCalledTimes(1);
+      expect(api.setCollected).toHaveBeenCalledWith('1', true);
+    });
+  });
+
   it('clears expired auth and keeps public recommendations when a protected tab load returns 401', async () => {
     (config.getToken as jest.Mock).mockResolvedValue('expired-token');
     (api.fetchRecommendations as jest.Mock).mockResolvedValue({

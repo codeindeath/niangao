@@ -96,6 +96,8 @@ export default function HomeScreen() {
   const tabScrollIndex = useRef<Record<TabName, number>>({ recommend: 0, my: 0, bookmarks: 0 });
   const flatListRef = useRef<FlatList>(null);
   const tokenRef = useRef<string | null>(null);
+  const inspiringIdsRef = useRef<Set<string>>(new Set());
+  const collectingIdsRef = useRef<Set<string>>(new Set());
 
   // Derived
   const experiences = tabCaches[activeTab].items;
@@ -251,63 +253,84 @@ export default function HomeScreen() {
   };
 
   const handleLike = async (id: string) => {
-    if (!(await requireLogin(navigation, '登录后可以标记有启发，年糕也会更懂你的偏好。'))) return;
-    const current = tabCaches[activeTab].items.find(e => e.id === id);
-    if (!current || current.is_inspired) return;
-    setTabCaches(prev => ({
-      ...prev,
-      [activeTab]: {
-        ...prev[activeTab],
-        items: prev[activeTab].items.map(e =>
-          e.id === id ? {...e, is_inspired: true, inspiration_count: e.inspiration_count + 1} : e
-        ),
-      },
-    }));
-    try { await markInspired(id); } catch (e: any) {
+    if (inspiringIdsRef.current.has(id)) return;
+    inspiringIdsRef.current.add(id);
+    let optimisticApplied = false;
+    try {
+      if (!(await requireLogin(navigation, '登录后可以标记有启发，年糕也会更懂你的偏好。'))) return;
+      const current = tabCaches[activeTab].items.find(e => e.id === id);
+      if (!current || current.is_inspired) return;
       setTabCaches(prev => ({
         ...prev,
         [activeTab]: {
           ...prev[activeTab],
           items: prev[activeTab].items.map(e =>
-            e.id === id ? {...e, is_inspired: false, inspiration_count: Math.max(e.inspiration_count - 1, 0)} : e
+            e.id === id ? {...e, is_inspired: true, inspiration_count: e.inspiration_count + 1} : e
           ),
         },
       }));
+      optimisticApplied = true;
+      await markInspired(id);
+    } catch (e: any) {
+      if (optimisticApplied) {
+        setTabCaches(prev => ({
+          ...prev,
+          [activeTab]: {
+            ...prev[activeTab],
+            items: prev[activeTab].items.map(item =>
+              item.id === id ? {...item, is_inspired: false, inspiration_count: Math.max(item.inspiration_count - 1, 0)} : item
+            ),
+          },
+        }));
+      }
       if (await handleAuthExpired(navigation, e)) return;
       Alert.alert('操作失败', e?.message || '请稍后再试');
+    } finally {
+      inspiringIdsRef.current.delete(id);
     }
   };
 
   const handleBookmark = async (id: string) => {
-    if (!(await requireLogin(navigation, '登录后可以收藏经验，之后在看看里随时翻回来。'))) return;
-    const current = tabCaches[activeTab].items.find(e => e.id === id);
-    if (!current) return;
-    const nextCollected = !current?.is_collected;
-    setTabCaches(prev => ({
-      ...prev,
-      [activeTab]: {
-        ...prev[activeTab],
-        items: prev[activeTab].items.map(e => e.id === id ? {
-          ...e,
-          is_collected: nextCollected,
-          collection_count: nextCollected ? e.collection_count + 1 : Math.max(e.collection_count - 1, 0),
-        } : e),
-      },
-    }));
-    try { await setCollected(id, nextCollected); } catch (e: any) {
+    if (collectingIdsRef.current.has(id)) return;
+    collectingIdsRef.current.add(id);
+    let optimisticApplied = false;
+    let nextCollected = false;
+    try {
+      if (!(await requireLogin(navigation, '登录后可以收藏经验，之后在看看里随时翻回来。'))) return;
+      const current = tabCaches[activeTab].items.find(e => e.id === id);
+      if (!current) return;
+      nextCollected = !current?.is_collected;
       setTabCaches(prev => ({
         ...prev,
         [activeTab]: {
           ...prev[activeTab],
           items: prev[activeTab].items.map(e => e.id === id ? {
             ...e,
-            is_collected: !nextCollected,
-            collection_count: nextCollected ? Math.max(e.collection_count - 1, 0) : e.collection_count + 1,
+            is_collected: nextCollected,
+            collection_count: nextCollected ? e.collection_count + 1 : Math.max(e.collection_count - 1, 0),
           } : e),
         },
       }));
+      optimisticApplied = true;
+      await setCollected(id, nextCollected);
+    } catch (e: any) {
+      if (optimisticApplied) {
+        setTabCaches(prev => ({
+          ...prev,
+          [activeTab]: {
+            ...prev[activeTab],
+            items: prev[activeTab].items.map(item => item.id === id ? {
+              ...item,
+              is_collected: !nextCollected,
+              collection_count: nextCollected ? Math.max(item.collection_count - 1, 0) : item.collection_count + 1,
+            } : item),
+          },
+        }));
+      }
       if (await handleAuthExpired(navigation, e)) return;
       Alert.alert('操作失败', e?.message || '请稍后再试');
+    } finally {
+      collectingIdsRef.current.delete(id);
     }
   };
 

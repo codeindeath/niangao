@@ -2292,6 +2292,18 @@ Current result:
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
     - `git diff --check`
+- Feed card action repeated-tap checks pass:
+  - 看看卡片的“有启发”和“收藏”动作现在会在等待登录检查或后端动作请求前，按 experience id 加 in-flight 守卫
+  - same-card rapid taps no longer send duplicate `markInspired` or `setCollected` requests while the first action is pending
+  - existing optimistic updates, failure rollback, expired-auth routing, guest login prompts, and non-auth failure alerts remain unchanged
+  - no production backend deployment was needed for this App-only interaction hardening slice
+  - verification:
+    - `npm run test -- HomeScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- HomeScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand` (24 suites, 135 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
 
 Not verified yet:
 
