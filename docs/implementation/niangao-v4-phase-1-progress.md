@@ -137,7 +137,7 @@ Completed in this slice:
 - Aligned account cancellation endpoint with the V4 我的 contract:
   - backend registers `DELETE /api/v1/me/account`
   - mobile `deleteAccount` now calls `/api/v1/me/account` instead of legacy `/api/v1/user/account`
-  - legacy hard-delete/anonymization behavior remains a deployment decision risk before production migration
+  - later hardening replaced legacy hard-delete behavior with soft-delete/anonymization; the V4 contract now records the production data-retention behavior
 - Hardened V4 owner-delete semantics:
   - public approved deletes keep the row for audit/history but now set `lifecycle_status='deleted'`
   - deleted public rows now set `recommendation_status='suppressed'` and `ai_citable=FALSE`
@@ -2630,6 +2630,13 @@ Current result:
     - `./venv/bin/python -m compileall -q app tests`
     - `git diff --check`
     - remote AI pytest/compileall, production AI service deploy/restart, gateway/legacy-route smoke, and backend/AI `journalctl` runtime scans
+- Account cancellation contract drift cleanup checks pass:
+  - Phase 1 contracts now record the implemented production behavior for `DELETE /api/v1/me/account`: soft-delete/anonymize the user row, clear profile/display fields, reset user settings, and remove refresh/token-revocation rows
+  - the early progress summary no longer describes account cancellation as an unresolved hard-delete/anonymization deployment risk
+  - verification:
+    - inspected `backend/internal/handler/me_account_v4.go` and `backend/internal/handler/me_account_v4_test.go`
+    - `rg -n "hard-delete|hard delete|anonymization policy|Account deletion|account deletion|注销|deleteAccount|me/account|deleted_at|anonym" docs/implementation/niangao-v4-phase-1-contracts.md docs/implementation/niangao-v4-phase-1-progress.md backend/internal/handler/me_account_v4.go backend/internal/handler/me_account_v4_test.go`
+    - `git diff --check`
 
 Not verified yet:
 

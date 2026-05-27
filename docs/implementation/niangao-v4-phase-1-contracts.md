@@ -626,7 +626,12 @@ Behavior:
 
 - App uses the V4 `/me` route for account cancellation from 我的.
 - The legacy `/user/account` route may remain temporarily for compatibility, but new App code must not call it.
-- Account deletion/anonymization policy still needs the production data-retention decision before final deployment.
+- Account cancellation soft-deletes and anonymizes the user row instead of hard-deleting it:
+  - set `users.deleted_at`
+  - rewrite `apple_user_id` to a deleted-user sentinel
+  - clear nickname/display/profile fields and reset `user_settings`
+  - remove refresh token and token-revocation rows for the user
+- Existing experiences and related interaction rows remain for audit/history; public/deleted experience visibility is governed by the V4 lifecycle and visibility rules above.
 
 ## 9. AI Gateway Foundation
 
