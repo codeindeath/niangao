@@ -4,6 +4,39 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260527-033] github_remote_internal_error_on_push
+
+**Logged**: 2026-05-27T20:57:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+A `git push` was rejected by the GitHub remote with an Internal Server Error after the local commit had already been created.
+
+### Error
+```
+remote: Internal Server Error
+remote: Request ID 73242514c48be1c0eca2407209e7c91e
+error: failed to push some refs to 'github.com:codeindeath/niangao.git'
+```
+
+### Context
+- Operation attempted: push commit `3d4273e docs: remove token-like examples`.
+- Local branch was ahead by one commit after the failed push.
+- `git ls-remote` confirmed the remote branch still pointed at the previous commit.
+- A plain retry of `git push` succeeded and advanced the remote branch to the local commit.
+
+### Suggested Fix
+When a push fails with a remote 5xx after commit creation, verify local ahead state and the remote branch head, then retry the push before changing the commit.
+
+### Metadata
+- Reproducible: no
+- Related Files: docs/admin-prd-v1.md
+- See Also: ERR-20260527-028
+
+---
+
 ## [ERR-20260527-032] backend_subdir_repo_relative_paths
 
 **Logged**: 2026-05-27T18:52:00+08:00
