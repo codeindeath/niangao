@@ -2579,6 +2579,18 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-auth-deprecated-error-copy`
     - `git diff --check`
     - production backend deploy, hash verification, public health/feed smoke, malformed auth payload smoke, deprecated-route smoke, and backend/AI `journalctl` severe-error scans
+- Mobile card/detail action weak-error copy checks pass:
+  - Home feed cards, detail cards, and search-result cards now sanitize ordinary technical `Error.message` values before showing action-failure alerts
+  - existing Chinese backend `ApiError.message` copy is preserved, while generic network/runtime errors fall back to `网络不稳，请稍后再试`
+  - affected action paths include 有启发, 收藏, 转为私密, and 删除 failure alerts in 看看、详情、搜索结果卡片
+  - no production backend deployment was needed for this App-only weak-state slice
+  - verification:
+    - `npm run test -- HomeScreen.test.tsx DetailScreen.test.tsx SearchCardScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- HomeScreen.test.tsx DetailScreen.test.tsx SearchCardScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
 
 Not verified yet:
 

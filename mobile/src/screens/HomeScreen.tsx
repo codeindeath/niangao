@@ -27,6 +27,7 @@ import {
 import {getToken, getUserInfo} from '../services/config';
 import FlipCard from '../components/ExperienceCard';
 import {handleAuthExpired, requireLogin} from '../utils/authGate';
+import {userFacingErrorMessage} from '../utils/errors';
 import {reportHandledError} from '../utils/logging';
 
 // Module-level tab refresh trigger (called from CreateScreen after publish)
@@ -284,7 +285,7 @@ export default function HomeScreen() {
         }));
       }
       if (await handleAuthExpired(navigation, e)) return;
-      Alert.alert('操作失败', e?.message || '请稍后再试');
+      Alert.alert('操作失败', userFacingErrorMessage(e));
     } finally {
       inspiringIdsRef.current.delete(id);
     }
@@ -328,7 +329,7 @@ export default function HomeScreen() {
         }));
       }
       if (await handleAuthExpired(navigation, e)) return;
-      Alert.alert('操作失败', e?.message || '请稍后再试');
+      Alert.alert('操作失败', userFacingErrorMessage(e));
     } finally {
       collectingIdsRef.current.delete(id);
     }
@@ -374,7 +375,7 @@ export default function HomeScreen() {
         });
       } catch (e: any) {
         if (await handleAuthExpired(navigation, e)) return;
-        Alert.alert('操作失败', e?.message || '请稍后再试');
+        Alert.alert('操作失败', userFacingErrorMessage(e));
       }
     };
     Alert.alert(
@@ -391,7 +392,7 @@ export default function HomeScreen() {
             removeExperienceFromCurrentTab(id);
           } catch (e: any) {
             if (await handleAuthExpired(navigation, e)) return;
-            Alert.alert('删除失败', e?.message || '请稍后再试');
+            Alert.alert('删除失败', userFacingErrorMessage(e));
           }
         }},
       ],

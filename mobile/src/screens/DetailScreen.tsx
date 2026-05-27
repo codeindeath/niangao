@@ -13,6 +13,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {fetchExperience, markInspired, setCollected, updateExperience, deleteExperience, Experience} from '../services/api';
 import {getUserInfo} from '../services/config';
 import {handleAuthExpired, requireLogin} from '../utils/authGate';
+import {userFacingErrorMessage} from '../utils/errors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const DOMAIN_LABELS: Record<string, string> = {
@@ -86,7 +87,7 @@ export default function DetailScreen({route, navigation}: any) {
         setExp(previous);
       }
       if (await handleAuthExpired(navigation, e)) return;
-      Alert.alert('操作失败', e?.message || '请稍后再试');
+      Alert.alert('操作失败', userFacingErrorMessage(e));
     } finally {
       inspiringRef.current = false;
     }
@@ -112,7 +113,7 @@ export default function DetailScreen({route, navigation}: any) {
         setExp(previous);
       }
       if (await handleAuthExpired(navigation, e)) return;
-      Alert.alert('操作失败', e?.message || '请稍后再试');
+      Alert.alert('操作失败', userFacingErrorMessage(e));
     } finally {
       collectingRef.current = false;
     }
@@ -123,7 +124,7 @@ export default function DetailScreen({route, navigation}: any) {
     try { await deleteExperience(exp.id); navigation.goBack(); }
     catch (e: any) {
       if (await handleAuthExpired(navigation, e)) return;
-      Alert.alert('删除失败', e?.message || '请稍后再试');
+      Alert.alert('删除失败', userFacingErrorMessage(e));
     }
   };
 
@@ -145,7 +146,7 @@ export default function DetailScreen({route, navigation}: any) {
       } : prev);
     } catch (e: any) {
       if (await handleAuthExpired(navigation, e)) return;
-      Alert.alert('操作失败', e?.message || '请稍后再试');
+      Alert.alert('操作失败', userFacingErrorMessage(e));
     }
   };
 

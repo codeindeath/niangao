@@ -85,7 +85,7 @@ describe('SearchCardScreen', () => {
     fireEvent.press(await findByLabelText('标记有启发'), {stopPropagation: jest.fn()});
 
     await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith('操作失败', 'network down');
+      expect(Alert.alert).toHaveBeenCalledWith('操作失败', '网络不稳，请稍后再试');
     });
   });
 

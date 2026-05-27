@@ -13,6 +13,7 @@ import {Experience, markInspired, setCollected, updateExperience, deleteExperien
 import {getUserInfo} from '../services/config';
 import FlipCard from '../components/ExperienceCard';
 import {handleAuthExpired, requireLogin} from '../utils/authGate';
+import {userFacingErrorMessage} from '../utils/errors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -66,7 +67,7 @@ export default function SearchCardScreen({route, navigation}: any) {
         updateCard(id, {is_inspired: previousCard.is_inspired, inspiration_count: previousCard.inspiration_count});
       }
       if (await handleAuthExpired(navigation, e)) return;
-      Alert.alert('操作失败', e?.message || '请稍后再试');
+      Alert.alert('操作失败', userFacingErrorMessage(e));
     } finally {
       inspiringIdsRef.current.delete(id);
     }
@@ -93,7 +94,7 @@ export default function SearchCardScreen({route, navigation}: any) {
         updateCard(id, {is_collected: previousCard.is_collected, collection_count: previousCard.collection_count});
       }
       if (await handleAuthExpired(navigation, e)) return;
-      Alert.alert('操作失败', e?.message || '请稍后再试');
+      Alert.alert('操作失败', userFacingErrorMessage(e));
     } finally {
       collectingIdsRef.current.delete(id);
     }
@@ -119,7 +120,7 @@ export default function SearchCardScreen({route, navigation}: any) {
         });
       } catch (e: any) {
         if (await handleAuthExpired(navigation, e)) return;
-        Alert.alert('操作失败', e?.message || '请稍后再试');
+        Alert.alert('操作失败', userFacingErrorMessage(e));
       }
     };
     Alert.alert(
@@ -136,7 +137,7 @@ export default function SearchCardScreen({route, navigation}: any) {
             setCards(prev => prev.filter(e => e.id !== id));
           } catch (e: any) {
             if (await handleAuthExpired(navigation, e)) return;
-            Alert.alert('删除失败', e?.message || '请稍后再试');
+            Alert.alert('删除失败', userFacingErrorMessage(e));
           }
         }},
       ],
