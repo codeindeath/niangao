@@ -128,4 +128,5 @@ func TestV4SearchFailureReturnsServerError(t *testing.T) {
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want 500: %s", w.Code, w.Body.String())
 	}
+	assertStructuredErrorMessage(t, w, "暂时搜索不了，请稍后再试")
 }

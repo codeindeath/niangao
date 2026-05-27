@@ -67,7 +67,7 @@ func (h *FeedHandler) respond(c *gin.Context, load func(context.Context, int, st
 	page, err := load(c.Request.Context(), parseFeedLimit(c), c.Query("cursor"))
 	if err != nil {
 		log.Printf("v4 feed failed path=%s: %v", c.FullPath(), err)
-		respondError(c, http.StatusInternalServerError, "feed_load_failed", "failed to load feed")
+		respondError(c, http.StatusInternalServerError, "feed_load_failed", "暂时加载不了内容")
 		return
 	}
 	if page == nil {

@@ -152,6 +152,24 @@ func TestV4MeStatsRecentHarvestValidatesRange(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", w.Code, w.Body.String())
 	}
+	assertStructuredErrorMessage(t, w, "时间范围不支持")
+}
+
+func TestV4MeStatsRecentRespondedRejectsInvalidLimitWithUserFacingCopy(t *testing.T) {
+	r := gin.New()
+	v1 := r.Group("/api/v1", func(c *gin.Context) {
+		c.Set("user_id", "user-1")
+	})
+	RegisterMeStatsRoutes(v1, &fakeV4MeStatsStore{})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/api/v1/me/recent-responded-experiences?limit=bad", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400: %s", w.Code, w.Body.String())
+	}
+	assertStructuredErrorMessage(t, w, "数量参数不正确")
 }
 
 func TestV4MeStatsRecentRespondedClampsLimit(t *testing.T) {
@@ -187,5 +205,39 @@ func TestV4MeStatsFailureReturnsServerError(t *testing.T) {
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want 500: %s", w.Code, w.Body.String())
+	}
+	assertStructuredErrorMessage(t, w, "暂时加载不了统计")
+}
+
+func TestV4MeStatsFailuresUseUserFacingCopy(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		want string
+	}{
+		{"assets", "/api/v1/me/stats/assets", "暂时加载不了统计"},
+		{"contribution", "/api/v1/me/stats/contribution", "暂时加载不了统计"},
+		{"change", "/api/v1/me/stats/change", "暂时加载不了统计"},
+		{"recent harvest", "/api/v1/me/stats/recent-harvest", "暂时加载不了最近收获"},
+		{"recent responded", "/api/v1/me/recent-responded-experiences", "暂时加载不了最近回应"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := gin.New()
+			v1 := r.Group("/api/v1", func(c *gin.Context) {
+				c.Set("user_id", "user-1")
+			})
+			RegisterMeStatsRoutes(v1, &fakeV4MeStatsStore{fail: true})
+
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", tt.path, nil)
+			r.ServeHTTP(w, req)
+
+			if w.Code != http.StatusInternalServerError {
+				t.Fatalf("status = %d, want 500: %s", w.Code, w.Body.String())
+			}
+			assertStructuredErrorMessage(t, w, tt.want)
+		})
 	}
 }

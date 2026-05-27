@@ -33,7 +33,7 @@ func (h *SearchHandler) SearchExperiences(c *gin.Context) {
 	page, err := h.store.SearchExperiences(c.Request.Context(), getOptionalUserID(c), query, parseFeedLimit(c), c.Query("cursor"))
 	if err != nil {
 		log.Printf("v4 search failed query=%q: %v", query, err)
-		respondError(c, http.StatusInternalServerError, "search_failed", "failed to search experiences")
+		respondError(c, http.StatusInternalServerError, "search_failed", "暂时搜索不了，请稍后再试")
 		return
 	}
 	if page == nil {
