@@ -4,6 +4,37 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260527-032] backend_subdir_repo_relative_paths
+
+**Logged**: 2026-05-27T18:52:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: tests
+
+### Summary
+A backend formatting/test command was run from the `backend/` directory while still using repository-root-relative paths.
+
+### Error
+```
+lstat backend/internal/handler/auth.go: no such file or directory
+lstat backend/internal/handler/app_error_contract_test.go: no such file or directory
+```
+
+### Context
+- Operation attempted: `gofmt` and targeted Go tests after changing `backend/internal/handler/auth.go`.
+- The command's working directory was `/Users/swt/projects/niangao/backend`, so paths starting with `backend/` pointed to a non-existent nested directory.
+- The corrected command used `internal/handler/auth.go` and `internal/handler/app_error_contract_test.go` from the backend workdir.
+
+### Suggested Fix
+When `workdir` is `backend/`, use backend-relative paths for Go files and packages. Use repository-root paths only when the command workdir is the repository root.
+
+### Metadata
+- Reproducible: yes
+- Related Files: backend/internal/handler/auth.go
+- See Also: ERR-20260527-031
+
+---
+
 ## [ERR-20260527-031] command_substitution_grep_pipefail_count
 
 **Logged**: 2026-05-27T18:31:00+08:00

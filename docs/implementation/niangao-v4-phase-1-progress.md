@@ -2685,6 +2685,30 @@ Current result:
     - `npm run test -- --runInBand`
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- Backend refresh-auth expired-state copy checks pass:
+  - refresh-token user lookup failures now return expired-auth semantics instead of an App-facing `500 用户不存在`
+  - the response is `401 refresh_token_invalid` with `登录已过期，请重新登录`, matching invalid/rotated refresh token behavior
+  - Linux backend artifact `/tmp/niangao-backend-v4-refresh-auth-copy` was deployed to production at `/root/niangao/deployments/20260527194105/server`
+  - production backend binary hash now matches the local refresh-auth-copy artifact:
+    - `960434b3deefc2b0abce9b5def1e4aa0e0d1ff07cdffd1fad83ae9e48baf2077`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-refresh-auth-copy.20260527194105.backend`
+  - post-deploy smoke passed:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - temporary refresh-token rotation -> 200 with new JWT and refresh token present
+    - reusing the old refresh token -> 401, `message=登录已过期，请重新登录`
+    - cleanup verification before physical cleanup -> `1|1` for temporary user and rotated refresh token
+    - physical cleanup verification for the temporary smoke user -> `0`
+  - post-smoke backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, login failure, token-generation failure, refresh-token user lookup failure, model-call failure, invalid model output, or real `status=5xx` response; all four smoke request IDs appeared in backend logs
+  - deployment command-path learning added:
+    - `ERR-20260527-032 backend_subdir_repo_relative_paths`
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestRefreshTokenMissingUserUsesExpiredAuthCopy' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestRefreshTokenMissingUserUsesExpiredAuthCopy|TestAppFacingAuthErrorsAvoidTechnicalTokenCopy' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-refresh-auth-copy`
+    - production backend deploy, hash verification, public health/feed smoke, temporary refresh-token smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

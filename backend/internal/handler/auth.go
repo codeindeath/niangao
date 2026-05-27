@@ -223,7 +223,8 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		userID,
 	).Scan(&nickname, &appleUserID)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "user_not_found", "用户不存在")
+		log.Printf("refresh token user lookup failed user=%s: %v", userID, err)
+		respondError(c, http.StatusUnauthorized, "refresh_token_invalid", "登录已过期，请重新登录")
 		return
 	}
 

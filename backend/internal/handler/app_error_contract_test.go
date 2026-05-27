@@ -59,3 +59,18 @@ func TestAppFacingAuthErrorsAvoidTechnicalTokenCopy(t *testing.T) {
 		}
 	}
 }
+
+func TestRefreshTokenMissingUserUsesExpiredAuthCopy(t *testing.T) {
+	sourceBytes, err := os.ReadFile("auth.go")
+	if err != nil {
+		t.Fatalf("read auth.go: %v", err)
+	}
+	source := string(sourceBytes)
+
+	if strings.Contains(source, `"user_not_found", "用户不存在"`) {
+		t.Fatal("refresh-token user lookup failures should not expose 用户不存在 to the App")
+	}
+	if strings.Contains(source, `http.StatusInternalServerError, "user_not_found"`) {
+		t.Fatal("refresh-token user lookup failures should behave like expired auth, not a 500")
+	}
+}
