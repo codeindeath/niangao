@@ -35,6 +35,32 @@ describe('config API errors', () => {
     await expect(apiPost('/api/v1/experiences', {})).rejects.toBeInstanceOf(ApiError);
   });
 
+  it('preserves top-level structured error action fields', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 503,
+      headers: {get: jest.fn().mockReturnValue('chat-request-1')},
+      text: jest.fn().mockResolvedValue(JSON.stringify({
+        error: {
+          code: 'chat_service_unavailable',
+          message: '暂时聊不了，请稍后再试。',
+          request_id: 'chat-error-request-1',
+        },
+        retryable: true,
+        user_message_id: 'msg-user-1',
+      })),
+    });
+
+    await expect(apiPost('/api/v1/chat/temp-sessions/temp-1/messages', {content: '刚才那句继续'})).rejects.toMatchObject({
+      status: 503,
+      message: '暂时聊不了，请稍后再试。',
+      code: 'chat_service_unavailable',
+      requestId: 'chat-error-request-1',
+      retryable: true,
+      userMessageId: 'msg-user-1',
+    });
+  });
+
   it('sends a request id header for backend traceability', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,

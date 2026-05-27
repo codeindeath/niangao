@@ -794,6 +794,38 @@ For remote smoke parsing, prefer `python3 -c '...'` with a simple quoted string,
 
 ---
 
+## [ERR-20260527-021] mobile_api_config_path_assumption
+
+**Logged**: 2026-05-27T09:08:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: frontend
+
+### Summary
+A follow-up inspection command used the stale path `mobile/src/config.ts`; the active App API config file is `mobile/src/services/config.ts`.
+
+### Error
+```
+sed: mobile/src/config.ts: No such file or directory
+```
+
+### Context
+- The command tried to inspect API error parsing after the structured backend error deployment.
+- The App imports API transport from `mobile/src/services/config.ts`, and tests live under `mobile/src/__tests__/config.test.ts`.
+- The corrected command read `mobile/src/services/config.ts` successfully.
+
+### Suggested Fix
+For App API transport and `ApiError` behavior, inspect `mobile/src/services/config.ts`; do not use the older top-level `mobile/src/config.ts` path.
+
+### Metadata
+- Reproducible: yes
+- Related Files: mobile/src/services/config.ts
+- See Also: ERR-20260527-020
+
+---
+
+---
+
 ## [ERR-20260527-020] go_test_from_repo_root
 
 **Logged**: 2026-05-27T08:54:00+08:00

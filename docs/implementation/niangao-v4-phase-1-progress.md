@@ -2244,6 +2244,17 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-structured-errors`
     - `npm run test -- config.test.ts ChatScreen.test.tsx --runInBand --no-cache`
     - production structured-error health/feed/auth/refresh smoke and backend/AI `journalctl` severe-error scans
+- App API error action-field preservation checks pass:
+  - mobile `ApiError` now preserves top-level backend `retryable` and `user_message_id` fields as `retryable` and `userMessageId`
+  - structured backend error `request_id` still takes precedence over response-header fallback request id
+  - this keeps the App-side transport aligned with the structured-error contract where business action fields remain top-level siblings of `error`
+  - no production backend deployment was needed for this App-only transport slice
+  - verification:
+    - `npm run test -- config.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- config.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (23 suites, 129 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 

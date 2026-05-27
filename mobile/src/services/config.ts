@@ -19,6 +19,14 @@ const USER_KEY = 'user_info';
 const STANDARD_REQUEST_TIMEOUT_MS = 15_000;
 const AI_REQUEST_TIMEOUT_MS = 60_000;
 
+type ParsedErrorPayload = {
+  message: string;
+  code?: string;
+  requestId?: string;
+  retryable?: boolean;
+  userMessageId?: string;
+};
+
 // ---------- Token 管理 ----------
 export async function getToken(): Promise<string | null> {
   return AsyncStorage.getItem(TOKEN_KEY);
@@ -66,20 +74,32 @@ export function isTokenExpired(token: string): boolean {
   }
 }
 
-function parseErrorPayload(text: string): {message: string; code?: string; requestId?: string} {
+function parseErrorPayload(text: string): ParsedErrorPayload {
   try {
     const json = JSON.parse(text);
+    const actionFields = {
+      retryable: typeof json.retryable === 'boolean' ? json.retryable : undefined,
+      userMessageId: typeof json.user_message_id === 'string' ? json.user_message_id : undefined,
+    };
     if (typeof json.error === 'string') {
       return {
         message: typeof json.message === 'string' ? json.message : json.error,
         code: typeof json.message === 'string' ? json.error : json.code,
         requestId: json.request_id,
+        ...actionFields,
       };
     }
     if (json.error && typeof json.error.message === 'string') {
-      return {message: json.error.message, code: json.error.code, requestId: json.error.request_id || json.request_id};
+      return {
+        message: json.error.message,
+        code: json.error.code,
+        requestId: json.error.request_id || json.request_id,
+        ...actionFields,
+      };
     }
-    if (typeof json.message === 'string') return {message: json.message, code: json.code, requestId: json.request_id};
+    if (typeof json.message === 'string') {
+      return {message: json.message, code: json.code, requestId: json.request_id, ...actionFields};
+    }
   } catch {}
   return {message: text || '请求失败'};
 }
@@ -88,12 +108,16 @@ export class ApiError extends Error {
   status: number;
   code?: string;
   requestId?: string;
-  constructor(status: number, message: string, code?: string, requestId?: string) {
+  retryable?: boolean;
+  userMessageId?: string;
+  constructor(status: number, message: string, code?: string, requestId?: string, retryable?: boolean, userMessageId?: string) {
     super(message);
     Object.defineProperty(this, 'message', {value: message, enumerable: true, configurable: true});
     this.status = status;
     this.code = code;
     this.requestId = requestId;
+    this.retryable = retryable;
+    this.userMessageId = userMessageId;
     this.name = 'ApiError';
   }
 }
@@ -119,6 +143,18 @@ function newRequestId(): string {
 
 function responseRequestId(res: Response): string | undefined {
   return res.headers?.get?.('X-Request-ID') || res.headers?.get?.('x-request-id') || undefined;
+}
+
+function apiErrorFromResponse(res: Response, text: string): ApiError {
+  const error = parseErrorPayload(text);
+  return new ApiError(
+    res.status,
+    error.message,
+    error.code,
+    error.requestId || responseRequestId(res),
+    error.retryable,
+    error.userMessageId,
+  );
 }
 
 function withRequestIdHeader(init: Record<string, any>): Record<string, any> {
@@ -159,8 +195,7 @@ export async function apiGet(path: string): Promise<any> {
   });
   const text = await res.text();
   if (!res.ok) {
-    const error = parseErrorPayload(text);
-    throw new ApiError(res.status, error.message, error.code, error.requestId || responseRequestId(res));
+    throw apiErrorFromResponse(res, text);
   }
   try { return JSON.parse(text); } catch { return text; }
 }
@@ -177,8 +212,7 @@ export async function apiPost(path: string, body: any): Promise<any> {
   });
   const text = await res.text();
   if (!res.ok) {
-    const error = parseErrorPayload(text);
-    throw new ApiError(res.status, error.message, error.code, error.requestId || responseRequestId(res));
+    throw apiErrorFromResponse(res, text);
   }
   try { return JSON.parse(text); } catch { return text; }
 }
@@ -195,8 +229,7 @@ export async function apiPut(path: string, body: any): Promise<any> {
   });
   const text = await res.text();
   if (!res.ok) {
-    const error = parseErrorPayload(text);
-    throw new ApiError(res.status, error.message, error.code, error.requestId || responseRequestId(res));
+    throw apiErrorFromResponse(res, text);
   }
   try { return JSON.parse(text); } catch { return text; }
 }
@@ -213,8 +246,7 @@ export async function apiPatch(path: string, body: any): Promise<any> {
   });
   const text = await res.text();
   if (!res.ok) {
-    const error = parseErrorPayload(text);
-    throw new ApiError(res.status, error.message, error.code, error.requestId || responseRequestId(res));
+    throw apiErrorFromResponse(res, text);
   }
   try { return JSON.parse(text); } catch { return text; }
 }
@@ -227,8 +259,7 @@ export async function apiDelete(path: string): Promise<any> {
   });
   const text = await res.text();
   if (!res.ok) {
-    const error = parseErrorPayload(text);
-    throw new ApiError(res.status, error.message, error.code, error.requestId || responseRequestId(res));
+    throw apiErrorFromResponse(res, text);
   }
   try { return JSON.parse(text); } catch { return text; }
 }
