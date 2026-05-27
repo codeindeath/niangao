@@ -2047,6 +2047,30 @@ Current result:
     - `npm run test -- --runInBand` (23 suites, 125 tests)
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- Feed/search canonical V4 payload field checks pass:
+  - App-facing recommend feed, recommendation-session feed, collections feed, mine feed, and search result payloads now expose V4 `experience_type`, `visibility`, `lifecycle_status`, `topic`, `interpretation_status`, and `quality_tier` directly instead of deriving response values from legacy fallbacks
+  - search topic matching now uses the canonical V4 `topic` field instead of falling back to legacy plural `topics`
+  - this keeps the remaining compatibility boundary out of user-facing V4 response semantics while preserving existing owner/display/count compatibility fallbacks
+  - the Phase 1 contract doc now records that these App-facing feed/search payload fields are canonical V4 fields without legacy response fallback
+  - Linux backend artifact `/tmp/niangao-backend-v4-canonical-feed-payload` was deployed to production at `/root/niangao/deployments/20260526235659/server`
+  - production backend binary hash now matches the local canonical-feed-payload artifact:
+    - `a78fa39d2526bf245ad160cdef838693e5b1c1f379d99b83d82f362fdd28b804`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-canonical-feed-payload.20260526235659.backend`
+  - post-deploy public and authenticated feed/search smoke passed with a temporary JWT user and cleanup:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=5` -> 200
+    - guest `/api/v1/search/experiences` returned the temporary public card with canonical `topic` and did not leak the temporary private card
+    - authenticated `/api/v1/search/experiences`, `/api/v1/feed/mine`, and `/api/v1/feed/collections` returned the temporary public and private cards with canonical V4 payload fields
+    - cleanup verification -> `0|0|0|0` for temporary users, temporary experiences, temporary collections, and temporary recommendation sessions
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, feed/search failure, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run TestV4FeedAndSearchQueriesExposeCanonicalV4PayloadFields -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestV4Feed|TestV4Recommend|TestV4Search|TestV4Collections|TestRecommendationCursor|TestRecommendFeedPersists|TestCollectionsFeedReturns' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-canonical-feed-payload`
+    - `git diff --check`
+    - production public/authenticated feed/search smoke, cleanup verification, service health checks, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

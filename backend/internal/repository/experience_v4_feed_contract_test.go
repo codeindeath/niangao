@@ -134,6 +134,39 @@ func TestV4CollectionsAndMineQueriesUseV4VisibilityLifecycleGates(t *testing.T) 
 	}
 }
 
+func TestV4FeedAndSearchQueriesExposeCanonicalV4PayloadFields(t *testing.T) {
+	queries := map[string]string{
+		"recommend":         recommendFeedQuery,
+		"recommend_session": recommendSessionCardsQuery,
+		"collections":       collectionsFeedQuery,
+		"mine":              mineFeedQuery,
+		"search":            searchExperiencesQuery,
+	}
+
+	for name, query := range queries {
+		t.Run(name, func(t *testing.T) {
+			for _, forbidden := range []string{
+				"COALESCE(e.experience_type",
+				"COALESCE(c.experience_type",
+				"COALESCE(e.visibility",
+				"COALESCE(c.visibility",
+				"COALESCE(e.lifecycle_status",
+				"COALESCE(c.lifecycle_status",
+				"COALESCE(e.topic, e.topics",
+				"COALESCE(c.topic, c.topics",
+				"COALESCE(e.interpretation_status",
+				"COALESCE(c.interpretation_status",
+				"COALESCE(e.quality_tier",
+				"COALESCE(c.quality_tier",
+			} {
+				if strings.Contains(query, forbidden) {
+					t.Fatalf("%s query should expose canonical V4 payload fields without fallback fragment %q", name, forbidden)
+				}
+			}
+		})
+	}
+}
+
 func TestRecommendationCursorRoundTrip(t *testing.T) {
 	cursor := formatRecommendationCursor("11111111-1111-4111-8111-111111111111", 20)
 	sessionID, offset, ok := parseRecommendationCursor(cursor)

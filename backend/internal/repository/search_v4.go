@@ -12,17 +12,17 @@ const searchExperiencesQuery = `
     e.id,
     COALESCE(e.owner_user_id, e.author_id),
     e.content,
-    COALESCE(e.experience_type, 'platform_selected'),
-    COALESCE(e.visibility, 'public'),
-    COALESCE(e.lifecycle_status, 'active'),
+    e.experience_type,
+    e.visibility,
+    e.lifecycle_status,
     COALESCE(e.domain::text, ''),
     COALESCE(e.sub_domain, ''),
-    COALESCE(e.topic, e.topics, ''),
+    e.topic,
     COALESCE(e.creator_display_name, e.creator_name, u.display_name, u.nickname, ''),
-    COALESCE(e.interpretation_status, CASE WHEN e.interpretation_generated THEN 'ready' ELSE 'none' END),
+    e.interpretation_status,
     (e.interpretation IS NOT NULL AND e.interpretation <> ''),
-    COALESCE(e.quality_tier, 'public_visible'),
-    CASE COALESCE(e.quality_tier, 'public_visible')
+    e.quality_tier,
+    CASE e.quality_tier
       WHEN 'high_trust' THEN 5
       WHEN 'ai_citable' THEN 4
       WHEN 'recommend_candidate' THEN 3
@@ -62,16 +62,16 @@ const searchExperiencesQuery = `
       OR COALESCE(e.creator_display_name, e.creator_name, u.display_name, u.nickname, '') ILIKE $2
       OR COALESCE(e.domain::text, '') ILIKE $2
       OR COALESCE(e.sub_domain, '') ILIKE $2
-      OR COALESCE(e.topic, e.topics, '') ILIKE $2
+      OR e.topic ILIKE $2
     )
   ORDER BY
     CASE
       WHEN COALESCE(e.creator_display_name, e.creator_name, u.display_name, u.nickname, '') ILIKE $2 THEN 0
-      WHEN COALESCE(e.topic, e.topics, '') ILIKE $2 THEN 1
+      WHEN e.topic ILIKE $2 THEN 1
       WHEN e.content ILIKE $2 THEN 2
       ELSE 3
     END,
-    CASE COALESCE(e.quality_tier, 'public_visible')
+    CASE e.quality_tier
       WHEN 'high_trust' THEN 5
       WHEN 'ai_citable' THEN 4
       WHEN 'recommend_candidate' THEN 3

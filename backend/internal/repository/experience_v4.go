@@ -60,17 +60,17 @@ const recommendFeedQuery = `
     e.id,
     COALESCE(e.owner_user_id, e.author_id),
     e.content,
-    COALESCE(e.experience_type, 'platform_selected'),
-    COALESCE(e.visibility, 'public'),
-    COALESCE(e.lifecycle_status, 'active'),
+    e.experience_type,
+    e.visibility,
+    e.lifecycle_status,
     COALESCE(e.domain::text, ''),
     COALESCE(e.sub_domain, ''),
-    COALESCE(e.topic, e.topics, ''),
+    e.topic,
     COALESCE(e.creator_display_name, e.creator_name, u.display_name, u.nickname, ''),
-    COALESCE(e.interpretation_status, CASE WHEN e.interpretation_generated THEN 'ready' ELSE 'none' END),
+    e.interpretation_status,
     (e.interpretation IS NOT NULL AND e.interpretation <> ''),
-    COALESCE(e.quality_tier, 'public_visible'),
-    CASE COALESCE(e.quality_tier, 'public_visible')
+    e.quality_tier,
+    CASE e.quality_tier
       WHEN 'high_trust' THEN 5
       WHEN 'ai_citable' THEN 4
       WHEN 'recommend_candidate' THEN 3
@@ -106,7 +106,7 @@ const recommendFeedQuery = `
       WHEN vs.experience_id IS NULL THEN 0
       ELSE 1
     END ASC,
-    CASE COALESCE(e.quality_tier, 'public_visible')
+    CASE e.quality_tier
       WHEN 'high_trust' THEN 5
       WHEN 'ai_citable' THEN 4
       WHEN 'recommend_candidate' THEN 3
@@ -114,7 +114,7 @@ const recommendFeedQuery = `
     END DESC,
     COALESCE(vds.score, 0) DESC,
     (COALESCE(e.inspiration_count, e.like_count, 0) + COALESCE(e.collection_count, e.bookmark_count, 0)) DESC,
-    CASE COALESCE(e.experience_type, 'user_original')
+    CASE e.experience_type
       WHEN 'platform_selected' THEN 0
       ELSE 1
     END ASC,
@@ -144,17 +144,17 @@ const recommendSessionCardsQuery = `
     e.id,
     COALESCE(e.owner_user_id, e.author_id),
     e.content,
-    COALESCE(e.experience_type, 'platform_selected'),
-    COALESCE(e.visibility, 'public'),
-    COALESCE(e.lifecycle_status, 'active'),
+    e.experience_type,
+    e.visibility,
+    e.lifecycle_status,
     COALESCE(e.domain::text, ''),
     COALESCE(e.sub_domain, ''),
-    COALESCE(e.topic, e.topics, ''),
+    e.topic,
     COALESCE(e.creator_display_name, e.creator_name, u.display_name, u.nickname, ''),
-    COALESCE(e.interpretation_status, CASE WHEN e.interpretation_generated THEN 'ready' ELSE 'none' END),
+    e.interpretation_status,
     (e.interpretation IS NOT NULL AND e.interpretation <> ''),
-    COALESCE(e.quality_tier, 'public_visible'),
-    CASE COALESCE(e.quality_tier, 'public_visible')
+    e.quality_tier,
+    CASE e.quality_tier
       WHEN 'high_trust' THEN 5
       WHEN 'ai_citable' THEN 4
       WHEN 'recommend_candidate' THEN 3
@@ -218,17 +218,17 @@ const collectionsFeedQuery = `
     c.id,
     CASE WHEN c.visible_to_viewer THEN COALESCE(c.owner_user_id, c.author_id)::text ELSE '' END,
     CASE WHEN c.visible_to_viewer THEN c.content ELSE '' END AS content,
-    CASE WHEN c.visible_to_viewer THEN COALESCE(c.experience_type, 'user_original') ELSE '' END AS experience_type,
-    CASE WHEN c.visible_to_viewer THEN COALESCE(c.visibility, 'public') ELSE '' END AS visibility,
-    CASE WHEN c.visible_to_viewer THEN COALESCE(c.lifecycle_status, 'active') ELSE '' END AS lifecycle_status,
+    CASE WHEN c.visible_to_viewer THEN c.experience_type ELSE '' END AS experience_type,
+    CASE WHEN c.visible_to_viewer THEN c.visibility ELSE '' END AS visibility,
+    CASE WHEN c.visible_to_viewer THEN c.lifecycle_status ELSE '' END AS lifecycle_status,
     CASE WHEN c.visible_to_viewer THEN COALESCE(c.domain::text, '') ELSE '' END AS domain,
     CASE WHEN c.visible_to_viewer THEN COALESCE(c.sub_domain, '') ELSE '' END AS sub_domain,
-    CASE WHEN c.visible_to_viewer THEN COALESCE(c.topic, c.topics, '') ELSE '' END AS topic,
+    CASE WHEN c.visible_to_viewer THEN c.topic ELSE '' END AS topic,
     CASE WHEN c.visible_to_viewer THEN COALESCE(c.creator_display_name, c.creator_name, c.display_name, c.nickname, '') ELSE '' END AS creator_display_name,
-    CASE WHEN c.visible_to_viewer THEN COALESCE(c.interpretation_status, CASE WHEN c.interpretation_generated THEN 'ready' ELSE 'none' END) ELSE '' END AS interpretation_status,
+    CASE WHEN c.visible_to_viewer THEN c.interpretation_status ELSE '' END AS interpretation_status,
     CASE WHEN c.visible_to_viewer THEN (c.interpretation IS NOT NULL AND c.interpretation <> '') ELSE FALSE END AS interpretation_summary_available,
-    CASE WHEN c.visible_to_viewer THEN COALESCE(c.quality_tier, 'public_visible') ELSE '' END AS quality_tier,
-    CASE WHEN c.visible_to_viewer THEN CASE COALESCE(c.quality_tier, 'public_visible')
+    CASE WHEN c.visible_to_viewer THEN c.quality_tier ELSE '' END AS quality_tier,
+    CASE WHEN c.visible_to_viewer THEN CASE c.quality_tier
       WHEN 'high_trust' THEN 5
       WHEN 'ai_citable' THEN 4
       WHEN 'recommend_candidate' THEN 3
@@ -253,17 +253,17 @@ const mineFeedQuery = `
     e.id,
     COALESCE(e.owner_user_id, e.author_id),
     e.content,
-    COALESCE(e.experience_type, 'user_original'),
-    COALESCE(e.visibility, CASE WHEN e.is_private THEN 'private' ELSE 'public' END),
-    COALESCE(e.lifecycle_status, 'active'),
+    e.experience_type,
+    e.visibility,
+    e.lifecycle_status,
     COALESCE(e.domain::text, ''),
     COALESCE(e.sub_domain, ''),
-    COALESCE(e.topic, e.topics, ''),
+    e.topic,
     COALESCE(e.creator_display_name, e.creator_name, u.display_name, u.nickname, ''),
-    COALESCE(e.interpretation_status, CASE WHEN e.interpretation_generated THEN 'ready' ELSE 'none' END),
+    e.interpretation_status,
     (e.interpretation IS NOT NULL AND e.interpretation <> ''),
-    COALESCE(e.quality_tier, CASE WHEN e.is_private THEN 'private_only' ELSE 'unreviewed' END),
-    CASE COALESCE(e.quality_tier, 'unreviewed')
+    e.quality_tier,
+    CASE e.quality_tier
       WHEN 'high_trust' THEN 5
       WHEN 'ai_citable' THEN 4
       WHEN 'recommend_candidate' THEN 3

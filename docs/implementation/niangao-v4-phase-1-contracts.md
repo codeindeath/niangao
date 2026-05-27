@@ -65,6 +65,7 @@ Visibility rules:
 - Private card returns content only for owner.
 - Unavailable card returns `id`, `unavailable_reason`, and minimal collection state; it does not return original content.
 - Feed/search cards include `owner_user_id` when the current App may need owner actions; App uses it before legacy `author_id`.
+- Feed/search response payloads expose canonical V4 fields directly for `experience_type`, `visibility`, `lifecycle_status`, `topic`, `interpretation_status`, and `quality_tier`; legacy fields must not be used as response fallbacks for these V4 semantics.
 
 ## 3. 记下
 
