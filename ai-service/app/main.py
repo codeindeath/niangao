@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import chat, gateway, review, translate, normalize
+from app.middleware.request_id import RequestIDMiddleware
 from app.services.llm import LLMService
 import app.services.llm as llm_module
 
@@ -24,6 +25,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="年糕 AI Service", version="0.1.0", lifespan=lifespan)
+
+app.add_middleware(RequestIDMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

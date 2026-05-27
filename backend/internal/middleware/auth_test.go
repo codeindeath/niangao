@@ -108,6 +108,27 @@ func TestRequestIDMiddlewarePreservesIncomingRequestID(t *testing.T) {
 	}
 }
 
+func TestRequestIDMiddlewareStoresRequestIDInRequestContext(t *testing.T) {
+	r := gin.New()
+	r.Use(RequestID())
+	r.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"request_id": RequestIDFromContext(c.Request.Context())})
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/test", nil)
+	req.Header.Set(RequestIDHeader, "client-request-1")
+	r.ServeHTTP(w, req)
+
+	var body map[string]string
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body["request_id"] != "client-request-1" {
+		t.Fatalf("context request_id = %q, want incoming request id", body["request_id"])
+	}
+}
+
 func TestAuthMiddlewareNoToken(t *testing.T) {
 	r := gin.New()
 	r.Use(AuthMiddleware("test-secret", nil))

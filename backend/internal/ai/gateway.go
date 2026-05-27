@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/niangao/backend/internal/middleware"
 	"github.com/niangao/backend/internal/model"
 )
 
@@ -94,6 +95,7 @@ func (g *Gateway) GenerateChatReply(ctx context.Context, req model.ChatGatewayRe
 		return nil, fmt.Errorf("create ai gateway request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	setRequestIDHeader(ctx, httpReq)
 
 	resp, err := g.httpClient.Do(httpReq)
 	if err != nil {
@@ -147,6 +149,7 @@ func (g *Gateway) ClassifyChatTopic(ctx context.Context, req model.ChatTopicClas
 		return nil, fmt.Errorf("create topic classify gateway request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	setRequestIDHeader(ctx, httpReq)
 
 	resp, err := g.httpClient.Do(httpReq)
 	if err != nil {
@@ -223,6 +226,7 @@ func (g *Gateway) RewriteExperience(ctx context.Context, req model.ExperienceRew
 		return nil, fmt.Errorf("create rewrite gateway request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	setRequestIDHeader(ctx, httpReq)
 
 	resp, err := g.httpClient.Do(httpReq)
 	if err != nil {
@@ -255,4 +259,10 @@ func (g *Gateway) RewriteExperience(ctx context.Context, req model.ExperienceRew
 		Confidence:         gatewayResp.Confidence,
 		Warnings:           gatewayResp.Warnings,
 	}, nil
+}
+
+func setRequestIDHeader(ctx context.Context, req *http.Request) {
+	if requestID := middleware.RequestIDFromContext(ctx); requestID != "" {
+		req.Header.Set(middleware.RequestIDHeader, requestID)
+	}
 }

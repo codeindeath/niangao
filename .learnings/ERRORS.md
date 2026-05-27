@@ -4,6 +4,97 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260527-027] python39_union_type_annotation
+
+**Logged**: 2026-05-27T04:40:51Z
+**Priority**: low
+**Status**: pending
+**Area**: ai-service
+
+### Summary
+AI service tests failed because new middleware used Python 3.10 union type syntax while the service venv runs Python 3.9.
+
+### Error
+```
+TypeError: unsupported operand type(s) for |: 'type' and 'NoneType'
+```
+
+### Context
+- `ai-service/app/middleware/request_id.py` initially annotated `value: str | None`.
+- The local and production AI service runtime use Python 3.9, where PEP 604 union syntax is not supported without newer Python.
+- The fix changed the annotation to `Optional[str]` and reran the AI request-id test, full AI pytest suite, and ruff.
+
+### Suggested Fix
+Use Python 3.9-compatible type annotations in `ai-service` unless the runtime is explicitly upgraded; prefer `typing.Optional` over `T | None`.
+
+### Metadata
+- Reproducible: yes
+- Related Files: ai-service/app/middleware/request_id.py
+- See Also: ERR-20260527-023
+
+---
+
+## [ERR-20260527-026] shell_printf_dash_format
+
+**Logged**: 2026-05-27T04:40:51Z
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+A remote diagnostic script failed because `printf` received a format string starting with dashes.
+
+### Error
+```
+bash: line 6: printf: --: invalid option
+printf: usage: printf [-v var] format [arguments]
+```
+
+### Context
+- The script used `printf '--- backend request id matches ---\n'`.
+- In this shell, the leading dashes were treated as an option-like format argument.
+- The corrected command used `printf '%s\n' '--- backend request id matches ---'`.
+
+### Suggested Fix
+For diagnostic separators in remote shell scripts, use `printf '%s\n' '--- text ---'` instead of putting dash-prefixed text in the format string.
+
+### Metadata
+- Reproducible: yes
+- Related Files: docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-024
+
+---
+
+## [ERR-20260527-025] shell_pipefail_grep_count
+
+**Logged**: 2026-05-27T04:40:51Z
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+A production smoke script exited before cleanup verification because `grep` found no request-id log matches under `set -euo pipefail`.
+
+### Error
+```
+Command exited after the successful HTTP smoke output, before printing log-match counts.
+```
+
+### Context
+- The smoke wrote successful backend health and rewrite results, but then counted journal matches with `journalctl ... | grep -F "$request_id" | wc -l`.
+- With `pipefail`, a no-match `grep` makes the pipeline fail even when `wc` would produce `0`.
+- The corrected smoke wrapped grep with `|| true` before `wc -l` and added a cleanup trap for the temporary smoke user.
+
+### Suggested Fix
+When counting optional log matches under `pipefail`, use `(journalctl ... | grep -F "$needle" || true) | wc -l`, and add cleanup traps around production smoke data.
+
+### Metadata
+- Reproducible: yes
+- Related Files: docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-019
+
+---
+
 ## [ERR-20260527-024] nested_remote_python_fstring_quotes
 
 **Logged**: 2026-05-27T03:11:57Z

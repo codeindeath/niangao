@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"strings"
@@ -14,6 +15,8 @@ const (
 	RequestIDContextKey = "request_id"
 )
 
+type requestIDContextKey struct{}
+
 func RequestID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestID := sanitizeRequestID(c.GetHeader(RequestIDHeader))
@@ -22,8 +25,22 @@ func RequestID() gin.HandlerFunc {
 		}
 		c.Set(RequestIDContextKey, requestID)
 		c.Header(RequestIDHeader, requestID)
+		c.Request = c.Request.WithContext(ContextWithRequestID(c.Request.Context(), requestID))
 		c.Next()
 	}
+}
+
+func ContextWithRequestID(ctx context.Context, requestID string) context.Context {
+	requestID = sanitizeRequestID(requestID)
+	if requestID == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, requestIDContextKey{}, requestID)
+}
+
+func RequestIDFromContext(ctx context.Context) string {
+	requestID, _ := ctx.Value(requestIDContextKey{}).(string)
+	return requestID
 }
 
 func sanitizeRequestID(value string) string {

@@ -2362,6 +2362,39 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-ai-gateway-timeout`
     - `git diff --check`
     - production backend deploy, hash verification, authenticated rewrite smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Backend-to-AI request-id traceability checks pass:
+  - backend request-id middleware now stores the sanitized request id in `context.Context`, while still echoing `X-Request-ID` and keeping the Gin context value for structured backend errors/logs
+  - backend AI Gateway now propagates `X-Request-ID` to all server-side AI calls: chat, chat topic classification, and experience rewrite
+  - AI service now installs request-id middleware that echoes `X-Request-ID` and logs `request_id`, method, path, status, and latency for each AI HTTP request
+  - Linux backend artifact `/tmp/niangao-backend-v4-ai-request-id` was deployed to production at `/root/niangao/deployments/20260527122420/server`
+  - production backend binary hash now matches the local artifact:
+    - `8759cefe8deda3894a90785bf86bd7517c18abc6e0b7f5a86a9fe88dab28d6da`
+  - production backend binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-ai-request-id.20260527122420.backend`
+  - latest AI service source was synced to production, runtime checks passed, and `niangao-ai` was restarted
+  - production AI service backup was created before sync:
+    - `/root/niangao/backups/ai-service.before-v4-ai-request-id.20260527123724.tgz`
+  - post-deploy traceability smoke passed with a temporary JWT user and cleanup:
+    - backend `/health` -> 200
+    - AI `/health` -> 200
+    - backend `POST /api/v1/experiences/rewrite` -> 200, `can_rewrite=True`, response included `X-Request-ID`
+    - backend journal request-id matches -> 2
+    - AI journal request-id matches -> 2
+    - cleanup temporary users -> 0
+  - post-deploy backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, AI gateway call failure, rewrite gateway failure, model-call failure, invalid model output, or real 5xx response
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/middleware -run TestRequestIDMiddlewareStoresRequestIDInRequestContext -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/ai -run TestGatewayPropagatesRequestIDHeader -count=1 -v` (RED confirmed before implementation)
+    - `ai-service/venv/bin/python -m pytest ai-service/tests/test_request_id.py -q` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/middleware -run 'TestRequestIDMiddlewareStoresRequestIDInRequestContext|TestRequestIDMiddlewarePreservesIncomingRequestID' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/ai -run TestGatewayPropagatesRequestIDHeader -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-ai-request-id`
+    - `ai-service/venv/bin/python -m pytest ai-service/tests/test_request_id.py -q`
+    - `ai-service/venv/bin/python -m pytest ai-service/tests -q`
+    - `ai-service/venv/bin/ruff check ai-service/app ai-service/tests`
+    - `git diff --check`
+    - remote AI pytest/compileall, production backend/AI deploy, request-id rewrite smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

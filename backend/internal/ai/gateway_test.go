@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/niangao/backend/internal/middleware"
 	"github.com/niangao/backend/internal/model"
 )
 
@@ -19,6 +20,45 @@ func TestNewGatewayWithTimeoutUsesConfiguredTimeout(t *testing.T) {
 	}
 	if gateway.httpClient.Timeout != 90*time.Second {
 		t.Fatalf("gateway timeout = %s, want 90s", gateway.httpClient.Timeout)
+	}
+}
+
+func TestGatewayPropagatesRequestIDHeader(t *testing.T) {
+	var gotRequestID string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotRequestID = r.Header.Get(middleware.RequestIDHeader)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"result": {
+				"can_rewrite": true,
+				"content": "先把下一步写小，再看自己是不是还焦虑。",
+				"domain": "meaning",
+				"sub_domain": "self",
+				"topic": "焦虑时的行动",
+				"rewrite_level": "light",
+				"source_preservation": "high",
+				"needs_user_edit": false,
+				"reason": "保留原意并压缩表达"
+			},
+			"confidence": 0.8,
+			"warnings": []
+		}`))
+	}))
+	defer server.Close()
+
+	gateway := NewGateway(server.URL)
+	ctx := middleware.ContextWithRequestID(context.Background(), "client-request-1")
+	if _, err := gateway.RewriteExperience(ctx, model.ExperienceRewriteGatewayRequest{
+		UserID:            "user-1",
+		Source:            "manual_note",
+		RawText:           "焦虑的时候先把下一步写小",
+		DefaultVisibility: model.VisibilityPublic,
+	}); err != nil {
+		t.Fatalf("RewriteExperience returned error: %v", err)
+	}
+
+	if gotRequestID != "client-request-1" {
+		t.Fatalf("X-Request-ID = %q, want client-request-1", gotRequestID)
 	}
 }
 
