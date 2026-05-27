@@ -2738,6 +2738,11 @@ Current result:
     - `lsof -nP -iTCP:8081 -sTCP:LISTEN`
     - `curl -sS http://127.0.0.1:8081/status`
     - Expo session stop output `Stopped server`
+- Secret-scan false-positive cleanup checks pass:
+  - old admin PRD response examples now use `<jwt>` and `<refresh-token>` placeholders instead of JWT-like/token-like sample strings
+  - verification:
+    - static scan for the previous JWT-like and refresh-token-like sample strings in `docs/admin-prd-v1.md` and this progress document returned no live sample-token matches
+    - `git diff --check`
 
 Not verified yet:
 

@@ -924,8 +924,8 @@ HTTP Request → CORS() → AuthMiddleware(jwtSecret, db) → [业务路由]
 
 // Response 200
 {
-  "token": "eyJhbG...",
-  "refresh_token": "a1b2c3...",
+  "token": "<jwt>",
+  "refresh_token": "<refresh-token>",
   "user": {
     "id": "uuid",
     "nickname": "admin",
