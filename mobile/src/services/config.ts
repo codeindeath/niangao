@@ -170,16 +170,17 @@ function withRequestIdHeader(init: Record<string, any>): Record<string, any> {
 export async function apiFetchWithTimeout(path: string, init: Record<string, any> = {}): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), requestTimeoutForPath(path));
+  const requestInit = withRequestIdHeader(init);
+  const requestId = requestInit.headers?.['X-Request-ID'] || requestInit.headers?.['x-request-id'];
 
   try {
-    const requestInit = withRequestIdHeader(init);
     return await fetch(`${API_BASE}${path}`, {
       ...requestInit,
       signal: controller.signal,
     });
   } catch (error) {
     if (isAbortError(error)) {
-      throw new ApiError(0, '网络不稳，请稍后再试', 'request_timeout');
+      throw new ApiError(0, '网络不稳，请稍后再试', 'request_timeout', requestId);
     }
     throw error;
   } finally {

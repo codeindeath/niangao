@@ -115,16 +115,18 @@ describe('config API errors', () => {
     });
 
     const request = apiGet('/api/v1/feed/recommend?limit=2');
-    const assertion = expect(request).rejects.toMatchObject({
-      status: 0,
-      code: 'request_timeout',
-    });
     await jest.advanceTimersByTimeAsync(0);
     expect(signal).toBeDefined();
+    const requestInit = (global.fetch as jest.Mock).mock.calls[0][1];
+    const requestId = requestInit.headers['X-Request-ID'];
 
     jest.advanceTimersByTime(15_000);
 
-    await assertion;
+    await expect(request).rejects.toMatchObject({
+      status: 0,
+      code: 'request_timeout',
+      requestId,
+    });
   });
 
   it.each([
@@ -146,18 +148,20 @@ describe('config API errors', () => {
     });
 
     const request = apiPost(path as string, body);
-    const assertion = expect(request).rejects.toMatchObject({
-      status: 0,
-      code: 'request_timeout',
-    });
     await jest.advanceTimersByTimeAsync(0);
     expect(signal).toBeDefined();
+    const requestInit = (global.fetch as jest.Mock).mock.calls[0][1];
+    const requestId = requestInit.headers['X-Request-ID'];
 
     jest.advanceTimersByTime(15_000);
     expect(signal!.aborted).toBe(false);
 
     jest.advanceTimersByTime(45_000);
 
-    await assertion;
+    await expect(request).rejects.toMatchObject({
+      status: 0,
+      code: 'request_timeout',
+      requestId,
+    });
   });
 });

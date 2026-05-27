@@ -2395,6 +2395,17 @@ Current result:
     - `ai-service/venv/bin/ruff check ai-service/app ai-service/tests`
     - `git diff --check`
     - remote AI pytest/compileall, production backend/AI deploy, request-id rewrite smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- App timeout request-id preservation checks pass:
+  - mobile `apiFetchWithTimeout` now preserves the generated `X-Request-ID` on local timeout `ApiError` objects
+  - normal API timeout, chat timeout, and rewrite timeout paths now expose `requestId` so weak-network reports can be correlated with backend/AI logs when a request reached the server
+  - no production backend/AI deployment was needed for this App-only transport slice
+  - verification:
+    - `npm run test -- config.test.ts --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- config.test.ts --runInBand --no-cache`
+    - `npm run test -- --runInBand` (24 suites, 139 tests)
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+    - `git diff --check`
 
 Not verified yet:
 
