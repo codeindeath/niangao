@@ -2119,6 +2119,31 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-detail-canonical-fields`
     - `git diff --check`
     - production detail smoke, cleanup verification, service health checks, and backend/AI `journalctl` severe-error scans
+- Deprecated conversation repository/model cleanup checks pass:
+  - removed unused old `ConversationRepo` methods that operated on the legacy `conversations`/`messages` tables:
+    - `Create`, `AddMessage`, `GetMessages`, `GetByID`, `ListByUser`, `GetOrCreateByUser`, `GetMessagesSince`, and `CountTodayMessages`
+  - removed unused old `model.Conversation`, `model.Message`, and `model.ChatRequest` shapes carrying `conversation_id`
+  - `ConversationRepo` now only keeps the repo type/constructor needed by the active V4 chat implementation in `chat_v4.go`
+  - regression coverage now fails if the removed old repository methods or old conversation models return
+  - Linux backend artifact `/tmp/niangao-backend-v4-conversation-legacy-cleanup` was deployed to production at `/root/niangao/deployments/20260527002110/server`
+  - production backend binary hash now matches the local conversation-legacy-cleanup artifact:
+    - `c7dce616da6acf864b7132525cb569716d22cdec7c2216ea664c41322a37339d`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-conversation-legacy-cleanup.20260527002110.backend`
+  - post-deploy V4 chat route smoke passed with a temporary JWT user and cleanup:
+    - `/health` -> 200
+    - `/api/v1/chat/recent-topics` -> 200
+    - `/api/v1/chat/topics?limit=1` -> 200
+    - cleanup verification -> `0|0|0|0|0` for temporary users, chat messages, chat topics, temp sessions, and AI call logs tied to the smoke user
+  - post-deploy backend/AI journal scans after the smoke window found no panic, fatal error, permission-denied error, traceback, chat topic load failure, or 5xx matches
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestDeprecatedConversation' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/repository -run 'TestDeprecatedConversation|TestChat' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/model -count=1`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-conversation-legacy-cleanup`
+    - `git diff --check`
+    - production V4 chat route smoke, cleanup verification, service health checks, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

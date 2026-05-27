@@ -767,25 +767,3 @@ type CreateExperienceRequest struct {
 	SourceMessageIDs          []string   `json:"source_message_ids"`
 	IsPrivate                 bool       `json:"is_private"`
 }
-
-type Conversation struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	Title     *string   `json:"title,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
-type Message struct {
-	ID                      string    `json:"id"`
-	ConversationID          string    `json:"conversation_id"`
-	Role                    string    `json:"role"`
-	Content                 string    `json:"content"`
-	ReferencedExperienceIDs []string  `json:"referenced_experience_ids,omitempty"`
-	CreatedAt               time.Time `json:"created_at"`
-}
-
-type ChatRequest struct {
-	ConversationID string `json:"conversation_id,omitempty"`
-	Message        string `json:"message" binding:"required"`
-}
