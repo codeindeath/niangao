@@ -2774,6 +2774,17 @@ Current result:
     - `npm run test -- --runInBand`
     - `npm run typecheck`
     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
+- App AI-timeout copy checks pass:
+  - 聊聊 now distinguishes AI request timeouts from generic AI service failures on both first send and retry
+  - timeout failed bubbles keep the user's message and retry path, with copy that says the reply waited too long instead of implying the service is generally unavailable
+  - 记下 `帮我改改` now distinguishes rewrite timeouts from generic rewrite failures while still preserving the original note as the safe fallback
+  - no production backend deployment was needed for this App-only timeout-copy slice
+  - verification:
+    - `npm run test -- ChatScreen.test.tsx CreateScreen.test.tsx --runInBand --no-cache` (RED confirmed before implementation)
+    - `npm run test -- ChatScreen.test.tsx CreateScreen.test.tsx --runInBand --no-cache`
+    - `npm run test -- --runInBand`
+    - `npm run typecheck`
+    - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run expo:check`
 
 Not verified yet:
 

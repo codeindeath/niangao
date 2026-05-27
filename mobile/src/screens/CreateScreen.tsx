@@ -19,7 +19,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {createExperience, updateExperience, rewriteExperience, updateProfile, ApiError, Experience} from '../services/api';
 import {triggerTabRefresh} from './HomeScreen';
 import {handleAuthExpired} from '../utils/authGate';
-import {userFacingErrorMessage} from '../utils/errors';
+import {isRequestTimeoutError, userFacingErrorMessage} from '../utils/errors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const PRIMARY_DOMAINS: {key: string; label: string}[] = [
@@ -377,7 +377,10 @@ export default function CreateScreen({navigation, route}: any) {
       }
     } catch (e: any) {
       if (await handleAuthExpired(navigation, e)) return;
-      Alert.alert('暂时改不了', '原文可以直接记下。');
+      Alert.alert(
+        '暂时改不了',
+        isRequestTimeoutError(e) ? '这次整理等得有点久，原文可以先记下。' : '原文可以直接记下。',
+      );
     } finally {
       setRewriting(false);
     }

@@ -29,7 +29,7 @@ import {
   ChatMessageItem,
 } from '../services/api';
 import {clearToken} from '../services/config';
-import {userFacingErrorMessage} from '../utils/errors';
+import {isRequestTimeoutError, userFacingErrorMessage} from '../utils/errors';
 import {reportHandledError} from '../utils/logging';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -60,6 +60,20 @@ const AUTH_EXPIRED_MESSAGE: MessageBubble = {
 function chatQuotaMessage(err: any): string | null {
   if (err?.status !== 429) return null;
   return userFacingErrorMessage(err, '今日对话已达上限，明天再来聊吧。');
+}
+
+function chatFailureMessage(err: any): string {
+  return chatQuotaMessage(err) ||
+    (isRequestTimeoutError(err)
+      ? '这次回复等得有点久。你的消息已经保留了，可以稍后重试。'
+      : '抱歉，对话服务暂时不可用，请稍后再试。');
+}
+
+function chatRetryFailureMessage(err: any): string {
+  return chatQuotaMessage(err) ||
+    (isRequestTimeoutError(err)
+      ? '还是等得有点久。你这条消息已经保留了，可以稍后再试。'
+      : '还是没连上。你这条消息已经保留了，可以稍后再试。');
 }
 
 function isRecentlyActiveTopic(topic: ChatTopic): boolean {
@@ -343,7 +357,7 @@ export default function ChatScreen({navigation}: any) {
         );
         return;
       }
-      const errMsg = chatQuotaMessage(e) || '抱歉，对话服务暂时不可用，请稍后再试。';
+      const errMsg = chatFailureMessage(e);
       setMessages(prev =>
         prev.map(m =>
           m.id === aiId ? {...m, content: errMsg, failed: true, retryText: text, clientMessageId} : m,
@@ -390,7 +404,7 @@ export default function ChatScreen({navigation}: any) {
         } : m));
         return;
       }
-      const errMsg = chatQuotaMessage(err) || '还是没连上。你这条消息已经保留了，可以稍后再试。';
+      const errMsg = chatRetryFailureMessage(err);
       setMessages(prev => prev.map(m => m.id === item.id ? {
         ...m,
         content: errMsg,

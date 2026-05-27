@@ -215,6 +215,24 @@ describe('CreateScreen', () => {
     });
   });
 
+  it('uses a specific timeout message when rewrite waits too long', async () => {
+    (api.rewriteExperience as jest.Mock).mockRejectedValueOnce({
+      code: 'request_timeout',
+      message: '网络不稳，请稍后再试',
+    });
+
+    const {getByPlaceholderText, getByText} = render(
+      <CreateScreen navigation={makeNavigation()} route={{params: {}}} />,
+    );
+
+    fireEvent.changeText(getByPlaceholderText('此刻你有什么想说的？'), '今天先把事情做小一点');
+    fireEvent.press(getByText('帮我改改'));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('暂时改不了', '这次整理等得有点久，原文可以先记下。');
+    });
+  });
+
   it('allows a 30-character display name in the first public note gate', async () => {
     const displayName = 'abcdefghijklmnopqrstuvwxy12345';
     (api.createExperience as jest.Mock)

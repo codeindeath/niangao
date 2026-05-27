@@ -7,3 +7,7 @@ export function userFacingErrorMessage(error: unknown, fallback = '网络不稳�
   if (!message) return fallback;
   return CHINESE_TEXT.test(message) ? message : fallback;
 }
+
+export function isRequestTimeoutError(error: unknown): boolean {
+  return (error as {code?: unknown})?.code === 'request_timeout';
+}
