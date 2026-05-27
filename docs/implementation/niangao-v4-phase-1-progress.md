@@ -2743,6 +2743,26 @@ Current result:
   - verification:
     - static scan for the previous JWT-like and refresh-token-like sample strings in `docs/admin-prd-v1.md` and this progress document returned no live sample-token matches
     - `git diff --check`
+- Backend deprecated-route request-id checks pass:
+  - deprecated mobile App routes still return `410 deprecated_endpoint` with `这个入口已下线，请更新到新版年糕`
+  - deprecated error bodies now include the same `request_id` field as other App-facing `respondError` responses
+  - Linux backend artifact `/tmp/niangao-backend-v4-deprecated-request-id` was deployed to production at `/root/niangao/deployments/20260527210907/server`
+  - production backend binary hash now matches the local deprecated-request-id artifact:
+    - `8554eddd7a0f6d9e23b19fa53d8667ca6d4757770b213d94e2a90f2d3f1d7c0a`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-deprecated-request-id.20260527210907.backend`
+  - post-deploy smoke passed:
+    - public `/health` -> 200
+    - public deprecated `/api/v1/experiences?page=1&page_size=1` -> 410, `code=deprecated_endpoint`, `message=这个入口已下线，请更新到新版年糕`, and body `request_id=codex-deprecated-rid-20260527210907-public`
+  - post-smoke backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, model-call failure, invalid model output, or real `status=5xx` response; the smoke request ID appeared in backend logs
+  - intermittent SSH/hash command learning added:
+    - `ERR-20260527-034 intermittent_ssh_close_and_nested_awk_escape`
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestDeprecatedExperienceAppRoutesReturnGone' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestDeprecatedExperienceAppRoutesReturnGone|TestAppFacingV4HandlersUseStructuredErrorResponses' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-deprecated-request-id`
+    - production backend deploy, hash verification, public health/deprecated-route smoke, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

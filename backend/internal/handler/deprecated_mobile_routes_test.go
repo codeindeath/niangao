@@ -28,6 +28,10 @@ func TestDeprecatedExperienceAppRoutesReturnGone(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
 			r := gin.New()
+			r.Use(func(c *gin.Context) {
+				c.Set("request_id", "deprecated-test-request")
+				c.Next()
+			})
 			RegisterExperienceRoutes(r.Group("/api/v1"), nil)
 
 			w := httptest.NewRecorder()
@@ -46,6 +50,9 @@ func TestDeprecatedExperienceAppRoutesReturnGone(t *testing.T) {
 			}
 			if body["error"]["message"] != "这个入口已下线，请更新到新版年糕" {
 				t.Fatalf("error message = %q", body["error"]["message"])
+			}
+			if body["error"]["request_id"] != "deprecated-test-request" {
+				t.Fatalf("request_id = %q, want deprecated-test-request", body["error"]["request_id"])
 			}
 		})
 	}

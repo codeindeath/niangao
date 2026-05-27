@@ -4,6 +4,39 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260527-034] intermittent_ssh_close_and_nested_awk_escape
+
+**Logged**: 2026-05-27T21:16:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+Production smoke verification hit intermittent SSH session closures and one nested shell quoting error around `awk`.
+
+### Error
+```
+Connection closed by 115.190.177.146 port 22
+awk: cmd. line:1: {print \}
+```
+
+### Context
+- Operation attempted: deprecated-route request-id smoke and remote service/hash verification after deploying `/tmp/niangao-backend-v4-deprecated-request-id`.
+- Public HTTP health and deprecated-route smoke worked while one SSH heredoc session closed before running.
+- A separate SSH log scan succeeded and found the smoke request id with zero severe backend/AI log matches.
+- A remote hash command failed because nested quoting produced an invalid `awk '{print \}'`.
+- Retrying the SSH hash command after a short wait, without nested `awk`, succeeded and confirmed the expected backend binary hash.
+
+### Suggested Fix
+For remote hash checks, print full `sha256sum` output or use simpler quoting. If SSH closes before command execution but public health is OK, verify port/key health, wait briefly, then retry once before changing deployment state.
+
+### Metadata
+- Reproducible: no
+- Related Files: docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-033
+
+---
+
 ## [ERR-20260527-033] github_remote_internal_error_on_push
 
 **Logged**: 2026-05-27T20:57:00+08:00
