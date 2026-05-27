@@ -45,3 +45,24 @@ func TestV4MeAccountSoftDeletesAndAnonymizesUser(t *testing.T) {
 		}
 	}
 }
+
+func TestV4MeAccountUsesUserFacingCopy(t *testing.T) {
+	source, err := os.ReadFile("me_account_v4.go")
+	if err != nil {
+		t.Fatalf("read me_account_v4.go: %v", err)
+	}
+	text := string(source)
+
+	if strings.Contains(text, "删除账号失败") {
+		t.Fatal("account cancellation failures should use a softer App-facing retry message")
+	}
+	for _, want := range []string{
+		"暂时注销不了账号，请稍后再试",
+		"这个账号已经不存在或已注销",
+		"账号已注销",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("account cancellation copy should include %q", want)
+		}
+	}
+}

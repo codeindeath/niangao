@@ -17,6 +17,12 @@ func RegisterMeAccountRoutes(r *gin.RouterGroup, db *pgxpool.Pool) {
 	}
 }
 
+const (
+	accountDeleteFailedMessage = "暂时注销不了账号，请稍后再试"
+	accountNotFoundMessage     = "这个账号已经不存在或已注销"
+	accountDeletedMessage      = "账号已注销"
+)
+
 func deleteMeAccount(c *gin.Context, db *pgxpool.Pool) {
 	userID := getAuthUserID(c)
 	if userID == "" {
@@ -25,7 +31,7 @@ func deleteMeAccount(c *gin.Context, db *pgxpool.Pool) {
 
 	tx, err := db.Begin(c.Request.Context())
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "account_delete_failed", "删除账号失败")
+		respondError(c, http.StatusInternalServerError, "account_delete_failed", accountDeleteFailedMessage)
 		return
 	}
 	defer tx.Rollback(c.Request.Context())
@@ -45,26 +51,26 @@ func deleteMeAccount(c *gin.Context, db *pgxpool.Pool) {
 		userID,
 	)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "account_delete_failed", "删除账号失败")
+		respondError(c, http.StatusInternalServerError, "account_delete_failed", accountDeleteFailedMessage)
 		return
 	}
 	if ct.RowsAffected() == 0 {
-		respondError(c, http.StatusNotFound, "user_not_found", "用户不存在")
+		respondError(c, http.StatusNotFound, "user_not_found", accountNotFoundMessage)
 		return
 	}
 
 	if _, err := tx.Exec(c.Request.Context(), `DELETE FROM refresh_tokens WHERE user_id = $1`, userID); err != nil {
-		respondError(c, http.StatusInternalServerError, "account_delete_failed", "删除账号失败")
+		respondError(c, http.StatusInternalServerError, "account_delete_failed", accountDeleteFailedMessage)
 		return
 	}
 	if _, err := tx.Exec(c.Request.Context(), `DELETE FROM token_revocations WHERE user_id = $1`, userID); err != nil {
-		respondError(c, http.StatusInternalServerError, "account_delete_failed", "删除账号失败")
+		respondError(c, http.StatusInternalServerError, "account_delete_failed", accountDeleteFailedMessage)
 		return
 	}
 	if err := tx.Commit(c.Request.Context()); err != nil {
-		respondError(c, http.StatusInternalServerError, "account_delete_failed", "删除账号失败")
+		respondError(c, http.StatusInternalServerError, "account_delete_failed", accountDeleteFailedMessage)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "账号已删除"})
+	c.JSON(http.StatusOK, gin.H{"message": accountDeletedMessage})
 }

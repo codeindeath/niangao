@@ -4,6 +4,37 @@ Command failures and integration errors.
 
 ---
 
+## [ERR-20260527-031] command_substitution_grep_pipefail_count
+
+**Logged**: 2026-05-27T18:31:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+A production journal scan script exited before printing results because `grep` found no severe-log matches inside a command substitution while `set -euo pipefail` was active.
+
+### Error
+```
+ssh log scan exited with code 1 and no diagnostic output.
+```
+
+### Context
+- Operation attempted: count backend/AI severe log patterns after the account-cancellation copy deploy.
+- The script used `backend_severe=$(grep -Eai '...' "$backend_log" | wc -l | tr -d ' ')`.
+- With `set -euo pipefail`, no `grep` matches made the command substitution fail before the script printed counts.
+- The corrected script used `(grep -Eai '...' "$backend_log" || true) | wc -l`, then verified severe counts were zero and all smoke request IDs appeared in backend logs.
+
+### Suggested Fix
+When counting optional matches under `set -euo pipefail`, wrap `grep` with `|| true` inside the command substitution, not only in top-level pipelines.
+
+### Metadata
+- Reproducible: yes
+- Related Files: docs/implementation/niangao-v4-phase-1-progress.md
+- See Also: ERR-20260527-025
+
+---
+
 ## [ERR-20260527-030] macos_tar_appledouble_python_compile_failure
 
 **Logged**: 2026-05-27T17:45:11+08:00

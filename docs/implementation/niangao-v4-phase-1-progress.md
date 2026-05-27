@@ -2637,6 +2637,34 @@ Current result:
     - inspected `backend/internal/handler/me_account_v4.go` and `backend/internal/handler/me_account_v4_test.go`
     - `rg -n "hard-delete|hard delete|anonymization policy|Account deletion|account deletion|注销|deleteAccount|me/account|deleted_at|anonym" docs/implementation/niangao-v4-phase-1-contracts.md docs/implementation/niangao-v4-phase-1-progress.md backend/internal/handler/me_account_v4.go backend/internal/handler/me_account_v4_test.go`
     - `git diff --check`
+- Backend account-cancellation user-facing copy checks pass:
+  - `DELETE /api/v1/me/account` now uses softer App-facing copy for failed cancellation, missing/deleted account, and success responses:
+    - `暂时注销不了账号，请稍后再试`
+    - `这个账号已经不存在或已注销`
+    - `账号已注销`
+  - Linux backend artifact `/tmp/niangao-backend-v4-account-copy` was deployed to production at `/root/niangao/deployments/20260527182326/server`
+  - production backend binary hash now matches the local account-copy artifact:
+    - `39af92675188f2470a30b6ab7527e995b2331600bc710bd6d8e29983eedfa879`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-account-copy.20260527182326.backend`
+  - post-deploy smoke passed:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - missing-account `DELETE /api/v1/me/account` -> 404, `message=这个账号已经不存在或已注销`
+    - temporary authenticated profile before cancellation -> 200
+    - temporary authenticated account cancellation -> 200, `message=账号已注销`
+    - profile after cancellation with the same JWT -> 401
+    - database verification -> `1|0|0` for soft-deleted user present, old `apple_user_id` absent, refresh tokens removed
+    - physical cleanup verification for the temporary smoke user -> `0`
+  - post-smoke backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, `account_delete_failed`, model-call failure, invalid model output, or real `status=5xx` response; all six smoke request IDs appeared in backend logs
+  - deployment smoke script learning added:
+    - `ERR-20260527-031 command_substitution_grep_pipefail_count`
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestV4MeAccountUsesUserFacingCopy' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestV4MeAccount(RequiresAuth|SoftDeletesAndAnonymizesUser|UsesUserFacingCopy)' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-account-copy`
+    - production backend deploy, hash verification, public health/feed smoke, temporary JWT account-cancellation smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 
