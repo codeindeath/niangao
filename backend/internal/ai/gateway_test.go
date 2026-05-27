@@ -6,9 +6,21 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/niangao/backend/internal/model"
 )
+
+func TestNewGatewayWithTimeoutUsesConfiguredTimeout(t *testing.T) {
+	gateway := NewGatewayWithTimeout("http://ai.local/", 90*time.Second)
+
+	if gateway.baseURL != "http://ai.local" {
+		t.Fatalf("baseURL = %q, want trimmed base URL", gateway.baseURL)
+	}
+	if gateway.httpClient.Timeout != 90*time.Second {
+		t.Fatalf("gateway timeout = %s, want 90s", gateway.httpClient.Timeout)
+	}
+}
 
 func TestClassifyChatTopicAcceptsNullCandidateTopicID(t *testing.T) {
 	var gotFunctionType string

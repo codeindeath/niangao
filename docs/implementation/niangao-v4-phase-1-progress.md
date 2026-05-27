@@ -2339,6 +2339,29 @@ Current result:
     - remote `./venv/bin/python -m pytest tests -q`
     - remote `./venv/bin/python -m compileall -q app tests`
     - production public health/feed smoke, direct AI Gateway smoke, and backend/AI `journalctl` severe-error scans
+- Backend AI Gateway timeout configuration checks pass:
+  - backend config now reads `AI_GATEWAY_TIMEOUT_SECONDS`, defaulting to 65 seconds, and wires the value into the Go AI Gateway HTTP client
+  - `NewGateway` keeps the 65-second default while `NewGatewayWithTimeout` supports explicit runtime configuration for production alignment with AI service/provider timeout budgets
+  - Linux backend artifact `/tmp/niangao-backend-v4-ai-gateway-timeout` was deployed to production at `/root/niangao/deployments/20260527114832/server`
+  - production backend binary hash now matches the local artifact:
+    - `96cc24b12d1dc93c817fa9d9c7870bdf361512c6fc9dd96c6b955d8d3b8e5189`
+  - production binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-ai-gateway-timeout.20260527114832.backend`
+  - post-deploy authenticated backend AI rewrite smoke passed with a temporary JWT user and cleanup:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - `POST /api/v1/experiences/rewrite` -> 200, `can_rewrite=True`
+    - cleanup temporary users -> 0
+  - post-deploy backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, AI gateway call failure, rewrite gateway failure, model-call failure, invalid model output, or real 5xx response
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/config -run 'TestLoadAIGatewayTimeoutFromEnv|TestLoadDefaults' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/ai -run TestNewGatewayWithTimeoutUsesConfiguredTimeout -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/config -run 'TestLoadAIGatewayTimeoutFromEnv|TestLoadDefaults' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/ai -run 'TestNewGatewayWithTimeoutUsesConfiguredTimeout|TestClassifyChatTopicAcceptsNullCandidateTopicID' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-ai-gateway-timeout`
+    - `git diff --check`
+    - production backend deploy, hash verification, authenticated rewrite smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

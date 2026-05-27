@@ -3,12 +3,14 @@ package config
 import (
 	"os"
 	"testing"
+	"time"
 )
 
 func TestLoadDefaults(t *testing.T) {
 	// Clear env to test defaults
 	os.Unsetenv("PORT")
 	os.Unsetenv("DATABASE_URL")
+	t.Setenv("AI_GATEWAY_TIMEOUT_SECONDS", "")
 
 	cfg := Load()
 
@@ -17,6 +19,9 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.AIServiceURL != "http://localhost:8000" {
 		t.Errorf("default AI URL = %s, want http://localhost:8000", cfg.AIServiceURL)
+	}
+	if cfg.AIGatewayTimeout != 65*time.Second {
+		t.Errorf("default AI gateway timeout = %s, want 65s", cfg.AIGatewayTimeout)
 	}
 }
 
@@ -45,6 +50,16 @@ func TestLoadFromEnv(t *testing.T) {
 	}
 	if cfg.AppleBundleID != "com.test.app" {
 		t.Errorf("Apple Bundle ID not loaded from env, got %q", cfg.AppleBundleID)
+	}
+}
+
+func TestLoadAIGatewayTimeoutFromEnv(t *testing.T) {
+	t.Setenv("AI_GATEWAY_TIMEOUT_SECONDS", "90")
+
+	cfg := Load()
+
+	if cfg.AIGatewayTimeout != 90*time.Second {
+		t.Errorf("AI gateway timeout = %s, want 90s", cfg.AIGatewayTimeout)
 	}
 }
 

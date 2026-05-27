@@ -41,7 +41,7 @@ func main() {
 	// Repositories
 	expRepo := repository.NewExperienceRepo(db)
 	convRepo := repository.NewConversationRepo(db)
-	aiGateway := ai.NewGateway(cfg.AIServiceURL)
+	aiGateway := ai.NewGatewayWithTimeout(cfg.AIServiceURL, cfg.AIGatewayTimeout)
 
 	// Dev mode flag
 	devMode := cfg.Env != "production"

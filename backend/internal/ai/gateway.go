@@ -19,9 +19,16 @@ type Gateway struct {
 }
 
 func NewGateway(baseURL string) *Gateway {
+	return NewGatewayWithTimeout(baseURL, 65*time.Second)
+}
+
+func NewGatewayWithTimeout(baseURL string, timeout time.Duration) *Gateway {
+	if timeout <= 0 {
+		timeout = 65 * time.Second
+	}
 	return &Gateway{
 		baseURL:    strings.TrimRight(baseURL, "/"),
-		httpClient: &http.Client{Timeout: 65 * time.Second},
+		httpClient: &http.Client{Timeout: timeout},
 	}
 }
 
