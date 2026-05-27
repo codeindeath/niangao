@@ -2505,6 +2505,32 @@ Current result:
     - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-action-error-copy`
     - `git diff --check`
     - production backend deploy, hash verification, public health/feed smoke, authenticated temporary JWT action smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
+- Backend experience write/detail error-copy checks pass:
+  - V4 experience rewrite validation, detail not-found, create display-name gate, create save failure, update failure, delete failure, and V4 field validation paths now use Chinese App-facing fallback copy instead of English backend text
+  - 记下、看看、详情、搜索卡片 create/update/delete alert paths no longer depend on English backend fallback copy for these failure cases
+  - Linux backend artifact `/tmp/niangao-backend-v4-experience-error-copy` was deployed to production at `/root/niangao/deployments/20260527153735/server`
+  - production backend binary hash now matches the local artifact:
+    - `a77d749a6e7b687330993f25f3faf6bb8c920cd2d6e8cc6e40762a64e51fdba4`
+  - production backend binary backup was created before replacement:
+    - `/root/niangao/backups/server.before-v4-experience-error-copy.20260527153735.backend`
+  - post-deploy public and authenticated experience smoke passed:
+    - `/health` -> 200
+    - `/api/v1/feed/recommend?limit=1` -> 200
+    - invalid create visibility smoke -> 400, `message=可见性设置不支持`
+    - authenticated `POST /api/v1/experiences` -> 201
+    - authenticated `PUT /api/v1/experiences/:id` -> 200
+    - authenticated `GET /api/v1/experiences/:id` -> 200 with updated content
+    - authenticated `DELETE /api/v1/experiences/:id` -> 200
+    - cleanup temporary experiences and users -> `0|0`
+  - post-smoke backend and AI journal scans found no panic, fatal error, permission-denied error, traceback, experience save/update/delete failure, or real 5xx response
+  - verification:
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestNormalizeCreateExperienceRequestUsesUserFacingCopyForInvalidV4Fields|TestExperienceHandlerAppFacingErrorsDoNotUseEnglishFallbackCopy' -count=1 -v` (RED confirmed before implementation)
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'TestNormalizeCreateExperienceRequestUsesUserFacingCopyForInvalidV4Fields|TestExperienceHandlerAppFacingErrorsDoNotUseEnglishFallbackCopy' -count=1 -v`
+    - `$HOME/.local/toolchains/go1.26.3/bin/go test ./internal/handler -run 'Test(V4Experience|NormalizeCreateExperience|ExperienceHandler|ExperienceDetail)' -count=1 -v`
+    - `./scripts/backend-test.sh`
+    - `./scripts/backend-build-linux.sh /tmp/niangao-backend-v4-experience-error-copy`
+    - `git diff --check`
+    - production backend deploy, hash verification, public health/feed smoke, authenticated temporary JWT experience write/detail smoke, cleanup verification, and backend/AI `journalctl` severe-error scans
 
 Not verified yet:
 

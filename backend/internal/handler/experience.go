@@ -57,23 +57,23 @@ func (h *ExperienceHandler) Rewrite(c *gin.Context) {
 	}
 	var req model.ExperienceRewriteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		respondError(c, http.StatusBadRequest, "invalid_rewrite_payload", "invalid rewrite payload")
+		respondError(c, http.StatusBadRequest, "invalid_rewrite_payload", "内容格式不对")
 		return
 	}
 	req.Content = strings.TrimSpace(req.Content)
 	if req.Content == "" {
-		respondError(c, http.StatusBadRequest, "content_required", "content is required")
+		respondError(c, http.StatusBadRequest, "content_required", "先写点内容")
 		return
 	}
 	if len([]rune(req.Content)) > 2000 {
-		respondError(c, http.StatusBadRequest, "content_too_long", "content is too long")
+		respondError(c, http.StatusBadRequest, "content_too_long", "内容太长了，先拆成一小段")
 		return
 	}
 	if req.Source == "" {
 		req.Source = "manual_note"
 	}
 	if req.Source != "manual_note" && req.Source != "chat_note" {
-		respondError(c, http.StatusBadRequest, "invalid_source", "invalid source")
+		respondError(c, http.StatusBadRequest, "invalid_source", "来源不支持")
 		return
 	}
 	if req.DefaultVisibility == "" {
@@ -84,20 +84,20 @@ func (h *ExperienceHandler) Rewrite(c *gin.Context) {
 		}
 	}
 	if !model.IsValidVisibility(req.DefaultVisibility) {
-		respondError(c, http.StatusBadRequest, "invalid_default_visibility", "invalid default_visibility")
+		respondError(c, http.StatusBadRequest, "invalid_default_visibility", "可见性设置不支持")
 		return
 	}
 	if req.UserSelectedDomain != "" && !model.IsValidDomain(req.UserSelectedDomain) {
-		respondError(c, http.StatusBadRequest, "invalid_user_selected_domain", "invalid user_selected_domain")
+		respondError(c, http.StatusBadRequest, "invalid_user_selected_domain", "领域设置不支持")
 		return
 	}
 	if req.UserSelectedSubDomain != "" && !model.IsValidSubDomain(req.UserSelectedSubDomain) {
-		respondError(c, http.StatusBadRequest, "invalid_user_selected_sub_domain", "invalid user_selected_sub_domain")
+		respondError(c, http.StatusBadRequest, "invalid_user_selected_sub_domain", "子领域设置不支持")
 		return
 	}
 	if req.UserSelectedDomain != "" && req.UserSelectedSubDomain != "" &&
 		!model.SubDomainBelongsToParent(req.UserSelectedDomain, req.UserSelectedSubDomain) {
-		respondError(c, http.StatusBadRequest, "invalid_sub_domain_parent", "sub_domain does not belong to domain")
+		respondError(c, http.StatusBadRequest, "invalid_sub_domain_parent", "领域和子领域不匹配")
 		return
 	}
 	if h.aiGateway == nil {
@@ -146,7 +146,7 @@ func (h *ExperienceHandler) Get(c *gin.Context) {
 
 	exp, err := h.repo.GetByID(c.Request.Context(), id, viewerStr)
 	if err != nil {
-		respondError(c, http.StatusNotFound, "experience_not_found", "experience not found")
+		respondError(c, http.StatusNotFound, "experience_not_found", experienceUnavailableMessage)
 		return
 	}
 
@@ -255,7 +255,7 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 		displayName, err := h.repo.GetUserDisplayName(c.Request.Context(), userID)
 		if err != nil {
 			log.Printf("display name gate failed user=%s: %v", userID, err)
-			respondError(c, http.StatusInternalServerError, "display_name_check_failed", "failed to check display name")
+			respondError(c, http.StatusInternalServerError, "display_name_check_failed", "暂时确认不了展示名，请稍后再试")
 			return
 		}
 		if strings.TrimSpace(displayName) == "" {
@@ -272,7 +272,7 @@ func (h *ExperienceHandler) Create(c *gin.Context) {
 	exp, err := h.repo.CreateWithReview(c.Request.Context(), userID, req,
 		reviewStatus, nil, nil, nil, nil)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "experience_save_failed", "failed to save experience")
+		respondError(c, http.StatusInternalServerError, "experience_save_failed", "暂时保存不了，请稍后再试")
 		return
 	}
 
@@ -294,7 +294,7 @@ func normalizeCreateExperienceRequest(req *model.CreateExperienceRequest) error 
 		}
 	}
 	if !model.IsValidVisibility(req.Visibility) {
-		return errors.New("invalid visibility")
+		return errors.New("可见性设置不支持")
 	}
 	req.IsPrivate = req.Visibility == model.VisibilityPrivate
 
@@ -302,17 +302,17 @@ func normalizeCreateExperienceRequest(req *model.CreateExperienceRequest) error 
 		req.SourceScene = string(model.SourceSceneNote)
 	}
 	if req.SourceScene != string(model.SourceSceneNote) && req.SourceScene != string(model.SourceSceneChat) {
-		return errors.New("invalid source_scene")
+		return errors.New("来源不支持")
 	}
 	req.SourceChatTopicID = strings.TrimSpace(req.SourceChatTopicID)
 	req.SourceChatMessageID = strings.TrimSpace(req.SourceChatMessageID)
 	req.SourceChatMessageSnapshot = strings.TrimSpace(req.SourceChatMessageSnapshot)
 	req.SourceMessageIDs = compactSourceMessageIDs(req.SourceMessageIDs)
 	if req.SourceChatTopicID != "" && !isUUIDLike(req.SourceChatTopicID) {
-		return errors.New("invalid source_chat_topic_id")
+		return errors.New("聊天来源不正确")
 	}
 	if req.SourceChatMessageID != "" && !isUUIDLike(req.SourceChatMessageID) {
-		return errors.New("invalid source_chat_message_id")
+		return errors.New("聊天来源不正确")
 	}
 	if req.SourceScene == string(model.SourceSceneChat) && req.SourceChatMessageID == "" {
 		for i := len(req.SourceMessageIDs) - 1; i >= 0; i-- {
@@ -342,16 +342,16 @@ func normalizeCreateExperienceRequest(req *model.CreateExperienceRequest) error 
 		return errors.New("经验解读不超过 300 字")
 	}
 	if req.Domain != "" && !model.IsValidDomain(req.Domain) {
-		return errors.New("invalid domain")
+		return errors.New("领域设置不支持")
 	}
 	if req.SubDomain != "" && !model.IsValidSubDomain(req.SubDomain) {
-		return errors.New("invalid sub_domain")
+		return errors.New("子领域设置不支持")
 	}
 	if req.Domain == "" && req.SubDomain != "" {
-		return errors.New("sub_domain requires domain")
+		return errors.New("领域和子领域不匹配")
 	}
 	if req.Domain != "" && req.SubDomain != "" && !model.SubDomainBelongsToParent(req.Domain, req.SubDomain) {
-		return errors.New("sub_domain does not belong to domain")
+		return errors.New("领域和子领域不匹配")
 	}
 	return nil
 }
@@ -408,7 +408,7 @@ func (h *ExperienceHandler) Update(c *gin.Context) {
 	}
 
 	if err := h.repo.Update(c.Request.Context(), id, userID, req); err != nil {
-		respondError(c, http.StatusInternalServerError, "experience_update_failed", "failed to update")
+		respondError(c, http.StatusInternalServerError, "experience_update_failed", "暂时保存不了修改，请稍后再试")
 		return
 	}
 
@@ -423,7 +423,7 @@ func (h *ExperienceHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := h.repo.Delete(c.Request.Context(), id, userID); err != nil {
-		respondError(c, http.StatusInternalServerError, "experience_delete_failed", "failed to delete")
+		respondError(c, http.StatusInternalServerError, "experience_delete_failed", "暂时删除不了，请稍后再试")
 		return
 	}
 

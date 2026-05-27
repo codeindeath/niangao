@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -102,5 +103,69 @@ func TestNormalizeCreateExperienceRequestContentAndTopicLimits(t *testing.T) {
 				t.Fatal("expected validation error")
 			}
 		})
+	}
+}
+
+func TestNormalizeCreateExperienceRequestUsesUserFacingCopyForInvalidV4Fields(t *testing.T) {
+	tests := []struct {
+		name string
+		req  model.CreateExperienceRequest
+		want string
+	}{
+		{name: "invalid visibility", req: model.CreateExperienceRequest{Content: "有效内容", Visibility: "friends"}, want: "可见性设置不支持"},
+		{name: "invalid source scene", req: model.CreateExperienceRequest{Content: "有效内容", SourceScene: "legacy"}, want: "来源不支持"},
+		{name: "invalid source chat topic id", req: model.CreateExperienceRequest{Content: "有效内容", SourceChatTopicID: "not-a-uuid"}, want: "聊天来源不正确"},
+		{name: "invalid source chat message id", req: model.CreateExperienceRequest{Content: "有效内容", SourceChatMessageID: "not-a-uuid"}, want: "聊天来源不正确"},
+		{name: "invalid domain", req: model.CreateExperienceRequest{Content: "有效内容", Domain: "legacy"}, want: "领域设置不支持"},
+		{name: "invalid subdomain", req: model.CreateExperienceRequest{Content: "有效内容", SubDomain: "legacy"}, want: "子领域设置不支持"},
+		{name: "subdomain without domain", req: model.CreateExperienceRequest{Content: "有效内容", SubDomain: model.SubSelf}, want: "领域和子领域不匹配"},
+		{name: "subdomain parent mismatch", req: model.CreateExperienceRequest{Content: "有效内容", Domain: model.DomainMeaning, SubDomain: model.SubWorkComm}, want: "领域和子领域不匹配"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := normalizeCreateExperienceRequest(&tt.req)
+			if err == nil {
+				t.Fatal("expected validation error")
+			}
+			if err.Error() != tt.want {
+				t.Fatalf("error = %q, want %q", err.Error(), tt.want)
+			}
+		})
+	}
+}
+
+func TestExperienceHandlerAppFacingErrorsDoNotUseEnglishFallbackCopy(t *testing.T) {
+	source, err := os.ReadFile("experience.go")
+	if err != nil {
+		t.Fatalf("read experience.go: %v", err)
+	}
+	text := string(source)
+
+	for _, forbidden := range []string{
+		"invalid rewrite payload",
+		"content is required",
+		"content is too long",
+		"invalid source",
+		"invalid default_visibility",
+		"invalid user_selected_domain",
+		"invalid user_selected_sub_domain",
+		"sub_domain does not belong to domain",
+		"experience not found",
+		"failed to check display name",
+		"failed to save experience",
+		"failed to update",
+		"failed to delete",
+		"invalid visibility",
+		"invalid source_scene",
+		"invalid source_chat_topic_id",
+		"invalid source_chat_message_id",
+		"invalid domain",
+		"invalid sub_domain",
+		"sub_domain requires domain",
+	} {
+		if strings.Contains(text, `"`+forbidden+`"`) {
+			t.Fatalf("experience.go still exposes English App-facing copy %q", forbidden)
+		}
 	}
 }
